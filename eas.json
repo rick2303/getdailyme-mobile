@@ -10,12 +10,18 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleDebug"
+      },
+      "env": {
+        "EXPO_PUBLIC_ONESIGNAL_APP_ID": "e132f9d6-55ba-4bbb-8540-0e5a871eefe6"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_ONESIGNAL_APP_ID": "e132f9d6-55ba-4bbb-8540-0e5a871eefe6"
       }
     },
     "production": {
@@ -23,7 +29,7 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "PENDIENTE_proyecto_supabase_produccion",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "PENDIENTE",
-        "EXPO_PUBLIC_ONESIGNAL_APP_ID": "PENDIENTE_crear_app_en_onesignal"
+        "EXPO_PUBLIC_ONESIGNAL_APP_ID": "e132f9d6-55ba-4bbb-8540-0e5a871eefe6"
       }
     }
   },
