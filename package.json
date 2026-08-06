@@ -8,7 +8,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "drift": "node scripts/check-drift.mjs",
+    "drift:update": "node scripts/check-drift.mjs update"
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.11",
