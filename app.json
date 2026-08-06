@@ -1,0 +1,86 @@
+{
+  "expo": {
+    "name": "getdailyme",
+    "slug": "getdailyme-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "getdailyme",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6B4EE6"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.getdailyme.app",
+      "usesAppleSignIn": true,
+      "associatedDomains": ["applinks:app.getdailyme.com"],
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "getdailyme necesita acceso a tu galería para adjuntar una foto a tus registros.",
+        "NSPhotoLibraryAddUsageDescription": "getdailyme necesita permiso para guardar imágenes que generes desde la app.",
+        "NSCameraUsageDescription": "getdailyme necesita acceso a la cámara para tomar una foto de tu registro."
+      },
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.getdailyme.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#6B4EE6"
+      },
+      "predictiveBackGestureEnabled": true,
+      "softwareKeyboardLayoutMode": "pan",
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.getdailyme.com",
+              "pathPrefix": "/invite"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
+      "versionCode": 1
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser",
+      "expo-apple-authentication",
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production"
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-localization",
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "getdailyme necesita acceso a tu galería para adjuntar una foto a tus registros.",
+          "cameraPermission": "getdailyme necesita acceso a la cámara para tomar una foto de tu registro.",
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "extra": {
+      "router": {}
+    },
+    "owner": "thunderhnd"
+  }
+}

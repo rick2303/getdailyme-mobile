@@ -1,0 +1,40 @@
+{
+  "cli": {
+    "version": ">= 18.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "PENDIENTE_proyecto_supabase_produccion",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "PENDIENTE",
+        "EXPO_PUBLIC_ONESIGNAL_APP_ID": "PENDIENTE_crear_app_en_onesignal"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "PENDIENTE_crear_app_en_app_store_connect",
+        "ascApiKeyPath": "./AuthKey.p8",
+        "ascApiKeyId": "PENDIENTE",
+        "ascApiKeyIssuerId": "PENDIENTE"
+      }
+    }
+  }
+}

@@ -1,0 +1,59 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+.env.production
+.env.staging
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+
+# Claude Code — local settings, scratch screenshots and project reference (per-machine, not for the repo)
+.claude/
+CLAUDE.md
+
+# Internal deploy / store-prep notes — keep out of a shared repo
+# (assetlinks.json / apple-app-site-association stay tracked — the web serves them)
+SECURITY-HARDENING-DEPLOY.md
+PLAY-CONSOLE-CHECKLIST.md
+play-data-safety.md
+store-listing.md
+public/.well-known/README.md
+
+# local handoff (secrets, do not commit)
+_handoff/
+AuthKey*.p8
