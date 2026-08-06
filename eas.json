@@ -21,14 +21,16 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_ONESIGNAL_APP_ID": "e132f9d6-55ba-4bbb-8540-0e5a871eefe6"
+        "EXPO_PUBLIC_ONESIGNAL_APP_ID": "e132f9d6-55ba-4bbb-8540-0e5a871eefe6",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://bsheodualiflpcqqxudx.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzaGVvZHVhbGlmbHBjcXF4dWR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNzM3NTMsImV4cCI6MjEwMDk0OTc1M30.RHHLx7K9634NToxLHEVbbSy1vVltXNDy0Or1XZXNPo4"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "PENDIENTE_proyecto_supabase_produccion",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "PENDIENTE",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://bsheodualiflpcqqxudx.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJzaGVvZHVhbGlmbHBjcXF4dWR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNzM3NTMsImV4cCI6MjEwMDk0OTc1M30.RHHLx7K9634NToxLHEVbbSy1vVltXNDy0Or1XZXNPo4",
         "EXPO_PUBLIC_ONESIGNAL_APP_ID": "e132f9d6-55ba-4bbb-8540-0e5a871eefe6"
       }
     }
