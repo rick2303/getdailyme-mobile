@@ -22,6 +22,8 @@ export type Profile = {
   // null mientras nadie lo haya cambiado a mano: el que trae la cuenta al
   // crearse sale del correo y no lo eligio nadie.
   username_changed_at: string | null;
+  // Solo en movil: la navegacion decide onboarding con esto (la web usa cookie+proxy).
+  onboarded_at: string | null;
 };
 
 export type Activity = {

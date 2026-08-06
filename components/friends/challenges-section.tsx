@@ -1,0 +1,403 @@
+import { Check, Plus, Trophy } from 'lucide-react-native'
+import { useState } from 'react'
+import { Pressable, Text, View } from 'react-native'
+
+import { Avatar } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { TextInput } from '@/components/ui/field'
+import { Sheet } from '@/components/ui/sheet'
+import { useToast } from '@/components/ui/toast'
+import { useThemeColors } from '@/constants/colors'
+import { useI18n } from '@/i18n/provider'
+import { challengeDaysLeft, type ChallengeMembership } from '@/lib/api/challenges'
+import { useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
+import { useActiveActivities } from '@/lib/hooks/use-activities'
+import {
+  useChallengeStandings,
+  useChallenges,
+  useCreateChallenge,
+  useJoinChallenge,
+  useLeaveChallenge,
+} from '@/lib/hooks/use-challenges'
+import { useFriends } from '@/lib/hooks/use-friends'
+import { shiftDateKey, todayKey } from '@/lib/utils/dates'
+import { haptic } from '@/lib/utils/haptics'
+
+// Retos en version movil: activos con clasificacion, invitaciones con eleccion
+// de actividad, y creacion con duracion en dias. El historico con revancha
+// llega en la fase de pulido.
+export function ChallengesSection() {
+  const { t } = useI18n()
+  const timeZone = useTimeZone()
+  const { active, invitations } = useChallenges()
+  const [creating, setCreating] = useState(false)
+
+  const today = todayKey(timeZone)
+  const running = active.filter((challenge) => challengeDaysLeft(challenge.ends_on, today) >= 0)
+
+  if (running.length === 0 && invitations.length === 0) {
+    return (
+      <View className="gap-2">
+        <SectionHeader onCreate={() => setCreating(true)} />
+        <Text className="px-1 text-sm text-text-muted dark:text-text-muted-dark">
+          {t('challenges.empty')}
+        </Text>
+        <CreateChallengeSheet open={creating} onClose={() => setCreating(false)} />
+      </View>
+    )
+  }
+
+  return (
+    <View className="gap-2">
+      <SectionHeader onCreate={() => setCreating(true)} />
+      {invitations.map((challenge) => (
+        <InvitationCard key={challenge.id} challenge={challenge} />
+      ))}
+      {running.map((challenge) => (
+        <ChallengeCard key={challenge.id} challenge={challenge} />
+      ))}
+      <CreateChallengeSheet open={creating} onClose={() => setCreating(false)} />
+    </View>
+  )
+}
+
+function SectionHeader({ onCreate }: { onCreate: () => void }) {
+  const { t } = useI18n()
+  const colors = useThemeColors()
+
+  return (
+    <View className="flex-row items-center justify-between px-1">
+      <Text className="text-sm font-bold uppercase tracking-wide text-text dark:text-text-dark">
+        {t('challenges.title')}
+      </Text>
+      <Button
+        title={t('challenges.create')}
+        size="sm"
+        variant="secondary"
+        icon={<Plus size={16} color={colors.text} />}
+        onPress={onCreate}
+      />
+    </View>
+  )
+}
+
+function useDaysLeftLabel(endsOn: string) {
+  const { t } = useI18n()
+  const timeZone = useTimeZone()
+  const left = challengeDaysLeft(endsOn, todayKey(timeZone))
+
+  if (left < 0) return t('challenges.finished')
+  if (left === 0) return t('challenges.lastDay')
+  return t('challenges.daysLeft', { count: left })
+}
+
+function ChallengeCard({ challenge }: { challenge: ChallengeMembership }) {
+  const { t } = useI18n()
+  const colors = useThemeColors()
+  const userId = useCurrentUserId()
+  const { data: standings } = useChallengeStandings(challenge.id)
+  const leave = useLeaveChallenge()
+  const daysLeft = useDaysLeftLabel(challenge.ends_on)
+
+  return (
+    <View className="gap-3 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className="text-sm font-bold text-text dark:text-text-dark" numberOfLines={1}>
+            {challenge.title}
+          </Text>
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+            {t('challenges.goal', { target: challenge.target })} · {daysLeft}
+          </Text>
+        </View>
+        <Trophy size={20} color="#D97706" />
+      </View>
+
+      <View className="gap-2">
+        {(standings ?? []).map((row, index) => {
+          const progress = Math.min(row.total / challenge.target, 1)
+          const done = row.total >= challenge.target
+          return (
+            <View key={row.user_id} className="flex-row items-center gap-3">
+              <Text className="w-4 text-xs font-bold text-text-subtle dark:text-text-subtle-dark">
+                {index + 1}
+              </Text>
+              <Avatar name={row.display_name} src={row.avatar_url} size="sm" />
+              <View className="min-w-0 flex-1">
+                <View className="flex-row items-center gap-1">
+                  <Text className="text-xs font-semibold text-text dark:text-text-dark" numberOfLines={1}>
+                    {row.user_id === userId ? t('challenges.you') : row.display_name}
+                  </Text>
+                  {done ? <Check size={14} color={colors.success} strokeWidth={3} /> : null}
+                </View>
+                <View className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-sunken dark:bg-surface-sunken-dark">
+                  <View
+                    className={done ? 'h-full bg-success' : 'h-full bg-brand'}
+                    style={{ width: `${Math.round(progress * 100)}%` }}
+                  />
+                </View>
+              </View>
+              <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark">
+                {row.total}/{challenge.target}
+              </Text>
+            </View>
+          )
+        })}
+      </View>
+
+      <Button
+        title={t('challenges.leave')}
+        variant="ghost"
+        size="sm"
+        disabled={leave.isPending}
+        onPress={() => leave.mutate(challenge.id)}
+      />
+    </View>
+  )
+}
+
+function InvitationCard({ challenge }: { challenge: ChallengeMembership }) {
+  const { t } = useI18n()
+  const { showToast } = useToast()
+  const { data: activities } = useActiveActivities()
+  const join = useJoinChallenge()
+  const [picking, setPicking] = useState(false)
+  const daysLeft = useDaysLeftLabel(challenge.ends_on)
+
+  return (
+    <View className="gap-3 rounded-3xl border border-brand bg-brand-soft p-4 dark:bg-brand-soft-dark">
+      <View>
+        <Text className="text-sm font-bold text-text dark:text-text-dark" numberOfLines={1}>
+          {challenge.title}
+        </Text>
+        <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+          {t('challenges.goal', { target: challenge.target })} · {daysLeft}
+        </Text>
+      </View>
+
+      <Button title={t('challenges.join')} size="sm" onPress={() => setPicking(true)} />
+
+      <Sheet
+        open={picking}
+        onClose={() => setPicking(false)}
+        title={t('challenges.pickActivityTitle')}
+        description={t('challenges.pickActivityBody')}
+        closeLabel={t('common.close')}
+      >
+        <View className="gap-1.5 pt-2">
+          {(activities ?? []).map((activity) => (
+            <Button
+              key={activity.id}
+              title={activity.name}
+              variant="secondary"
+              size="lg"
+              fullWidth
+              disabled={join.isPending}
+              onPress={() =>
+                join.mutate(
+                  { challengeId: challenge.id, activityId: activity.id },
+                  {
+                    onSuccess: () => setPicking(false),
+                    onError: () => showToast(t('common.genericError'), 'error'),
+                  },
+                )
+              }
+            />
+          ))}
+        </View>
+      </Sheet>
+    </View>
+  )
+}
+
+const DURATION_PRESETS = [7, 14, 30]
+
+function CreateChallengeSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useI18n()
+  const { showToast } = useToast()
+  const timeZone = useTimeZone()
+  const { data: activities } = useActiveActivities()
+  const { friends } = useFriends()
+  const create = useCreateChallenge()
+
+  const today = todayKey(timeZone)
+  const [title, setTitle] = useState('')
+  const [target, setTarget] = useState('4')
+  const [days, setDays] = useState(7)
+  const [activityId, setActivityId] = useState<string | null>(null)
+  const [invited, setInvited] = useState<string[]>([])
+
+  const parsedTarget = Math.max(1, Number(target) || 0)
+  const canSave = title.trim().length > 0 && parsedTarget > 0 && activityId !== null
+
+  const submit = () => {
+    if (!canSave) return
+    create.mutate(
+      {
+        title: title.trim(),
+        target: parsedTarget,
+        endsOn: shiftDateKey(today, days - 1),
+        activityId: activityId!,
+        friendIds: invited,
+      },
+      {
+        onSuccess: () => {
+          setTitle('')
+          setTarget('4')
+          setDays(7)
+          setActivityId(null)
+          setInvited([])
+          onClose()
+        },
+        onError: () => showToast(t('common.genericError'), 'error'),
+      },
+    )
+  }
+
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={t('challenges.createTitle')}
+      closeLabel={t('common.close')}
+      footer={
+        <Button
+          title={t('challenges.createCta')}
+          size="lg"
+          fullWidth
+          disabled={!canSave || create.isPending}
+          loading={create.isPending}
+          onPress={submit}
+        />
+      }
+    >
+      <View className="gap-4 pt-2">
+        <TextInput
+          label={t('challenges.titleLabel')}
+          placeholder={t('challenges.titlePlaceholder')}
+          value={title}
+          onChangeText={setTitle}
+        />
+
+        <TextInput
+          label={t('challenges.targetLabel')}
+          hint={t('challenges.targetHelp')}
+          keyboardType="number-pad"
+          value={target}
+          onChangeText={setTarget}
+        />
+
+        <View className="gap-2">
+          <Text className="px-1 text-sm font-semibold text-text-muted dark:text-text-muted-dark">
+            {t('challenges.endsOnLabel')}
+          </Text>
+          <View className="flex-row gap-2">
+            {DURATION_PRESETS.map((value) => (
+              <Pressable
+                key={value}
+                accessibilityRole="button"
+                accessibilityState={{ selected: days === value }}
+                onPress={() => setDays(value)}
+                className={
+                  days === value
+                    ? 'h-11 flex-1 items-center justify-center rounded-2xl border border-brand bg-brand-soft dark:bg-brand-soft-dark'
+                    : 'h-11 flex-1 items-center justify-center rounded-2xl border border-border bg-surface-sunken dark:border-border-dark dark:bg-surface-sunken-dark'
+                }
+              >
+                <Text
+                  className={
+                    days === value
+                      ? 'text-sm font-semibold text-brand dark:text-brand-dark'
+                      : 'text-sm font-semibold text-text-muted dark:text-text-muted-dark'
+                  }
+                >
+                  {t('challenges.durationPreset', { count: value })}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View className="gap-2">
+          <Text className="px-1 text-sm font-semibold text-text-muted dark:text-text-muted-dark">
+            {t('challenges.activityLabel')}
+          </Text>
+          <View className="gap-1.5">
+            {(activities ?? []).map((activity) => (
+              <SelectRow
+                key={activity.id}
+                label={activity.name}
+                selected={activityId === activity.id}
+                onPress={() => setActivityId(activity.id)}
+              />
+            ))}
+          </View>
+        </View>
+
+        {friends.length > 0 ? (
+          <View className="gap-2">
+            <Text className="px-1 text-sm font-semibold text-text-muted dark:text-text-muted-dark">
+              {t('challenges.inviteLabel')}
+            </Text>
+            <View className="gap-1.5">
+              {friends.map((edge) => (
+                <SelectRow
+                  key={edge.profile.id}
+                  label={edge.profile.display_name}
+                  selected={invited.includes(edge.profile.id)}
+                  onPress={() =>
+                    setInvited((current) =>
+                      current.includes(edge.profile.id)
+                        ? current.filter((id) => id !== edge.profile.id)
+                        : [...current, edge.profile.id],
+                    )
+                  }
+                />
+              ))}
+            </View>
+          </View>
+        ) : null}
+      </View>
+    </Sheet>
+  )
+}
+
+function SelectRow({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string
+  selected: boolean
+  onPress: () => void
+}) {
+  const colors = useThemeColors()
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={() => {
+        haptic('tap')
+        onPress()
+      }}
+      className={
+        selected
+          ? 'min-h-11 flex-row items-center justify-between rounded-2xl border border-brand bg-brand-soft px-3 dark:bg-brand-soft-dark'
+          : 'min-h-11 flex-row items-center justify-between rounded-2xl border border-border bg-surface-sunken px-3 dark:border-border-dark dark:bg-surface-sunken-dark'
+      }
+    >
+      <Text
+        className={
+          selected
+            ? 'text-sm font-semibold text-brand dark:text-brand-dark'
+            : 'text-sm font-semibold text-text-muted dark:text-text-muted-dark'
+        }
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+      {selected ? <Check size={16} color={colors.brand} strokeWidth={3} /> : null}
+    </Pressable>
+  )
+}

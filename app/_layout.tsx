@@ -1,31 +1,84 @@
 import '../global.css'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Stack } from 'expo-router'
-import { useState } from 'react'
+import { Stack, useRouter, useSegments } from 'expo-router'
+import { useEffect } from 'react'
+import { View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
+import { Spinner } from '@/components/ui/feedback'
+import { ToastProvider } from '@/components/ui/toast'
 import { I18nProvider } from '@/i18n/provider'
+import { AuthProvider, useAuth } from '@/lib/auth/provider'
+import { initOneSignal, loginOneSignal, logoutOneSignal } from '@/lib/onesignal'
+import { QueryProvider } from '@/lib/query/provider'
+
+// El guardia de rutas: sin sesion -> acceso; con sesion sin onboarding ->
+// bienvenida; el resto -> tabs. Es el equivalente movil del proxy de la web.
+function Gate({ children }: { children: React.ReactNode }) {
+  const { user, needsOnboarding, isLoadingSession, isLoadingProfile } = useAuth()
+  const segments = useSegments()
+  const router = useRouter()
+
+  const ready = !isLoadingSession && (!user || !isLoadingProfile)
+
+  useEffect(() => {
+    if (!ready) return
+    const inAuth = segments[0] === '(auth)'
+    const inWelcome = segments[0] === 'welcome'
+
+    if (!user && !inAuth) {
+      router.replace('/sign-in')
+    } else if (user && needsOnboarding && !inWelcome) {
+      router.replace('/welcome')
+    } else if (user && !needsOnboarding && (inAuth || inWelcome)) {
+      router.replace('/')
+    }
+  }, [ready, user, needsOnboarding, segments, router])
+
+  if (!ready) {
+    return (
+      <View className="flex-1 items-center justify-center bg-bg dark:bg-bg-dark">
+        <Spinner />
+      </View>
+    )
+  }
+
+  return <>{children}</>
+}
+
+function PushBinder() {
+  const { user } = useAuth()
+
+  useEffect(() => {
+    const appId = process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID
+    if (appId) initOneSignal(appId)
+  }, [])
+
+  useEffect(() => {
+    if (user) loginOneSignal(user.id)
+    else logoutOneSignal()
+  }, [user])
+
+  return null
+}
 
 export default function RootLayout() {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: { staleTime: 30_000, retry: 1 },
-        },
-      }),
-  )
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
+        <QueryProvider>
           <I18nProvider>
-            <Stack screenOptions={{ headerShown: false }} />
+            <AuthProvider>
+              <ToastProvider>
+                <PushBinder />
+                <Gate>
+                  <Stack screenOptions={{ headerShown: false }} />
+                </Gate>
+              </ToastProvider>
+            </AuthProvider>
           </I18nProvider>
-        </QueryClientProvider>
+        </QueryProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   )

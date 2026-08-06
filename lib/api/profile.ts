@@ -3,7 +3,7 @@ import type { TypedSupabaseClient } from "@/lib/supabase/types";
 import type { Profile } from "./types";
 
 const PROFILE_COLUMNS =
-  "id, username, display_name, avatar_url, timezone, locale, created_at, username_changed_at";
+  "id, username, display_name, avatar_url, timezone, locale, created_at, username_changed_at, onboarded_at";
 
 export const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 
