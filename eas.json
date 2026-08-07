@@ -38,7 +38,6 @@
   "submit": {
     "production": {
       "ios": {
-        "ascAppId": "PENDIENTE_crear_app_en_app_store_connect",
         "ascApiKeyPath": "./AuthKey_RDRG6TYQ85.p8",
         "ascApiKeyId": "RDRG6TYQ85",
         "ascApiKeyIssuerId": "6e250b4b-b55e-40f9-989e-69b1813b9a5e"
