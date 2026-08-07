@@ -25,9 +25,10 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "getdailyme necesita acceso a tu galería para adjuntar una foto a tus registros.",
         "NSPhotoLibraryAddUsageDescription": "getdailyme necesita permiso para guardar imágenes que generes desde la app.",
-        "NSCameraUsageDescription": "getdailyme necesita acceso a la cámara para tomar una foto de tu registro."
+        "NSCameraUsageDescription": "getdailyme necesita acceso a la cámara para tomar una foto de tu registro.",
+        "NSLocationWhenInUseUsageDescription": "getdailyme no usa tu ubicación. Este permiso lo requiere una librería de notificaciones, pero la app nunca accede a tu ubicación."
       },
-      "buildNumber": "1"
+      "buildNumber": "2"
     },
     "android": {
       "package": "com.getdailyme.app",
