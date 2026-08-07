@@ -23,6 +23,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ActivityIcon } from '@/components/activities/activity-icon'
 import { Heatmap } from '@/components/profile/heatmap'
+import { RecapShareSheet, type RecapShareData } from '@/components/profile/recap-share-sheet'
+import { ACTIVITY_HEX } from '@/constants/colors'
 import { ManageActivitiesSheet } from '@/components/profile/manage-activities-sheet'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
@@ -224,6 +226,7 @@ function RecapSection() {
   const { data: activities } = useActivities()
 
   const [mode, setMode] = useState<RecapMode>('week')
+  const [sharing, setSharing] = useState(false)
   const yearData = useYearDayTotals(mode === 'year')
 
   const thisWeekStart = startOfWeek(today)
@@ -262,6 +265,19 @@ function RecapSection() {
   )
   const yearLabel = today.slice(0, 4)
 
+  const bestDayLabel = current.bestDay
+    ? mode === 'week'
+      ? new Intl.DateTimeFormat(locale, { timeZone: 'UTC', weekday: 'long' }).format(
+          dateKeyToDate(current.bestDay.date),
+        )
+      : new Intl.DateTimeFormat(locale, { timeZone: 'UTC', day: 'numeric', month: 'short' }).format(
+          dateKeyToDate(current.bestDay.date),
+        )
+    : '—'
+
+  const activeDaysValue =
+    mode === 'week' ? current.activeDays + '/' + DAYS_PER_WEEK : String(current.activeDays)
+
   const shareHeadline =
     mode === 'month'
       ? t('weekly.shareHeadlineMonth', { month: monthName, count: current.totalLogs })
@@ -269,8 +285,41 @@ function RecapSection() {
         ? t('weekly.shareHeadlineYear', { year: yearLabel, count: current.totalLogs })
         : t('weekly.shareHeadline', { count: current.totalLogs })
 
-  const share = async () => {
-    const text = [
+  const shareData: RecapShareData = {
+    heading:
+      mode === 'month'
+        ? t('weekly.thisMonth', { month: monthName })
+        : mode === 'year'
+          ? t('weekly.thisYear', { year: yearLabel })
+          : offset === 0
+            ? t('weekly.thisWeek')
+            : t('weekly.lastWeek'),
+    rangeLabel:
+      mode === 'year'
+        ? yearLabel
+        : mode === 'month'
+          ? monthName
+          : weekStart,
+    totalLogs: current.totalLogs,
+    totalLabel: t('weekly.totalLogs'),
+    deltaLabel:
+      delta !== null && previous && previous.totalLogs > 0
+        ? t('weekly.vsLastWeek', { delta: (delta > 0 ? '+' : '') + delta + '%' })
+        : null,
+    metrics: [
+      { label: t('weekly.activeDays'), value: activeDaysValue },
+      { label: t('weekly.bestDay'), value: bestDayLabel },
+    ],
+    weekdayInitials: t('stats.weekdayLabels').split(' '),
+    countsByDay: current.countsByDay,
+    activities: topActivities.map((row) => ({
+      name: activityName(row.activity.name),
+      detail: amountWithUnit(row.total.amount, row.activity.unit),
+      count: row.total.count,
+      color: ACTIVITY_HEX[row.activity.color]?.light ?? '#6B4EE6',
+    })),
+    activitiesLabel: t('weekly.topActivities'),
+    shareText: [
       shareHeadline,
       ...topActivities.map((row) =>
         t('weekly.shareLine', {
@@ -278,12 +327,7 @@ function RecapSection() {
           value: amountWithUnit(row.total.amount, row.activity.unit),
         }),
       ),
-    ].join('\n')
-    try {
-      await Share.share({ message: text })
-    } catch {
-      // Cancelar el menu del sistema no es un error.
-    }
+    ].join(String.fromCharCode(10)),
   }
 
   const modeOptions: SegmentedOption<RecapMode>[] = [
@@ -389,11 +433,13 @@ function RecapSection() {
               size="sm"
               fullWidth
               icon={<Share2 size={16} color={colors.text} />}
-              onPress={() => void share()}
+              onPress={() => setSharing(true)}
             />
           </>
         )}
       </View>
+
+      <RecapShareSheet open={sharing} data={shareData} onClose={() => setSharing(false)} />
     </View>
   )
 }

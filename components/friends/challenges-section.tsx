@@ -1,4 +1,4 @@
-import { Check, Plus, Trophy } from 'lucide-react-native'
+import { Check, History, Plus, RotateCcw, Trophy } from 'lucide-react-native'
 import { useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 
@@ -20,7 +20,7 @@ import {
   useLeaveChallenge,
 } from '@/lib/hooks/use-challenges'
 import { useFriends } from '@/lib/hooks/use-friends'
-import { shiftDateKey, todayKey } from '@/lib/utils/dates'
+import { daysBetweenKeys, shiftDateKey, todayKey } from '@/lib/utils/dates'
 import { haptic } from '@/lib/utils/haptics'
 
 // Retos en version movil: activos con clasificacion, invitaciones con eleccion
@@ -30,33 +30,152 @@ export function ChallengesSection() {
   const { t } = useI18n()
   const timeZone = useTimeZone()
   const { active, invitations } = useChallenges()
-  const [creating, setCreating] = useState(false)
+  const [creator, setCreator] = useState<{ open: boolean; prefill: ChallengePrefill | null }>({
+    open: false,
+    prefill: null,
+  })
+  const [showFinished, setShowFinished] = useState(false)
 
   const today = todayKey(timeZone)
   const running = active.filter((challenge) => challengeDaysLeft(challenge.ends_on, today) >= 0)
+  const finished = active
+    .filter((challenge) => challengeDaysLeft(challenge.ends_on, today) < 0)
+    .sort((a, b) => b.ends_on.localeCompare(a.ends_on))
+    .slice(0, 5)
 
   if (running.length === 0 && invitations.length === 0) {
     return (
       <View className="gap-2">
-        <SectionHeader onCreate={() => setCreating(true)} />
+        <SectionHeader onCreate={() => setCreator({ open: true, prefill: null })} />
         <Text className="px-1 text-sm text-text-muted dark:text-text-muted-dark">
           {t('challenges.empty')}
         </Text>
-        <CreateChallengeSheet open={creating} onClose={() => setCreating(false)} />
+        <CreateChallengeSheet
+        open={creator.open}
+        prefill={creator.prefill}
+        onClose={() => setCreator({ open: false, prefill: null })}
+      />
       </View>
     )
   }
 
   return (
     <View className="gap-2">
-      <SectionHeader onCreate={() => setCreating(true)} />
+      <SectionHeader onCreate={() => setCreator({ open: true, prefill: null })} />
       {invitations.map((challenge) => (
         <InvitationCard key={challenge.id} challenge={challenge} />
       ))}
       {running.map((challenge) => (
         <ChallengeCard key={challenge.id} challenge={challenge} />
       ))}
-      <CreateChallengeSheet open={creating} onClose={() => setCreating(false)} />
+
+      {finished.length > 0 ? (
+        <FinishedChallenges
+          finished={finished}
+          show={showFinished}
+          onToggle={() => setShowFinished((value) => !value)}
+          onRematch={(prefill) => setCreator({ open: true, prefill })}
+        />
+      ) : null}
+      <CreateChallengeSheet
+        open={creator.open}
+        prefill={creator.prefill}
+        onClose={() => setCreator({ open: false, prefill: null })}
+      />
+    </View>
+  )
+}
+
+function FinishedChallenges({
+  finished,
+  show,
+  onToggle,
+  onRematch,
+}: {
+  finished: ChallengeMembership[]
+  show: boolean
+  onToggle: () => void
+  onRematch: (prefill: ChallengePrefill) => void
+}) {
+  const { t } = useI18n()
+  const colors = useThemeColors()
+
+  return (
+    <View className="gap-2">
+      <Pressable accessibilityRole="button" onPress={onToggle} className="min-h-10 flex-row items-center gap-2 px-1">
+        <History size={14} color={colors.textSubtle} />
+        <Text className="text-xs font-bold text-text-subtle dark:text-text-subtle-dark">
+          {show ? t('challenges.hideFinished') : t('challenges.showFinished', { count: finished.length })}
+        </Text>
+      </Pressable>
+      {show
+        ? finished.map((challenge) => (
+            <FinishedCard key={challenge.id} challenge={challenge} onRematch={onRematch} />
+          ))
+        : null}
+    </View>
+  )
+}
+
+function FinishedCard({
+  challenge,
+  onRematch,
+}: {
+  challenge: ChallengeMembership
+  onRematch: (prefill: ChallengePrefill) => void
+}) {
+  const { t } = useI18n()
+  const colors = useThemeColors()
+  const userId = useCurrentUserId()
+  const { data: standings } = useChallengeStandings(challenge.id)
+
+  const rows = standings ?? []
+  const winner = rows[0]
+  const anyoneReached = rows.some((row) => row.total >= challenge.target)
+
+  return (
+    <View className="gap-3 rounded-3xl border border-border bg-surface-sunken p-4 dark:border-border-dark dark:bg-surface-sunken-dark">
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className="text-sm font-bold text-text dark:text-text-dark" numberOfLines={1}>
+            {challenge.title}
+          </Text>
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+            {t('challenges.goal', { target: challenge.target })} · {t('challenges.finished')}
+          </Text>
+        </View>
+        <Trophy size={18} color={colors.textSubtle} />
+      </View>
+
+      {winner ? (
+        <View className="flex-row items-center gap-2.5">
+          <Avatar name={winner.display_name} src={winner.avatar_url} size="sm" />
+          <Text className="min-w-0 flex-1 text-sm text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
+            {anyoneReached
+              ? t('challenges.wonBy', {
+                  name: winner.user_id === userId ? t('challenges.you') : winner.display_name,
+                  total: winner.total,
+                })
+              : t('challenges.nobodyReached')}
+          </Text>
+        </View>
+      ) : null}
+
+      <Button
+        title={t('challenges.rematch')}
+        size="sm"
+        variant="secondary"
+        icon={<RotateCcw size={14} color={colors.text} />}
+        onPress={() =>
+          onRematch({
+            title: challenge.title,
+            target: challenge.target,
+            days: daysBetweenKeys(challenge.starts_on, challenge.ends_on) + 1,
+            activityId: challenge.activity_id,
+            friendIds: rows.map((row) => row.user_id).filter((id) => id !== userId),
+          })
+        }
+      />
     </View>
   )
 }
@@ -212,7 +331,23 @@ function InvitationCard({ challenge }: { challenge: ChallengeMembership }) {
 
 const DURATION_PRESETS = [7, 14, 30]
 
-function CreateChallengeSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+type ChallengePrefill = {
+  title: string
+  target: number
+  days: number
+  activityId: string | null
+  friendIds: string[]
+}
+
+function CreateChallengeSheet({
+  open,
+  prefill,
+  onClose,
+}: {
+  open: boolean
+  prefill?: ChallengePrefill | null
+  onClose: () => void
+}) {
   const { t } = useI18n()
   const { showToast } = useToast()
   const timeZone = useTimeZone()
@@ -226,6 +361,18 @@ function CreateChallengeSheet({ open, onClose }: { open: boolean; onClose: () =>
   const [days, setDays] = useState(7)
   const [activityId, setActivityId] = useState<string | null>(null)
   const [invited, setInvited] = useState<string[]>([])
+
+  const [lastPrefill, setLastPrefill] = useState<ChallengePrefill | null | undefined>(null)
+  if (open && prefill !== lastPrefill) {
+    setLastPrefill(prefill)
+    if (prefill) {
+      setTitle(prefill.title)
+      setTarget(String(prefill.target))
+      setDays(Math.max(1, prefill.days))
+      setActivityId(prefill.activityId)
+      setInvited(prefill.friendIds)
+    }
+  }
 
   const parsedTarget = Math.max(1, Number(target) || 0)
   const canSave = title.trim().length > 0 && parsedTarget > 0 && activityId !== null

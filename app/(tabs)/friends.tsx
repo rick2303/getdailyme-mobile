@@ -1,4 +1,4 @@
-import { Check, Hand, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native'
+import { Check, Flame, Hand, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native'
 import { useState } from 'react'
 import { Share } from 'react-native'
 import { Pressable, ScrollView, Text, View } from 'react-native'
@@ -26,6 +26,10 @@ import {
   useMarkNudgesRead,
 } from '@/lib/hooks/use-friends'
 import { useInviteToken } from '@/lib/hooks/use-invite'
+import { useFriendActiveDates } from '@/lib/hooks/use-friends'
+import { useHistorySummary } from '@/lib/hooks/use-logs'
+import { computeSharedStreak } from '@/lib/activities/streaks'
+import { Sheet } from '@/components/ui/sheet'
 import { useCurrentUserId } from '@/lib/auth/provider'
 import { haptic } from '@/lib/utils/haptics'
 
@@ -252,6 +256,7 @@ function Requests({ requests }: { requests: FriendEdge[] }) {
 
 function FriendListSection({ friends }: { friends: FriendEdge[] }) {
   const userId = useCurrentUserId()
+  const [selected, setSelected] = useState<FriendEdge | null>(null)
   const { t } = useI18n()
   const { showToast } = useToast()
   const colors = useThemeColors()
@@ -269,15 +274,22 @@ function FriendListSection({ friends }: { friends: FriendEdge[] }) {
           key={edge.friendshipId}
           className="flex-row items-center gap-3 rounded-2xl border border-border bg-surface p-3 dark:border-border-dark dark:bg-surface-dark"
         >
-          <Avatar name={edge.profile.display_name} src={edge.profile.avatar_url} size="sm" />
-          <View className="min-w-0 flex-1">
-            <Text className="text-sm font-bold text-text dark:text-text-dark" numberOfLines={1}>
-              {edge.profile.display_name}
-            </Text>
-            <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-              @{edge.profile.username}
-            </Text>
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={edge.profile.display_name}
+            onPress={() => setSelected(edge)}
+            className="min-w-0 flex-1 flex-row items-center gap-3"
+          >
+            <Avatar name={edge.profile.display_name} src={edge.profile.avatar_url} size="sm" />
+            <View className="min-w-0 flex-1">
+              <Text className="text-sm font-bold text-text dark:text-text-dark" numberOfLines={1}>
+                {edge.profile.display_name}
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+                @{edge.profile.username}
+              </Text>
+            </View>
+          </Pressable>
           <IconButton
             label={t('friends.nudge')}
             onPress={() => {
@@ -309,6 +321,8 @@ function FriendListSection({ friends }: { friends: FriendEdge[] }) {
           </IconButton>
         </View>
       ))}
+
+      <FriendSheet edge={selected} onClose={() => setSelected(null)} />
 
       <ConfirmDialog
         open={pendingRemove !== null}
@@ -363,6 +377,55 @@ function BlockedSection({ blocked }: { blocked: FriendEdge[] }) {
             </View>
           ))
         : null}
+    </View>
+  )
+}
+
+function FriendSheet({ edge, onClose }: { edge: FriendEdge | null; onClose: () => void }) {
+  const { t } = useI18n()
+
+  return (
+    <Sheet
+      open={edge !== null}
+      onClose={onClose}
+      title={edge?.profile.display_name ?? ''}
+      description={edge ? '@' + edge.profile.username : undefined}
+      closeLabel={t('common.close')}
+    >
+      {edge ? (
+        <View className="items-center gap-4 pb-2 pt-1">
+          <Avatar name={edge.profile.display_name} src={edge.profile.avatar_url} size="lg" />
+          <SharedStreakCard friendId={edge.profile.id} />
+        </View>
+      ) : null}
+    </Sheet>
+  )
+}
+
+function SharedStreakCard({ friendId }: { friendId: string }) {
+  const { t } = useI18n()
+  const { allDates, today } = useHistorySummary()
+  const { data: friendDates, isLoading } = useFriendActiveDates(friendId)
+
+  if (isLoading) return null
+
+  const streak = computeSharedStreak(allDates, friendDates ?? [], today)
+
+  return (
+    <View className="w-full flex-row items-center gap-3 rounded-2xl bg-surface-sunken p-3.5 dark:bg-surface-sunken-dark">
+      <View className="h-11 w-11 items-center justify-center rounded-full bg-brand-soft dark:bg-brand-soft-dark">
+        <Flame size={20} color="#F97316" />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-sm font-bold text-text dark:text-text-dark">
+          {t('friends.sharedStreakTitle')}
+        </Text>
+        <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+          {streak > 0
+            ? t('friends.sharedStreakCount', { count: streak })
+            : t('friends.sharedStreakEmpty')}
+        </Text>
+      </View>
     </View>
   )
 }

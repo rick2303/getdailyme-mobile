@@ -22,6 +22,7 @@ import { useActivityLabels } from '@/lib/activities/labels'
 import { REACTION_TYPES, type FeedEntry, type ReactionType } from '@/lib/api/types'
 import { useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
 import { useFeed, useFeedRealtime, useToggleReaction } from '@/lib/hooks/use-feed'
+import { groupFeedEntries, type FeedGroup } from '@/lib/feed/grouping'
 import { useActivityPhotoUrl } from '@/lib/hooks/use-photo-url'
 import { useRelativeTime } from '@/lib/hooks/use-relative-time'
 import { ActivityIcon } from '@/components/activities/activity-icon'
@@ -47,7 +48,9 @@ export default function FeedScreen() {
   const [profileUserId, setProfileUserId] = useState<string | null>(null)
   const [reportTarget, setReportTarget] = useState<ReportSheetTarget | null>(null)
 
-  const entries = useMemo(() => feed.data?.pages.flat() ?? [], [feed.data])
+  // Los registros seguidos de la misma persona y actividad se agrupan en una
+  // tarjeta con el total, como en la web.
+  const groups = useMemo(() => groupFeedEntries(feed.data?.pages.flat() ?? []), [feed.data])
 
   if (tab === 'events') {
     return (
@@ -75,8 +78,8 @@ export default function FeedScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark" edges={['top']}>
       <FlatList
-        data={entries}
-        keyExtractor={(item) => item.id}
+        data={groups}
+        keyExtractor={(item) => item.entry.id}
         contentContainerClassName="gap-3 px-4 pb-8"
         refreshControl={
           <RefreshControl refreshing={feed.isRefetching} onRefresh={() => void feed.refetch()} />
@@ -111,7 +114,9 @@ export default function FeedScreen() {
         ListFooterComponent={feed.isFetchingNextPage ? <Spinner className="py-4" /> : null}
         renderItem={({ item }) => (
           <FeedEntryCard
-            entry={item}
+            entry={item.entry}
+            groupedCount={item.count}
+            groupedAmount={item.amount}
             onOpenProfile={setProfileUserId}
             onReport={(target) => setReportTarget(target)}
           />
@@ -134,10 +139,14 @@ export default function FeedScreen() {
 
 function FeedEntryCard({
   entry,
+  groupedCount = 1,
+  groupedAmount,
   onOpenProfile,
   onReport,
 }: {
   entry: FeedEntry
+  groupedCount?: number
+  groupedAmount?: number
   onOpenProfile: (userId: string) => void
   onReport: (target: ReportSheetTarget) => void
 }) {
@@ -213,9 +222,16 @@ function FeedEntryCard({
             {activityName(entry.activity.name)}
           </Text>
           <Text className="text-sm text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
-            {amountWithUnit(entry.amount, entry.activity.unit)}
+            {amountWithUnit(groupedAmount ?? entry.amount, entry.activity.unit)}
           </Text>
         </View>
+        {groupedCount > 1 ? (
+          <View className="rounded-full bg-surface-sunken px-2.5 py-1 dark:bg-surface-sunken-dark">
+            <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark">
+              {t('feed.grouped', { count: groupedCount })}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       {entry.note ? (
