@@ -6,6 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { FeedComments } from '@/components/feed/feed-comments'
 import { Inbox } from '@/components/feed/inbox'
+import { EventsTab } from '@/components/events/events-tab'
+import { Segmented } from '@/components/ui/segmented'
+import { ScrollView } from 'react-native'
 import { ProfileCardSheet } from '@/components/feed/profile-card-sheet'
 import { ReportSheet, type ReportSheetTarget } from '@/components/feed/report-sheet'
 import { Avatar } from '@/components/ui/avatar'
@@ -33,15 +36,41 @@ const REACTION_ICONS: Record<ReactionType, LucideIcon> = {
   muscle: Dumbbell,
 }
 
+type FeedTab = 'activity' | 'events'
+
 export default function FeedScreen() {
   const { t } = useI18n()
   const feed = useFeed()
   useFeedRealtime()
 
+  const [tab, setTab] = useState<FeedTab>('activity')
   const [profileUserId, setProfileUserId] = useState<string | null>(null)
   const [reportTarget, setReportTarget] = useState<ReportSheetTarget | null>(null)
 
   const entries = useMemo(() => feed.data?.pages.flat() ?? [], [feed.data])
+
+  if (tab === 'events') {
+    return (
+      <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark" edges={['top']}>
+        <ScrollView contentContainerClassName="gap-3 pb-8 pt-4">
+          <View className="gap-3 px-4">
+            <Text className="px-1 text-2xl font-extrabold text-text dark:text-text-dark">
+              {t('events.title')}
+            </Text>
+            <Segmented
+              value={tab}
+              options={[
+                { value: 'activity' as FeedTab, label: t('events.tabActivity') },
+                { value: 'events' as FeedTab, label: t('events.tabEvents') },
+              ]}
+              onChange={setTab}
+            />
+          </View>
+          <EventsTab />
+        </ScrollView>
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark" edges={['top']}>
@@ -61,6 +90,14 @@ export default function FeedScreen() {
             <Text className="px-1 text-2xl font-extrabold text-text dark:text-text-dark">
               {t('feed.title')}
             </Text>
+            <Segmented
+              value={tab}
+              options={[
+                { value: 'activity', label: t('events.tabActivity') },
+                { value: 'events', label: t('events.tabEvents') },
+              ]}
+              onChange={setTab}
+            />
             <Inbox />
           </View>
         }
