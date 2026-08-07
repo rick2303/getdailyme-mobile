@@ -16,7 +16,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.getdailyme.app",
       "usesAppleSignIn": true,
-      "associatedDomains": ["applinks:app.getdailyme.com"],
+      "associatedDomains": [
+        "applinks:app.getdailyme.com"
+      ],
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -50,7 +52,10 @@
               "pathPrefix": "/invite"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "versionCode": 1
@@ -79,7 +84,27 @@
       ]
     ],
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "OneSignalNotificationServiceExtension",
+                  "bundleIdentifier": "com.getdailyme.app.OneSignalNotificationServiceExtension",
+                  "entitlements": {
+                    "com.apple.security.application-groups": [
+                      "group.com.getdailyme.app.onesignal"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "projectId": "0a35b136-db1d-4095-8404-7aa2b9367322"
+      }
     },
     "owner": "thunderhnd"
   }
