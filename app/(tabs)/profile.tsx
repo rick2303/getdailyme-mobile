@@ -25,6 +25,7 @@ import { ActivityIcon } from '@/components/activities/activity-icon'
 import { Heatmap } from '@/components/profile/heatmap'
 import { RecapShareSheet, type RecapShareData } from '@/components/profile/recap-share-sheet'
 import { ACTIVITY_HEX } from '@/constants/colors'
+import { DeleteAccountSection } from '@/components/profile/delete-account-section'
 import { ManageActivitiesSheet } from '@/components/profile/manage-activities-sheet'
 import { NotificationsSection } from '@/components/profile/notifications-section'
 import { SecuritySection } from '@/components/profile/security-section'
@@ -153,6 +154,8 @@ export default function ProfileScreen() {
           icon={<LogOut size={18} color="#8F8F9A" />}
           onPress={() => void signOut()}
         />
+
+        <DeleteAccountSection />
 
         <ProfileEditorSheet open={editing} onClose={() => setEditing(false)} />
         <ManageActivitiesSheet open={managing} onClose={() => setManaging(false)} />

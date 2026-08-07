@@ -1,7 +1,9 @@
 import DateTimePicker from '@react-native-community/datetimepicker'
-import { Bell, BellOff } from 'lucide-react-native'
+import { Bell, BellOff, BellRing } from 'lucide-react-native'
 import { useEffect, useState } from 'react'
 import { Pressable, Switch, Text, View } from 'react-native'
+
+import { requestPush } from '@/lib/push/client'
 
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
@@ -42,6 +44,7 @@ export function NotificationsSection() {
 
   const [enabled, setEnabled] = useState<boolean | null>(null)
   const [timePickerOpen, setTimePickerOpen] = useState(false)
+  const [sendingTest, setSendingTest] = useState(false)
 
   useEffect(() => {
     void (async () => {
@@ -67,6 +70,18 @@ export function NotificationsSection() {
     optOutPush()
     setEnabled(false)
     showToast(t('notifications.disabled'))
+  }
+
+  const sendTest = async () => {
+    setSendingTest(true)
+    try {
+      await requestPush('test')
+      showToast(t('notifications.testSent'))
+    } catch {
+      showToast(t('common.genericError'), 'error')
+    } finally {
+      setSendingTest(false)
+    }
   }
 
   const reminderEnabled = Boolean(preferences?.daily_reminder_at)
@@ -157,14 +172,29 @@ export function NotificationsSection() {
               ) : null}
             </View>
 
-            <Button
-              title={t('notifications.turnOff')}
-              variant="ghost"
-              size="sm"
-              fullWidth
-              icon={<BellOff size={16} color={colors.textMuted} />}
-              onPress={turnOff}
-            />
+            <View className="flex-row gap-2">
+              <View className="flex-1">
+                <Button
+                  title={t('notifications.sendTest')}
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                  loading={sendingTest}
+                  icon={sendingTest ? undefined : <BellRing size={16} color={colors.text} />}
+                  onPress={() => void sendTest()}
+                />
+              </View>
+              <View className="flex-1">
+                <Button
+                  title={t('notifications.turnOff')}
+                  variant="ghost"
+                  size="sm"
+                  fullWidth
+                  icon={<BellOff size={16} color={colors.textMuted} />}
+                  onPress={turnOff}
+                />
+              </View>
+            </View>
           </>
         ) : (
           <Button

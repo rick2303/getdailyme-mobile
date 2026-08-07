@@ -1,12 +1,49 @@
-// El disparo de avisos en nativo llega en la fase de push (OneSignal + ruta del
-// servidor con Authorization en vez de cookie). El contrato se mantiene desde
-// ya para que los hooks portados no cambien cuando eso aterrice.
+import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+
+// El disparo de avisos nativos: la Edge Function push-notify resuelve
+// destinatarios y preferencias con service_role y envia por OneSignal.
 export type NotifySource =
   | 'test'
   | { type: 'nudge'; nudgeId: string }
   | { type: 'reaction'; reactionId: string }
   | { type: 'comment'; commentId: string }
 
-export async function requestPush(_source: NotifySource): Promise<void> {
-  // Pendiente: POST a app.getdailyme.com/api/push/notify con el access token.
+export async function requestPush(source: NotifySource): Promise<void> {
+  const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
+  if (!baseUrl) return
+
+  const {
+    data: { session },
+  } = await getSupabaseBrowserClient().auth.getSession()
+  if (!session) return
+
+  const body = typeof source === 'string' ? { type: source } : source
+
+  const response = await fetch(`${baseUrl}/functions/v1/push-notify`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) throw new Error(`push-notify ${response.status}`)
+}
+
+export async function requestAccountDeletion(): Promise<void> {
+  const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
+  if (!baseUrl) throw new Error('sin configuracion')
+
+  const {
+    data: { session },
+  } = await getSupabaseBrowserClient().auth.getSession()
+  if (!session) throw new Error('sin sesion')
+
+  const response = await fetch(`${baseUrl}/functions/v1/delete-account`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${session.access_token}` },
+  })
+
+  if (!response.ok) throw new Error(`delete-account ${response.status}`)
 }
