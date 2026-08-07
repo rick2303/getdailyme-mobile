@@ -30,7 +30,7 @@ import { TextInput } from '@/components/ui/field'
 import { Segmented, type SegmentedOption } from '@/components/ui/segmented'
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/components/ui/toast'
-import { useThemeColors } from '@/constants/colors'
+import { SHADOW_TILE, useThemeColors } from '@/constants/colors'
 import { LOCALES, LOCALE_LABELS } from '@/i18n/config'
 import { useI18n } from '@/i18n/provider'
 import { useActivityLabels } from '@/lib/activities/labels'
@@ -206,7 +206,7 @@ function StatCard({
   const colors = useThemeColors()
 
   return (
-    <View className="min-w-[45%] flex-1 gap-1 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
+    <View style={SHADOW_TILE} className="min-w-[45%] flex-1 gap-1 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
       <Icon size={20} color={highlighted ? colors.brand : colors.textSubtle} />
       <Text className="text-xl font-extrabold text-text dark:text-text-dark">{value}</Text>
       <Text className="text-xs font-medium text-text-muted dark:text-text-muted-dark">{label}</Text>
@@ -325,7 +325,7 @@ function RecapSection() {
 
       <Segmented value={mode} options={modeOptions} onChange={setMode} />
 
-      <View className="gap-4 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
+      <View style={SHADOW_TILE} className="gap-4 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
         {current.totalLogs === 0 ? (
           <Text className="py-4 text-center text-sm text-text-muted dark:text-text-muted-dark">
             {mode === 'week' && offset !== 0 ? t('weekly.emptyPast') : t('weekly.empty')}

@@ -1,5 +1,6 @@
-import { Check, Hand, Search, UserMinus, UserPlus, X } from 'lucide-react-native'
+import { Check, Hand, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native'
 import { useState } from 'react'
+import { Share } from 'react-native'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -10,6 +11,7 @@ import { EmptyState, Spinner } from '@/components/ui/feedback'
 import { TextInput } from '@/components/ui/field'
 import { useToast } from '@/components/ui/toast'
 import { ChallengesSection } from '@/components/friends/challenges-section'
+import { PageHeader } from '@/components/layout/page-header'
 import { useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
 import type { FriendEdge } from '@/lib/api/types'
@@ -23,6 +25,7 @@ import {
   useUnreadNudges,
   useMarkNudgesRead,
 } from '@/lib/hooks/use-friends'
+import { useInviteToken } from '@/lib/hooks/use-invite'
 import { useCurrentUserId } from '@/lib/auth/provider'
 import { haptic } from '@/lib/utils/haptics'
 
@@ -30,16 +33,42 @@ export default function FriendsScreen() {
   const { t } = useI18n()
   const colors = useThemeColors()
   const { friends, incoming, blocked, isLoading } = useFriends()
+  const { data: inviteToken } = useInviteToken()
 
   const [query, setQuery] = useState('')
 
+  // El enlace de invitacion de la web: lo comparte el share nativo y quien lo
+  // abra queda como amistad al canjearlo (la ruta vive en la PWA).
+  const shareInvite = async () => {
+    if (!inviteToken) return
+    haptic('tap')
+    try {
+      await Share.share({
+        message: t('friends.inviteMessage') + String.fromCharCode(10) + 'https://app.getdailyme.com/invite/' + inviteToken,
+      })
+    } catch {
+      // Cancelar el menu del sistema no es un error.
+    }
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark" edges={['top']}>
-      <ScrollView contentContainerClassName="gap-5 px-4 pb-8 pt-4" keyboardShouldPersistTaps="handled">
-        <Text className="px-1 text-2xl font-extrabold text-text dark:text-text-dark">
-          {t('friends.title')}
-        </Text>
+      <ScrollView contentContainerClassName="gap-5 pb-8 pt-2" keyboardShouldPersistTaps="handled">
+        <PageHeader
+          title={t('friends.title')}
+          subtitle={friends.length > 0 ? t('friends.friendsCount', { count: friends.length }) : undefined}
+          action={
+            <Button
+              title={t('friends.shareInvite')}
+              size="sm"
+              variant="secondary"
+              icon={<Share2 size={14} color={colors.text} />}
+              onPress={() => void shareInvite()}
+            />
+          }
+        />
 
+        <View className="gap-5 px-4">
         <NudgeInboxCard />
 
         <TextInput
@@ -68,6 +97,7 @@ export default function FriendsScreen() {
         )}
 
         {blocked.length > 0 ? <BlockedSection blocked={blocked} /> : null}
+        </View>
       </ScrollView>
     </SafeAreaView>
   )

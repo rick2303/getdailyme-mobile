@@ -12,7 +12,7 @@ import { Button, IconButton } from '@/components/ui/button'
 import { TextArea } from '@/components/ui/field'
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/components/ui/toast'
-import { useThemeColors } from '@/constants/colors'
+import { SHADOW_TILE, useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
 import { useActivityLabels } from '@/lib/activities/labels'
 import { stepperIncrement, usesQuickLogSheet } from '@/lib/activities/input-modes'
@@ -208,6 +208,7 @@ function ActivityTile({
       onPress={onTap}
       onLongPress={onLongPress}
       delayLongPress={350}
+      style={SHADOW_TILE}
       className="mb-0 flex-1 gap-3 rounded-3xl border border-border bg-surface p-4 active:opacity-80 dark:border-border-dark dark:bg-surface-dark"
     >
       <View className="flex-row items-start justify-between">

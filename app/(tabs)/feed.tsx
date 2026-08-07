@@ -12,7 +12,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { PhotoViewer } from '@/components/ui/photo-viewer'
 import { IconButton } from '@/components/ui/button'
 import { EmptyState, Spinner } from '@/components/ui/feedback'
-import { useThemeColors } from '@/constants/colors'
+import { SHADOW_TILE, useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
 import type { TranslationKey } from '@/i18n/translate'
 import { useActivityLabels } from '@/lib/activities/labels'
@@ -129,7 +129,7 @@ function FeedEntryCard({
   }, [entry.reactions, currentUserId])
 
   return (
-    <View className="rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
+    <View style={SHADOW_TILE} className="rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
       <View className="flex-row items-center gap-3">
         <Pressable
           accessibilityRole="button"

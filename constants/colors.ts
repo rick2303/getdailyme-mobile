@@ -62,3 +62,12 @@ export function useActivityHex(color: string): string {
 export function withTint(hex: string): string {
   return `${hex}24`
 }
+
+// La sombra suave de los tiles de la web (shadow-tile), en las dos plataformas.
+export const SHADOW_TILE = {
+  shadowColor: '#26262F',
+  shadowOpacity: 0.07,
+  shadowRadius: 12,
+  shadowOffset: { width: 0, height: 3 },
+  elevation: 2,
+} as const

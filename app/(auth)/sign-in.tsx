@@ -1,34 +1,44 @@
 import * as AppleAuthentication from 'expo-apple-authentication'
 import * as WebBrowser from 'expo-web-browser'
-import { AtSign, Lock } from 'lucide-react-native'
+import { ArrowRight, AtSign, Lock } from 'lucide-react-native'
 import { useEffect, useState } from 'react'
-import { Alert, Platform, ScrollView, Text, useColorScheme, View } from 'react-native'
+import { Alert, Platform, Pressable, ScrollView, Text, useColorScheme, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { BrandLogo } from '@/components/brand/brand-logo'
+import { GoogleMark } from '@/components/brand/google-mark'
 import { Button } from '@/components/ui/button'
 import { TextInput } from '@/components/ui/field'
 import { useToast } from '@/components/ui/toast'
+import { LOCALES, LOCALE_LABELS } from '@/i18n/config'
+import { Segmented } from '@/components/ui/segmented'
 import { useI18n } from '@/i18n/provider'
 import { useThemeColors } from '@/constants/colors'
 import { supabase } from '@/lib/supabase/client'
 
 WebBrowser.maybeCompleteAuthSession()
 
-type Mode = 'signIn' | 'signUp'
-
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const MIN_PASSWORD_LENGTH = 8
 const OAUTH_REDIRECT = 'getdailyme://auth/callback'
 
+// La pantalla de acceso de la PWA, uno a uno: hero con el logo, error inline
+// bajo los campos (no en toast), CTA con flecha, alternar crear cuenta /
+// olvide contraseña en la misma fila, divisor, Google con su marca y Apple
+// con el boton oficial. El enlace magico se queda en la web: en nativo el
+// correo no puede volver a la app hasta que el dominio este vivo.
 export default function SignInScreen() {
-  const { t } = useI18n()
+  const { t, locale, setLocale } = useI18n()
   const { showToast } = useToast()
   const colors = useThemeColors()
   const scheme = useColorScheme()
 
-  const [mode, setMode] = useState<Mode>('signIn')
+  const [creatingAccount, setCreatingAccount] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [pending, setPending] = useState(false)
-  const [pendingGoogle, setPendingGoogle] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [busyGoogle, setBusyGoogle] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [appleAvailable, setAppleAvailable] = useState(false)
 
   useEffect(() => {
@@ -37,41 +47,53 @@ export default function SignInScreen() {
       .catch(() => setAppleAvailable(false))
   }, [])
 
-  const trimmedEmail = email.trim().toLowerCase()
-  const canSubmit = /.+@.+\..+/.test(trimmedEmail) && password.length >= 8 && !pending
+  const submitPassword = async () => {
+    if (!EMAIL_PATTERN.test(email.trim())) {
+      setError(t('auth.invalidEmail'))
+      return
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(t('auth.passwordTooShort'))
+      return
+    }
 
-  const submit = async () => {
-    setPending(true)
+    setBusy(true)
+    setError(null)
+
     try {
-      if (mode === 'signIn') {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: trimmedEmail,
+      if (creatingAccount) {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: email.trim(),
           password,
         })
-        if (error) showToast(t('auth.wrongCredentials'), 'error')
-      } else {
-        const { error } = await supabase.auth.signUp({ email: trimmedEmail, password })
-        if (error) {
-          showToast(
-            error.message.includes('already') ? t('auth.emailInUse') : t('auth.weakPassword'),
-            'error',
-          )
+        if (signUpError) {
+          const message = signUpError.message.toLowerCase()
+          if (message.includes('already')) setError(t('auth.emailInUse'))
+          else if (message.includes('weak') || message.includes('password'))
+            setError(t('auth.weakPassword'))
+          else setError(t('auth.failed'))
         }
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        })
+        if (signInError) setError(t('auth.wrongCredentials'))
       }
     } catch {
-      showToast(t('auth.failed'), 'error')
+      setError(t('auth.failed'))
     } finally {
-      setPending(false)
+      setBusy(false)
     }
   }
 
-  // La receta de splitwo para Google en nativo: pedir la URL con
-  // skipBrowserRedirect, abrirla en el navegador del sistema y canjear aqui
-  // mismo el codigo PKCE (para eso esta el cryptoPolyfill del arranque).
+  // Receta splitwo: URL con skipBrowserRedirect, navegador del sistema y canje
+  // del codigo PKCE aqui mismo, recortando el fragmento fantasma de iOS.
   const signInWithGoogle = async () => {
-    setPendingGoogle(true)
+    setBusyGoogle(true)
+    setError(null)
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: OAUTH_REDIRECT,
@@ -79,31 +101,26 @@ export default function SignInScreen() {
           queryParams: { prompt: 'select_account' },
         },
       })
-      if (error || !data.url) throw error ?? new Error('sin url de oauth')
+      if (oauthError || !data.url) throw oauthError ?? new Error('sin url de oauth')
 
       const result = await WebBrowser.openAuthSessionAsync(data.url, OAUTH_REDIRECT)
       if (result.type !== 'success') return
 
-      // El fragmento se recorta antes de leer los parametros: el navegador de
-      // iOS conserva un "#" vacio al final que contaminaria el codigo y el
-      // servidor responderia 404 al canjearlo. Aprendido en splitwo.
       const queryString = result.url.split('#')[0].split('?')[1] ?? ''
       const params = Object.fromEntries(new URLSearchParams(queryString))
 
       if (params.error) {
-        showToast(t('auth.failed'), 'error')
+        setError(t('auth.failed'))
         return
       }
 
       if (params.code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(params.code)
         if (exchangeError) {
-          // Si otro manejador canjeo el codigo primero, la sesion ya existe:
-          // solo es fallo si de verdad no hay sesion.
           const {
             data: { session },
           } = await supabase.auth.getSession()
-          if (!session?.user) showToast(t('auth.failed'), 'error')
+          if (!session?.user) setError(t('auth.failed'))
         }
       } else {
         const hash = result.url.split('#')[1] ?? ''
@@ -114,17 +131,18 @@ export default function SignInScreen() {
             refresh_token: tokens.refresh_token,
           })
         } else {
-          showToast(t('auth.failed'), 'error')
+          setError(t('auth.failed'))
         }
       }
     } catch {
-      showToast(t('auth.failed'), 'error')
+      setError(t('auth.failed'))
     } finally {
-      setPendingGoogle(false)
+      setBusyGoogle(false)
     }
   }
 
   const signInWithApple = async () => {
+    setError(null)
     try {
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
@@ -134,14 +152,14 @@ export default function SignInScreen() {
       })
       if (!credential.identityToken) throw new Error('sin identity token')
 
-      const { error } = await supabase.auth.signInWithIdToken({
+      const { error: signInError } = await supabase.auth.signInWithIdToken({
         provider: 'apple',
         token: credential.identityToken,
       })
-      if (error) throw error
+      if (signInError) throw signInError
 
-      // Apple solo entrega el nombre en la primera autorizacion: si llego, se
-      // guarda para que el onboarding no arranque con un nombre generado.
+      // Apple solo entrega el nombre la primera vez: se guarda para que el
+      // onboarding no arranque con un nombre generado.
       const appleName = [credential.fullName?.givenName, credential.fullName?.familyName]
         .filter(Boolean)
         .join(' ')
@@ -160,21 +178,21 @@ export default function SignInScreen() {
       }
     } catch (caught) {
       if ((caught as { code?: string })?.code !== 'ERR_REQUEST_CANCELED') {
-        showToast(t('auth.failed'), 'error')
+        setError(t('auth.failed'))
       }
     }
   }
 
   const resetPassword = async () => {
-    if (!/.+@.+\..+/.test(trimmedEmail)) {
-      showToast(t('auth.invalidEmail'), 'error')
+    if (!EMAIL_PATTERN.test(email.trim())) {
+      setError(t('auth.invalidEmail'))
       return
     }
     try {
-      await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+      await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: 'https://app.getdailyme.com/reset-password',
       })
-      Alert.alert(t('auth.resetSentTitle'), t('auth.resetSentBody', { email: trimmedEmail }))
+      Alert.alert(t('auth.resetSentTitle'), t('auth.resetSentBody', { email: email.trim() }))
     } catch {
       showToast(t('common.genericError'), 'error')
     }
@@ -182,12 +200,20 @@ export default function SignInScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark">
-      <ScrollView contentContainerClassName="flex-grow justify-center px-6 py-10" keyboardShouldPersistTaps="handled">
-        <View className="items-center gap-2 pb-8">
-          <Text className="text-3xl font-extrabold text-brand">getdailyme</Text>
-          <Text className="text-center text-base text-text-muted dark:text-text-muted-dark">
-            {t('auth.heroTitle')}
-          </Text>
+      <ScrollView
+        contentContainerClassName="flex-grow justify-center px-6 py-8"
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="items-center gap-4 pb-8">
+          <BrandLogo size={56} />
+          <View className="items-center">
+            <Text className="text-center text-2xl font-extrabold tracking-tight text-text dark:text-text-dark">
+              {t('auth.heroTitle')}
+            </Text>
+            <Text className="mt-1.5 text-center text-sm text-text-muted dark:text-text-muted-dark">
+              {t('auth.heroSubtitle')}
+            </Text>
+          </View>
         </View>
 
         <View className="gap-4">
@@ -198,7 +224,10 @@ export default function SignInScreen() {
             autoComplete="email"
             keyboardType="email-address"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text)
+              setError(null)
+            }}
             leading={<AtSign size={18} color={colors.textSubtle} />}
           />
 
@@ -207,22 +236,51 @@ export default function SignInScreen() {
             placeholder={t('auth.passwordPlaceholder')}
             secureTextEntry
             autoCapitalize="none"
-            autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
+            autoComplete={creatingAccount ? 'new-password' : 'current-password'}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text)
+              setError(null)
+            }}
             leading={<Lock size={18} color={colors.textSubtle} />}
           />
 
+          {error ? (
+            <Text className="px-1 text-sm font-medium text-danger">{error}</Text>
+          ) : null}
+
           <Button
-            title={mode === 'signIn' ? t('auth.signIn') : t('auth.signUp')}
+            title={busy ? t('common.loading') : creatingAccount ? t('auth.signUp') : t('auth.signIn')}
             size="lg"
             fullWidth
-            disabled={!canSubmit}
-            loading={pending}
-            onPress={() => void submit()}
+            disabled={busy}
+            loading={busy}
+            icon={busy ? undefined : <ArrowRight size={16} color="#fff" />}
+            onPress={() => void submitPassword()}
           />
 
-          <View className="flex-row items-center gap-3">
+          <View className="flex-row items-center justify-between px-1">
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setCreatingAccount((value) => !value)
+                setError(null)
+              }}
+            >
+              <Text className="text-sm font-semibold text-brand dark:text-brand-dark">
+                {creatingAccount ? t('auth.haveAccount') : t('auth.noAccount')}
+              </Text>
+            </Pressable>
+            {creatingAccount ? null : (
+              <Pressable accessibilityRole="button" onPress={() => void resetPassword()}>
+                <Text className="text-sm font-semibold text-text-muted dark:text-text-muted-dark">
+                  {t('auth.forgotPassword')}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+
+          <View className="flex-row items-center gap-3 py-1">
             <View className="h-px flex-1 bg-border dark:bg-border-dark" />
             <Text className="text-xs font-semibold text-text-subtle dark:text-text-subtle-dark">
               {t('auth.dividerOr')}
@@ -235,7 +293,8 @@ export default function SignInScreen() {
             variant="secondary"
             size="lg"
             fullWidth
-            loading={pendingGoogle}
+            loading={busyGoogle}
+            icon={busyGoogle ? undefined : <GoogleMark size={18} />}
             onPress={() => void signInWithGoogle()}
           />
 
@@ -248,27 +307,22 @@ export default function SignInScreen() {
                   : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
               }
               cornerRadius={16}
-              style={{ height: 52, width: '100%' }}
+              style={{ height: 56, width: '100%' }}
               onPress={() => void signInWithApple()}
             />
           ) : null}
 
-          <Button
-            title={mode === 'signIn' ? t('auth.noAccount') : t('auth.haveAccount')}
-            variant="ghost"
-            fullWidth
-            onPress={() => setMode((current) => (current === 'signIn' ? 'signUp' : 'signIn'))}
-          />
+          <Text className="px-2 pt-2 text-center text-xs leading-relaxed text-text-subtle dark:text-text-subtle-dark">
+            {t('auth.legal')}
+          </Text>
 
-          {mode === 'signIn' ? (
-            <Button
-              title={t('auth.forgotPassword')}
-              variant="ghost"
-              size="sm"
-              fullWidth
-              onPress={() => void resetPassword()}
+          <View className="pt-2">
+            <Segmented
+              value={locale}
+              options={LOCALES.map((item) => ({ value: item, label: LOCALE_LABELS[item] }))}
+              onChange={setLocale}
             />
-          ) : null}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
