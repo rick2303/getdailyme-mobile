@@ -40,7 +40,8 @@
       "ios": {
         "ascApiKeyPath": "./AuthKey_RDRG6TYQ85.p8",
         "ascApiKeyId": "RDRG6TYQ85",
-        "ascApiKeyIssuerId": "6e250b4b-b55e-40f9-989e-69b1813b9a5e"
+        "ascApiKeyIssuerId": "6e250b4b-b55e-40f9-989e-69b1813b9a5e",
+        "ascAppId": "6798912717"
       }
     }
   }
