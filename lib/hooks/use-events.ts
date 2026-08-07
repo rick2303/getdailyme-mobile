@@ -144,14 +144,14 @@ export function useUploadEventPhoto() {
   return useMutation({
     mutationFn: ({
       eventId,
-      file,
+      uri,
       caption,
     }: {
       eventId: string;
-      file: File;
+      uri: string;
       caption?: string | null;
     }) =>
-      uploadEventPhoto(getSupabaseBrowserClient(), eventId, userId!, file, caption ?? null),
+      uploadEventPhoto(getSupabaseBrowserClient(), eventId, userId!, uri, caption ?? null),
     onSuccess: (photo) => invalidate(photo.event_id),
   });
 }

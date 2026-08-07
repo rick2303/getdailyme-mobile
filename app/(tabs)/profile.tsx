@@ -1,10 +1,17 @@
+import * as ImagePicker from 'expo-image-picker'
+import * as FileSystem from 'expo-file-system/legacy'
+import * as Sharing from 'expo-sharing'
 import {
   CalendarDays,
+  Camera,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  Download,
   Flame,
   ListChecks,
   LogOut,
+  Settings2,
   Share2,
   Snowflake,
   Trophy,
@@ -15,6 +22,8 @@ import { ScrollView, Share, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ActivityIcon } from '@/components/activities/activity-icon'
+import { Heatmap } from '@/components/profile/heatmap'
+import { ManageActivitiesSheet } from '@/components/profile/manage-activities-sheet'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
 import { TextInput } from '@/components/ui/field'
@@ -34,6 +43,12 @@ import {
   summarizeRange,
 } from '@/lib/activities/weekly'
 import { USERNAME_PATTERN, updateProfile } from '@/lib/api/profile'
+import { buildDataExport } from '@/lib/api/export'
+import { uploadAvatar } from '@/lib/api/storage'
+import { THEME_MODES, loadThemeMode, saveThemeMode, type ThemeMode } from '@/lib/theme'
+import { getBrowserTimeZone } from '@/lib/utils/dates'
+import { Pressable } from 'react-native'
+import { useEffect } from 'react'
 import { USERNAME_COOLDOWN_DAYS, daysUntilUsernameChange, isUsernameCooldownError } from '@/lib/api/username-cooldown'
 import { useAuth } from '@/lib/auth/provider'
 import { useActivities } from '@/lib/hooks/use-activities'
@@ -45,10 +60,35 @@ import { useQueryClient } from '@tanstack/react-query'
 
 export default function ProfileScreen() {
   const { t } = useI18n()
+  const { showToast } = useToast()
+  const queryClient = useQueryClient()
   const { profile, signOut } = useAuth()
   const [editing, setEditing] = useState(false)
+  const [managing, setManaging] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   if (!profile) return null
+
+  const pickAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    })
+    if (result.canceled || !result.assets[0]) return
+    setUploadingAvatar(true)
+    try {
+      const url = await uploadAvatar(getSupabaseBrowserClient(), profile.id, result.assets[0].uri)
+      await updateProfile(getSupabaseBrowserClient(), profile.id, { avatar_url: url })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.profile(profile.id) })
+      showToast(t('profile.saved'), 'success')
+    } catch {
+      showToast(t('common.genericError'), 'error')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark" edges={['top']}>
@@ -58,7 +98,17 @@ export default function ProfileScreen() {
         </Text>
 
         <View className="items-center gap-2">
-          <Avatar name={profile.display_name} src={profile.avatar_url} size="lg" />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('profile.changeAvatar')}
+            onPress={() => void pickAvatar()}
+            disabled={uploadingAvatar}
+          >
+            <Avatar name={profile.display_name} src={profile.avatar_url} size="lg" />
+            <View className="absolute -bottom-1 -right-1 h-8 w-8 items-center justify-center rounded-full bg-brand">
+              <Camera size={14} color="#fff" />
+            </View>
+          </Pressable>
           <View className="items-center">
             <Text className="text-xl font-extrabold text-text dark:text-text-dark">
               {profile.display_name}
@@ -77,7 +127,17 @@ export default function ProfileScreen() {
 
         <StatsSection />
         <RecapSection />
+        <Heatmap />
         <SettingsSection />
+
+        <Button
+          title={t('profile.manageActivities')}
+          variant="secondary"
+          size="lg"
+          fullWidth
+          icon={<Settings2 size={18} color="#70707B" />}
+          onPress={() => setManaging(true)}
+        />
 
         <Button
           title={t('auth.signOut')}
@@ -89,6 +149,7 @@ export default function ProfileScreen() {
         />
 
         <ProfileEditorSheet open={editing} onClose={() => setEditing(false)} />
+        <ManageActivitiesSheet open={managing} onClose={() => setManaging(false)} />
       </ScrollView>
     </SafeAreaView>
   )
@@ -339,17 +400,121 @@ function RecapSection() {
 
 function SettingsSection() {
   const { t, locale, setLocale } = useI18n()
+  const { showToast } = useToast()
+  const { profile } = useAuth()
+  const queryClient = useQueryClient()
+  const colors = useThemeColors()
+
+  const [themeMode, setThemeMode] = useState<ThemeMode>('system')
+  const [exporting, setExporting] = useState(false)
+
+  useEffect(() => {
+    void loadThemeMode().then(setThemeMode)
+  }, [])
+
+  const changeTheme = (mode: ThemeMode) => {
+    setThemeMode(mode)
+    void saveThemeMode(mode)
+  }
+
+  const deviceTimeZone = getBrowserTimeZone()
+  const mismatch = profile && profile.timezone !== deviceTimeZone
+
+  const fixTimeZone = async () => {
+    if (!profile) return
+    try {
+      await updateProfile(getSupabaseBrowserClient(), profile.id, { timezone: deviceTimeZone })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.profile(profile.id) })
+      showToast(t('profile.saved'), 'success')
+    } catch {
+      showToast(t('common.genericError'), 'error')
+    }
+  }
+
+  const exportData = async () => {
+    if (!profile) return
+    setExporting(true)
+    try {
+      const data = await buildDataExport(getSupabaseBrowserClient(), profile.id)
+      const path = FileSystem.cacheDirectory + 'getdailyme-' + new Date().toISOString().slice(0, 10) + '.json'
+      await FileSystem.writeAsStringAsync(path, JSON.stringify(data, null, 2))
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(path, { mimeType: 'application/json' })
+      }
+      showToast(t('profile.exportDone'), 'success')
+    } catch {
+      showToast(t('common.genericError'), 'error')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const themeLabel: Record<ThemeMode, string> = {
+    light: t('profile.themeLight'),
+    dark: t('profile.themeDark'),
+    system: t('profile.themeSystem'),
+  }
 
   return (
-    <View className="gap-2">
-      <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text dark:text-text-dark">
-        {t('profile.languageLabel')}
-      </Text>
-      <Segmented
-        value={locale}
-        options={LOCALES.map((item) => ({ value: item, label: LOCALE_LABELS[item] }))}
-        onChange={setLocale}
-      />
+    <View className="gap-4">
+      <View className="gap-2">
+        <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text dark:text-text-dark">
+          {t('profile.languageLabel')}
+        </Text>
+        <Segmented
+          value={locale}
+          options={LOCALES.map((item) => ({ value: item, label: LOCALE_LABELS[item] }))}
+          onChange={setLocale}
+        />
+      </View>
+
+      <View className="gap-2">
+        <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text dark:text-text-dark">
+          {t('profile.themeLabel')}
+        </Text>
+        <Segmented
+          value={themeMode}
+          options={THEME_MODES.map((mode) => ({ value: mode, label: themeLabel[mode] }))}
+          onChange={changeTheme}
+        />
+      </View>
+
+      <View className="gap-2 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
+        <View className="flex-row items-center gap-2">
+          <Clock size={16} color={colors.textMuted} />
+          <Text className="text-sm font-bold text-text-muted dark:text-text-muted-dark">
+            {t('profile.timezoneLabel')}
+          </Text>
+        </View>
+        <Text className="text-sm font-bold text-text dark:text-text-dark">{profile?.timezone}</Text>
+        {mismatch ? (
+          <Button
+            title={t('profile.timezoneUpdate', { timezone: deviceTimeZone })}
+            size="sm"
+            variant="secondary"
+            onPress={() => void fixTimeZone()}
+          />
+        ) : null}
+      </View>
+
+      <View className="gap-2 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
+        <View className="flex-row items-center gap-2">
+          <Download size={16} color={colors.textMuted} />
+          <Text className="text-sm font-bold text-text-muted dark:text-text-muted-dark">
+            {t('profile.exportLabel')}
+          </Text>
+        </View>
+        <Text className="text-xs text-text-subtle dark:text-text-subtle-dark">
+          {t('profile.exportHelp')}
+        </Text>
+        <Button
+          title={exporting ? t('profile.exporting') : t('profile.exportCta')}
+          size="sm"
+          variant="secondary"
+          loading={exporting}
+          onPress={() => void exportData()}
+        />
+      </View>
     </View>
   )
 }

@@ -266,10 +266,10 @@ export async function uploadEventPhoto(
   client: TypedSupabaseClient,
   eventId: string,
   userId: string,
-  file: File,
+  uri: string,
   caption: string | null = null,
 ): Promise<EventPhoto> {
-  const path = await uploadEventPhotoFile(client, eventId, userId, file);
+  const path = await uploadEventPhotoFile(client, eventId, userId, uri);
 
   const { data, error } = await client
     .from("event_photos")

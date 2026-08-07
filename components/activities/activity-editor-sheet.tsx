@@ -14,23 +14,49 @@ import { ACTIVITY_COLORS, DEFAULT_ACTIVITY_COLOR, type ActivityColor } from '@/l
 import { defaultModeForUnit, defaultQuickValues } from '@/lib/activities/input-modes'
 import { ACTIVITY_UNITS, type ActivityUnit } from '@/lib/activities/units'
 import { ICON_CATALOG } from '@/lib/icons/catalog'
-import { useActivities, useCreateActivity } from '@/lib/hooks/use-activities'
+import { useActivities, useCreateActivity, useUpdateActivity } from '@/lib/hooks/use-activities'
+import { useCurrentUserId } from '@/lib/auth/provider'
+import type { Activity } from '@/lib/api/types'
 
 // Version compacta del editor web para crear actividades: nombre, icono,
 // color, unidad y meta. Editar/archivar llega con la fase de gestion.
 const ICON_CHOICES = ICON_CATALOG.slice(0, 24)
 
-export function ActivityEditorSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function ActivityEditorSheet({
+  open,
+  activity = null,
+  onClose,
+}: {
+  open: boolean
+  activity?: Activity | null
+  onClose: () => void
+}) {
   const { t, locale } = useI18n()
+  const userId = useCurrentUserId()
   const { showToast } = useToast()
   const { data: activities } = useActivities()
   const create = useCreateActivity()
+  const update = useUpdateActivity()
 
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('circle-dot')
   const [color, setColor] = useState<ActivityColor>(DEFAULT_ACTIVITY_COLOR)
   const [unit, setUnit] = useState<ActivityUnit>('count')
   const [target, setTarget] = useState('')
+
+  // Al abrir en modo edicion, el borrador arranca con la actividad real.
+  const [lastSession, setLastSession] = useState<string | null>(null)
+  const sessionToken = open ? (activity?.id ?? 'new') : 'closed'
+  if (sessionToken !== lastSession) {
+    setLastSession(sessionToken)
+    if (open) {
+      setName(activity?.name ?? '')
+      setIcon(activity?.icon ?? 'circle-dot')
+      setColor(activity?.color ?? DEFAULT_ACTIVITY_COLOR)
+      setUnit(activity?.unit ?? 'count')
+      setTarget(activity?.daily_target ? String(activity.daily_target) : '')
+    }
+  }
 
   const reset = () => {
     setName('')
@@ -46,9 +72,23 @@ export function ActivityEditorSheet({ open, onClose }: { open: boolean; onClose:
       return
     }
 
+    const parsedTarget = Number(target)
+    const dailyTarget = Number.isFinite(parsedTarget) && parsedTarget > 0 ? parsedTarget : null
+
+    if (activity) {
+      if (!userId) return
+      update.mutate({
+        userId,
+        activityId: activity.id,
+        patch: { name: name.trim(), icon, color, unit, daily_target: dailyTarget },
+      })
+      showToast(t('activity.saved'), 'success')
+      onClose()
+      return
+    }
+
     const position =
       (activities ?? []).reduce((max, item) => Math.max(max, item.position), -1) + 1
-    const parsedTarget = Number(target)
 
     create.createActivity(
       {
@@ -57,7 +97,7 @@ export function ActivityEditorSheet({ open, onClose }: { open: boolean; onClose:
         color,
         unit,
         step: 1,
-        daily_target: Number.isFinite(parsedTarget) && parsedTarget > 0 ? parsedTarget : null,
+        daily_target: dailyTarget,
         target_period: 'day',
         reminder_at: null,
         visibility: 'friends',
@@ -76,7 +116,7 @@ export function ActivityEditorSheet({ open, onClose }: { open: boolean; onClose:
     <Sheet
       open={open}
       onClose={onClose}
-      title={t('activity.newTitle')}
+      title={activity ? t('activity.editTitle') : t('activity.newTitle')}
       closeLabel={t('common.close')}
       footer={<Button title={t('common.save')} size="lg" fullWidth onPress={save} />}
     >

@@ -27,7 +27,6 @@ const IDENTICAL = [
   ['src/lib/activities/starter.ts', 'lib/activities/starter.ts'],
   ['src/lib/api/activities.ts', 'lib/api/activities.ts'],
   ['src/lib/api/challenges.ts', 'lib/api/challenges.ts'],
-  ['src/lib/api/events.ts', 'lib/api/events.ts'],
   ['src/lib/api/export.ts', 'lib/api/export.ts'],
   ['src/lib/api/feed.ts', 'lib/api/feed.ts'],
   ['src/lib/api/friends.ts', 'lib/api/friends.ts'],
@@ -58,6 +57,7 @@ const IDENTICAL = [
 ]
 
 const ADAPTED = [
+  ['src/lib/api/events.ts', 'lib/api/events.ts'],
   ['src/lib/api/profile.ts', 'lib/api/profile.ts'],
   ['src/lib/api/types.ts', 'lib/api/types.ts'],
   ['src/lib/api/storage.ts', 'lib/api/storage.ts'],

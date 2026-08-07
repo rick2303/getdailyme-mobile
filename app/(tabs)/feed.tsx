@@ -1,5 +1,6 @@
 import { Dumbbell, Flag, Flame, Hand, Heart, Laugh, type LucideIcon } from 'lucide-react-native'
 import { useMemo, useState } from 'react'
+import { Image } from 'react-native'
 import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -8,6 +9,7 @@ import { Inbox } from '@/components/feed/inbox'
 import { ProfileCardSheet } from '@/components/feed/profile-card-sheet'
 import { ReportSheet, type ReportSheetTarget } from '@/components/feed/report-sheet'
 import { Avatar } from '@/components/ui/avatar'
+import { PhotoViewer } from '@/components/ui/photo-viewer'
 import { IconButton } from '@/components/ui/button'
 import { EmptyState, Spinner } from '@/components/ui/feedback'
 import { useThemeColors } from '@/constants/colors'
@@ -17,6 +19,7 @@ import { useActivityLabels } from '@/lib/activities/labels'
 import { REACTION_TYPES, type FeedEntry, type ReactionType } from '@/lib/api/types'
 import { useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
 import { useFeed, useFeedRealtime, useToggleReaction } from '@/lib/hooks/use-feed'
+import { useActivityPhotoUrl } from '@/lib/hooks/use-photo-url'
 import { useRelativeTime } from '@/lib/hooks/use-relative-time'
 import { ActivityIcon } from '@/components/activities/activity-icon'
 import { formatTime } from '@/lib/utils/dates'
@@ -108,6 +111,8 @@ function FeedEntryCard({
   const { activityName, amountWithUnit } = useActivityLabels()
   const relativeTime = useRelativeTime()
   const { toggleReaction } = useToggleReaction()
+  const { data: photoUrl } = useActivityPhotoUrl(entry.photo_url)
+  const [viewerOpen, setViewerOpen] = useState(false)
 
   const isOwn = currentUserId !== null && entry.user_id === currentUserId
 
@@ -180,6 +185,25 @@ function FeedEntryCard({
         <Text className="mt-3 text-sm leading-relaxed text-text-muted dark:text-text-muted-dark">
           {entry.note}
         </Text>
+      ) : null}
+
+      {photoUrl ? (
+        <>
+          <Pressable
+            accessibilityRole="imagebutton"
+            accessibilityLabel={t('log.openPhoto')}
+            onPress={() => setViewerOpen(true)}
+            className="mt-3 overflow-hidden rounded-2xl bg-surface-sunken dark:bg-surface-sunken-dark"
+          >
+            <Image source={{ uri: photoUrl }} className="aspect-video w-full" resizeMode="cover" />
+          </Pressable>
+          <PhotoViewer
+            open={viewerOpen}
+            src={photoUrl}
+            onClose={() => setViewerOpen(false)}
+            closeLabel={t('common.close')}
+          />
+        </>
       ) : null}
 
       <FeedComments
