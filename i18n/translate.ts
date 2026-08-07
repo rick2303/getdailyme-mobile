@@ -28,16 +28,7 @@ export type TranslationParams = Record<string, string | number>;
 
 export type Translator = (key: TranslationKey, params?: TranslationParams) => string;
 
-const pluralRulesCache = new Map<Locale, Intl.PluralRules>();
 const numberFormatCache = new Map<Locale, Intl.NumberFormat>();
-
-function pluralRulesFor(locale: Locale) {
-  const cached = pluralRulesCache.get(locale);
-  if (cached) return cached;
-  const created = new Intl.PluralRules(locale);
-  pluralRulesCache.set(locale, created);
-  return created;
-}
 
 function numberFormatFor(locale: Locale) {
   const cached = numberFormatCache.get(locale);
@@ -64,8 +55,12 @@ function resolvePath(dictionary: Dictionary, key: string): unknown {
   return current;
 }
 
+// A mano y no con Intl.PluralRules: Hermes (el motor de la app movil) no lo
+// implementa y reventaba la app al arrancar. Para es y en la regla es trivial
+// (1 es "one", el resto "other") y asi la web y el movil comparten el archivo.
 function selectPluralForm(leaf: PluralLeaf, locale: Locale, count: number): string {
-  const category = pluralRulesFor(locale).select(count);
+  void locale;
+  const category: keyof PluralLeaf = count === 1 ? "one" : "other";
   if (count === 0 && leaf.zero) return leaf.zero;
   return leaf[category] ?? leaf.other;
 }

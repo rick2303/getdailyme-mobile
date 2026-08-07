@@ -6,6 +6,7 @@ import { View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { Spinner } from '@/components/ui/feedback'
 import { ToastProvider } from '@/components/ui/toast'
 import { I18nProvider } from '@/i18n/provider'
@@ -66,6 +67,7 @@ function PushBinder() {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
       <SafeAreaProvider>
         <QueryProvider>
           <I18nProvider>
@@ -80,6 +82,7 @@ export default function RootLayout() {
           </I18nProvider>
         </QueryProvider>
       </SafeAreaProvider>
+      </ErrorBoundary>
     </GestureHandlerRootView>
   )
 }
