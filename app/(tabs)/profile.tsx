@@ -26,6 +26,8 @@ import { Heatmap } from '@/components/profile/heatmap'
 import { RecapShareSheet, type RecapShareData } from '@/components/profile/recap-share-sheet'
 import { ACTIVITY_HEX } from '@/constants/colors'
 import { ManageActivitiesSheet } from '@/components/profile/manage-activities-sheet'
+import { NotificationsSection } from '@/components/profile/notifications-section'
+import { SecuritySection } from '@/components/profile/security-section'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
 import { TextInput } from '@/components/ui/field'
@@ -47,10 +49,10 @@ import {
 import { USERNAME_PATTERN, updateProfile } from '@/lib/api/profile'
 import { buildDataExport } from '@/lib/api/export'
 import { uploadAvatar } from '@/lib/api/storage'
-import { THEME_MODES, loadThemeMode, saveThemeMode, type ThemeMode } from '@/lib/theme'
+import { ACCENTS, ACCENT_HEX, THEME_MODES, type ThemeMode } from '@/lib/theme'
+import { useThemeSettings } from '@/lib/theme-context'
 import { getBrowserTimeZone } from '@/lib/utils/dates'
 import { Pressable } from 'react-native'
-import { useEffect } from 'react'
 import { USERNAME_COOLDOWN_DAYS, daysUntilUsernameChange, isUsernameCooldownError } from '@/lib/api/username-cooldown'
 import { useAuth } from '@/lib/auth/provider'
 import { useActivities } from '@/lib/hooks/use-activities'
@@ -130,7 +132,9 @@ export default function ProfileScreen() {
         <StatsSection />
         <RecapSection />
         <Heatmap />
+        <NotificationsSection />
         <SettingsSection />
+        <SecuritySection />
 
         <Button
           title={t('profile.manageActivities')}
@@ -451,17 +455,8 @@ function SettingsSection() {
   const queryClient = useQueryClient()
   const colors = useThemeColors()
 
-  const [themeMode, setThemeMode] = useState<ThemeMode>('system')
+  const { mode: themeMode, setMode: changeTheme, accent, setAccent } = useThemeSettings()
   const [exporting, setExporting] = useState(false)
-
-  useEffect(() => {
-    void loadThemeMode().then(setThemeMode)
-  }, [])
-
-  const changeTheme = (mode: ThemeMode) => {
-    setThemeMode(mode)
-    void saveThemeMode(mode)
-  }
 
   const deviceTimeZone = getBrowserTimeZone()
   const mismatch = profile && profile.timezone !== deviceTimeZone
@@ -523,6 +518,50 @@ function SettingsSection() {
           options={THEME_MODES.map((mode) => ({ value: mode, label: themeLabel[mode] }))}
           onChange={changeTheme}
         />
+      </View>
+
+      <View className="gap-2">
+        <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text dark:text-text-dark">
+          {t('profile.accentLabel')}
+        </Text>
+        <View className="flex-row gap-2">
+          {ACCENTS.map((value) => {
+            const selected = accent === value
+            const hex = ACCENT_HEX[value]
+            const accentLabel = {
+              celeste: t('profile.accentCeleste'),
+              menta: t('profile.accentMenta'),
+              violeta: t('profile.accentVioleta'),
+            }[value]
+            return (
+              <Pressable
+                key={value}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => setAccent(value)}
+                className={
+                  selected
+                    ? 'min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-brand bg-brand-soft px-3 dark:bg-brand-soft-dark'
+                    : 'min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-border bg-surface-sunken px-3 dark:border-border-dark dark:bg-surface-sunken-dark'
+                }
+              >
+                <View
+                  className="h-4 w-4 rounded-full"
+                  style={{ backgroundColor: hex.light.brand }}
+                />
+                <Text
+                  className={
+                    selected
+                      ? 'text-sm font-semibold text-brand dark:text-brand-dark'
+                      : 'text-sm font-semibold text-text-muted dark:text-text-muted-dark'
+                  }
+                >
+                  {accentLabel}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </View>
       </View>
 
       <View className="gap-2 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">

@@ -1,5 +1,8 @@
 import { useColorScheme } from 'react-native'
 
+import { ACCENT_HEX } from '@/lib/theme'
+import { useAccent } from '@/lib/theme-context'
+
 // Los mismos tokens que tailwind.config.js, accesibles desde codigo para lo
 // que no acepta className: colores de iconos, tintes calculados, el ring del
 // tile. Una sola fuente en hex; la web sigue siendo la referencia en oklch.
@@ -49,7 +52,10 @@ export const ACTIVITY_HEX: Record<string, { light: string; dark: string }> = {
 
 export function useThemeColors() {
   const scheme = useColorScheme()
-  return scheme === 'dark' ? DARK : LIGHT
+  const accent = useAccent()
+  const palette = scheme === 'dark' ? DARK : LIGHT
+  const hex = ACCENT_HEX[accent][scheme === 'dark' ? 'dark' : 'light']
+  return { ...palette, brand: hex.brand, brandSoft: hex.soft }
 }
 
 export function useActivityHex(color: string): string {

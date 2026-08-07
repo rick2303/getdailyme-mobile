@@ -1,0 +1,201 @@
+import DateTimePicker from '@react-native-community/datetimepicker'
+import { Bell, BellOff } from 'lucide-react-native'
+import { useEffect, useState } from 'react'
+import { Pressable, Switch, Text, View } from 'react-native'
+
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/components/ui/toast'
+import { SHADOW_TILE, useThemeColors } from '@/constants/colors'
+import { useI18n } from '@/i18n/provider'
+import {
+  hasPushPermission,
+  isPushOptedIn,
+  optInPush,
+  optOutPush,
+  requestPushPermission,
+} from '@/lib/onesignal'
+import {
+  useNotificationPreferences,
+  useUpdateNotificationPreferences,
+} from '@/lib/hooks/use-notifications'
+
+// Los avisos de la web adaptados a nativo: aqui no hay que instalar nada, el
+// permiso lo da el sistema y OneSignal gestiona la suscripcion del aparato.
+const DEFAULT_REMINDER = '20:00'
+
+function reminderToDate(value: string | null): Date {
+  const date = new Date(2000, 0, 1, 20, 0, 0)
+  if (value) {
+    const [hours, minutes] = value.split(':').map(Number)
+    if (Number.isFinite(hours) && Number.isFinite(minutes)) date.setHours(hours, minutes)
+  }
+  return date
+}
+
+export function NotificationsSection() {
+  const { t, locale } = useI18n()
+  const { showToast } = useToast()
+  const colors = useThemeColors()
+
+  const { data: preferences } = useNotificationPreferences()
+  const updatePreferences = useUpdateNotificationPreferences()
+
+  const [enabled, setEnabled] = useState<boolean | null>(null)
+  const [timePickerOpen, setTimePickerOpen] = useState(false)
+
+  useEffect(() => {
+    void (async () => {
+      const permitted = await hasPushPermission()
+      const optedIn = await isPushOptedIn()
+      setEnabled(permitted && optedIn)
+    })()
+  }, [])
+
+  const turnOn = async () => {
+    const granted = await requestPushPermission()
+    if (!granted) {
+      showToast(t('notifications.blocked'), 'error')
+      setEnabled(false)
+      return
+    }
+    optInPush()
+    setEnabled(true)
+    showToast(t('notifications.enabled'), 'success')
+  }
+
+  const turnOff = () => {
+    optOutPush()
+    setEnabled(false)
+    showToast(t('notifications.disabled'))
+  }
+
+  const reminderEnabled = Boolean(preferences?.daily_reminder_at)
+  const reminderLabel = preferences?.daily_reminder_at?.slice(0, 5) ?? DEFAULT_REMINDER
+
+  return (
+    <View className="gap-2">
+      <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text dark:text-text-dark">
+        {t('notifications.sectionTitle')}
+      </Text>
+
+      <View
+        style={SHADOW_TILE}
+        className="gap-3 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark"
+      >
+        <View className="flex-row items-start gap-3">
+          <Bell size={20} color={colors.brand} style={{ marginTop: 2 }} />
+          <View className="min-w-0 flex-1">
+            <Text className="text-sm font-bold text-text dark:text-text-dark">
+              {t('notifications.pushTitle')}
+            </Text>
+            <Text className="mt-0.5 text-sm text-text-muted dark:text-text-muted-dark">
+              {t('notifications.pushWhy')}
+            </Text>
+          </View>
+        </View>
+
+        {enabled === null ? null : enabled ? (
+          <>
+            <View className="gap-2">
+              <PreferenceToggle
+                label={t('notifications.typeNudges')}
+                checked={preferences?.notify_nudges ?? true}
+                onChange={(checked) => updatePreferences.mutate({ notify_nudges: checked })}
+              />
+              <PreferenceToggle
+                label={t('notifications.typeReactions')}
+                checked={preferences?.notify_reactions ?? true}
+                onChange={(checked) => updatePreferences.mutate({ notify_reactions: checked })}
+              />
+              <PreferenceToggle
+                label={t('notifications.typeComments')}
+                checked={preferences?.notify_comments ?? true}
+                onChange={(checked) => updatePreferences.mutate({ notify_comments: checked })}
+              />
+              <PreferenceToggle
+                label={t('notifications.typeReminder')}
+                checked={reminderEnabled}
+                onChange={(checked) =>
+                  updatePreferences.mutate({
+                    daily_reminder_at: checked ? `${DEFAULT_REMINDER}:00` : null,
+                  })
+                }
+              />
+
+              {reminderEnabled ? (
+                <View className="flex-row items-center justify-between gap-3 rounded-2xl bg-surface-sunken px-3.5 py-2.5 dark:bg-surface-sunken-dark">
+                  <Text className="text-sm font-medium text-text-muted dark:text-text-muted-dark">
+                    {t('notifications.reminderAt')}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('notifications.reminderAt')}
+                    onPress={() => setTimePickerOpen(true)}
+                    className="rounded-xl bg-surface px-3 py-1.5 dark:bg-surface-dark"
+                  >
+                    <Text className="text-sm font-bold text-text dark:text-text-dark">
+                      {reminderLabel}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {timePickerOpen ? (
+                <DateTimePicker
+                  value={reminderToDate(preferences?.daily_reminder_at ?? null)}
+                  mode="time"
+                  locale={locale}
+                  onChange={(_event, selected) => {
+                    setTimePickerOpen(false)
+                    if (selected) {
+                      const hours = String(selected.getHours()).padStart(2, '0')
+                      const minutes = String(selected.getMinutes()).padStart(2, '0')
+                      updatePreferences.mutate({ daily_reminder_at: `${hours}:${minutes}:00` })
+                    }
+                  }}
+                />
+              ) : null}
+            </View>
+
+            <Button
+              title={t('notifications.turnOff')}
+              variant="ghost"
+              size="sm"
+              fullWidth
+              icon={<BellOff size={16} color={colors.textMuted} />}
+              onPress={turnOff}
+            />
+          </>
+        ) : (
+          <Button
+            title={t('notifications.turnOn')}
+            fullWidth
+            icon={<Bell size={18} color="#fff" />}
+            onPress={() => void turnOn()}
+          />
+        )}
+      </View>
+    </View>
+  )
+}
+
+function PreferenceToggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}) {
+  const colors = useThemeColors()
+
+  return (
+    <View className="flex-row items-center justify-between gap-3 rounded-2xl bg-surface-sunken px-3.5 py-2.5 dark:bg-surface-sunken-dark">
+      <Text className="min-w-0 flex-1 text-sm font-medium text-text dark:text-text-dark">
+        {label}
+      </Text>
+      <Switch value={checked} onValueChange={onChange} trackColor={{ true: colors.brand }} />
+    </View>
+  )
+}

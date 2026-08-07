@@ -13,7 +13,7 @@ import { I18nProvider } from '@/i18n/provider'
 import { AuthProvider, useAuth } from '@/lib/auth/provider'
 import { initOneSignal, loginOneSignal, logoutOneSignal } from '@/lib/onesignal'
 import { QueryProvider } from '@/lib/query/provider'
-import { applyThemeMode, loadThemeMode } from '@/lib/theme'
+import { ThemeProvider } from '@/lib/theme-context'
 
 // El guardia de rutas: sin sesion -> acceso; con sesion sin onboarding ->
 // bienvenida; el resto -> tabs. Es el equivalente movil del proxy de la web.
@@ -49,13 +49,6 @@ function Gate({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-function ThemeBinder() {
-  useEffect(() => {
-    void loadThemeMode().then(applyThemeMode)
-  }, [])
-  return null
-}
-
 function PushBinder() {
   const { user } = useAuth()
 
@@ -80,13 +73,14 @@ export default function RootLayout() {
         <QueryProvider>
           <I18nProvider>
             <AuthProvider>
-              <ToastProvider>
-                <ThemeBinder />
-                <PushBinder />
-                <Gate>
-                  <Stack screenOptions={{ headerShown: false }} />
-                </Gate>
-              </ToastProvider>
+              <ThemeProvider>
+                <ToastProvider>
+                  <PushBinder />
+                  <Gate>
+                    <Stack screenOptions={{ headerShown: false }} />
+                  </Gate>
+                </ToastProvider>
+              </ThemeProvider>
             </AuthProvider>
           </I18nProvider>
         </QueryProvider>

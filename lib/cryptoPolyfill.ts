@@ -18,6 +18,11 @@ if (Platform.OS !== 'web') {
   if (typeof g.crypto.getRandomValues !== 'function') {
     g.crypto.getRandomValues = (arr: any) => ExpoCrypto.getRandomValues(arr)
   }
+  // Sin randomUUID los ids optimistas caen a un fallback que no es UUID y
+  // Postgres rechaza el insert: el registro aparece y luego se esfuma.
+  if (typeof g.crypto.randomUUID !== 'function') {
+    g.crypto.randomUUID = () => ExpoCrypto.randomUUID()
+  }
   // Force-replace `subtle` with our own object so any partial/broken Hermes
   // implementation can't shadow our digest. Hermes 0.13+ ships some web
   // primitives but `crypto.subtle.digest` is not reliably present on iOS.
