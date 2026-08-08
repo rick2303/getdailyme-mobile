@@ -28,10 +28,11 @@
         "NSCameraUsageDescription": "getdailyme necesita acceso a la cámara para tomar una foto de tu registro.",
         "NSLocationWhenInUseUsageDescription": "getdailyme no usa tu ubicación. Este permiso lo requiere una librería de notificaciones, pero la app nunca accede a tu ubicación."
       },
-      "buildNumber": "9",
+      "buildNumber": "12",
       "entitlements": {
         "com.apple.security.application-groups": [
-          "group.com.getdailyme.app"
+          "group.com.getdailyme.app",
+          "group.com.getdailyme.app.onesignal"
         ]
       }
     },
