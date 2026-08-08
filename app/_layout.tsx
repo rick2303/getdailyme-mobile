@@ -4,7 +4,7 @@ import * as QuickActions from 'expo-quick-actions'
 import { useQuickActionRouting } from 'expo-quick-actions/router'
 import { Stack, useRouter, useSegments } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { Platform, View } from 'react-native'
+import { AppState, Platform, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
@@ -18,6 +18,7 @@ import { ACTIVITY_HEX, useThemeColors } from '@/constants/colors'
 import { computeStreak } from '@/lib/activities/streaks'
 import { useActiveActivities } from '@/lib/hooks/use-activities'
 import { useHistorySummary, useTodayTotals } from '@/lib/hooks/use-logs'
+import { isHealthConnected, syncHealthToLogs } from '@/lib/health'
 import { initOneSignal, loginOneSignal, logoutOneSignal } from '@/lib/onesignal'
 import { QueryProvider } from '@/lib/query/provider'
 import { ThemeProvider } from '@/lib/theme-context'
@@ -145,6 +146,34 @@ function WidgetBinder() {
   return null
 }
 
+// Sincroniza salud al abrir la app y al volver del fondo, si esta conectada.
+function HealthBinder() {
+  const { user, profile } = useAuth()
+
+  useEffect(() => {
+    if (!user || !profile) return
+    let cancelled = false
+
+    const sync = async () => {
+      if (cancelled) return
+      if (!(await isHealthConnected())) return
+      await syncHealthToLogs(user.id, profile.timezone)
+    }
+
+    void sync()
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void sync()
+    })
+
+    return () => {
+      cancelled = true
+      subscription.remove()
+    }
+  }, [user, profile])
+
+  return null
+}
+
 function PushBinder() {
   const { user } = useAuth()
 
@@ -176,6 +205,7 @@ export default function RootLayout() {
                   <PushBinder />
                   <QuickActionsBinder />
                   <WidgetBinder />
+                  <HealthBinder />
                   <Gate>
                     <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
                   </Gate>

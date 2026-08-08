@@ -26,14 +26,17 @@
         "NSPhotoLibraryUsageDescription": "getdailyme necesita acceso a tu galería para adjuntar una foto a tus registros.",
         "NSPhotoLibraryAddUsageDescription": "getdailyme necesita permiso para guardar imágenes que generes desde la app.",
         "NSCameraUsageDescription": "getdailyme necesita acceso a la cámara para tomar una foto de tu registro.",
-        "NSLocationWhenInUseUsageDescription": "getdailyme no usa tu ubicación. Este permiso lo requiere una librería de notificaciones, pero la app nunca accede a tu ubicación."
+        "NSLocationWhenInUseUsageDescription": "getdailyme no usa tu ubicación. Este permiso lo requiere una librería de notificaciones, pero la app nunca accede a tu ubicación.",
+        "NSHealthShareUsageDescription": "getdailyme lee tus pasos, minutos de ejercicio y sueño para registrarlos automáticamente en las actividades que tú elijas.",
+        "NSHealthUpdateUsageDescription": "getdailyme no escribe datos en Salud; este permiso lo declara la librería de salud."
       },
       "buildNumber": "14",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.getdailyme.app",
           "group.com.getdailyme.app.onesignal"
-        ]
+        ],
+        "com.apple.developer.healthkit": true
       }
     },
     "android": {
@@ -65,7 +68,12 @@
           ]
         }
       ],
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_EXERCISE",
+        "android.permission.health.READ_SLEEP"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -113,7 +121,9 @@
             }
           ]
         }
-      ]
+      ],
+      "@kingstinct/react-native-healthkit",
+      "react-native-health-connect"
     ],
     "extra": {
       "router": {},

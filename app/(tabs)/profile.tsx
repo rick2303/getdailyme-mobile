@@ -10,6 +10,7 @@ import {
   Clock,
   Download,
   Flame,
+  HeartPulse,
   KeyRound,
   ListChecks,
   LogOut,
@@ -28,6 +29,7 @@ import { Heatmap } from '@/components/profile/heatmap'
 import { RecapShareSheet, type RecapShareData } from '@/components/profile/recap-share-sheet'
 import { ACTIVITY_HEX } from '@/constants/colors'
 import { DeleteAccountSection } from '@/components/profile/delete-account-section'
+import { HealthSection } from '@/components/profile/health-section'
 import { ManageActivitiesSheet } from '@/components/profile/manage-activities-sheet'
 import { NotificationsSection } from '@/components/profile/notifications-section'
 import { SecuritySection } from '@/components/profile/security-section'
@@ -434,7 +436,7 @@ function RecapSection() {
 
 // El hub de ajustes: en vez del scroll infinito de secciones, una tarjeta de
 // filas al estilo iOS y cada tema se abre en su propia hoja.
-type HubSheet = 'alerts' | 'settings' | 'security' | null
+type HubSheet = 'alerts' | 'settings' | 'security' | 'health' | null
 
 function SettingsHub({ onManage, onSignOut }: { onManage: () => void; onSignOut: () => void }) {
   const { t } = useI18n()
@@ -458,6 +460,12 @@ function SettingsHub({ onManage, onSignOut }: { onManage: () => void; onSignOut:
           label={t('profile.hubSettings')}
           hint={t('profile.hubSettingsHint')}
           onPress={() => setOpen('settings')}
+        />
+        <HubRow
+          icon={HeartPulse}
+          label={t('health.title')}
+          hint={t('health.hubHint')}
+          onPress={() => setOpen('health')}
         />
         <HubRow
           icon={KeyRound}
@@ -501,6 +509,17 @@ function SettingsHub({ onManage, onSignOut }: { onManage: () => void; onSignOut:
       >
         <View className="pb-2 pt-1">
           <SettingsSection />
+        </View>
+      </Sheet>
+
+      <Sheet
+        open={open === 'health'}
+        onClose={() => setOpen(null)}
+        title={t('health.title')}
+        closeLabel={t('common.close')}
+      >
+        <View className="pb-2 pt-1">
+          <HealthSection />
         </View>
       </Sheet>
 
