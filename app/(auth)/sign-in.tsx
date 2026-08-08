@@ -7,6 +7,9 @@ import { Alert, Platform, Pressable, ScrollView, Text, useColorScheme, View } fr
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { Check } from 'lucide-react-native'
+
+import { AppleMark } from '@/components/brand/apple-mark'
 import { BrandLogo } from '@/components/brand/brand-logo'
 import { GoogleMark } from '@/components/brand/google-mark'
 import { Button } from '@/components/ui/button'
@@ -40,6 +43,13 @@ export default function SignInScreen() {
   const [busyGoogle, setBusyGoogle] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [appleAvailable, setAppleAvailable] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+
+  const requireTerms = (): boolean => {
+    if (acceptedTerms) return true
+    setError(t('auth.termsRequired'))
+    return false
+  }
 
   useEffect(() => {
     AppleAuthentication.isAvailableAsync()
@@ -56,6 +66,7 @@ export default function SignInScreen() {
       setError(t('auth.passwordTooShort'))
       return
     }
+    if (creatingAccount && !requireTerms()) return
 
     setBusy(true)
     setError(null)
@@ -90,6 +101,7 @@ export default function SignInScreen() {
   // Receta splitwo: URL con skipBrowserRedirect, navegador del sistema y canje
   // del codigo PKCE aqui mismo, recortando el fragmento fantasma de iOS.
   const signInWithGoogle = async () => {
+    if (!requireTerms()) return
     setBusyGoogle(true)
     setError(null)
     try {
@@ -142,6 +154,7 @@ export default function SignInScreen() {
   }
 
   const signInWithApple = async () => {
+    if (!requireTerms()) return
     setError(null)
     try {
       const credential = await AppleAuthentication.signInAsync({
@@ -220,10 +233,10 @@ export default function SignInScreen() {
             </View>
             <View className="items-center">
               <Text className="text-center text-3xl font-extrabold tracking-tight text-text dark:text-text-dark">
-                {t('auth.welcomeTitle')}
+                {creatingAccount ? t('auth.createAccountTitle') : t('auth.welcomeTitle')}
               </Text>
               <Text className="mt-2 px-4 text-center text-[15px] leading-relaxed text-text-muted dark:text-text-muted-dark">
-                {t('auth.welcomeSubtitle')}
+                {creatingAccount ? t('auth.createAccountSubtitle') : t('auth.welcomeSubtitle')}
               </Text>
             </View>
           </Animated.View>
@@ -312,20 +325,54 @@ export default function SignInScreen() {
           />
 
           {Platform.OS === 'ios' && appleAvailable ? (
-            <AppleAuthentication.AppleAuthenticationButton
-              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-              buttonStyle={
-                scheme === 'dark'
-                  ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-                  : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-              }
-              cornerRadius={16}
-              style={[{ height: 56, width: '100%' }, SHADOW_TILE]}
+            <Button
+              title={t('auth.continueWithApple')}
+              size="lg"
+              fullWidth
+              labelClassName={scheme === 'dark' ? 'text-[17px] text-black' : 'text-[17px] text-white'}
+              className={scheme === 'dark' ? 'bg-white' : 'bg-black'}
+              icon={<AppleMark size={20} color={scheme === 'dark' ? '#000' : '#fff'} />}
               onPress={() => void signInWithApple()}
             />
           ) : null}
 
-          <Text className="px-2 pt-2 text-center text-xs leading-relaxed text-text-subtle dark:text-text-subtle-dark">
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: acceptedTerms }}
+            onPress={() => {
+              setAcceptedTerms((value) => !value)
+              setError(null)
+            }}
+            className="flex-row items-start gap-2.5 px-1 pt-2"
+          >
+            <View
+              className={
+                acceptedTerms
+                  ? 'mt-0.5 h-5 w-5 items-center justify-center rounded-md bg-brand'
+                  : 'mt-0.5 h-5 w-5 items-center justify-center rounded-md border border-border-strong dark:border-border-strong-dark'
+              }
+            >
+              {acceptedTerms ? <Check size={14} color="#fff" strokeWidth={3} /> : null}
+            </View>
+            <Text className="min-w-0 flex-1 text-xs leading-relaxed text-text-muted dark:text-text-muted-dark">
+              {t('auth.termsPrefix')}
+              <Text
+                className="font-bold text-brand dark:text-brand-dark"
+                onPress={() => void WebBrowser.openBrowserAsync('https://getdailyme.com/terms')}
+              >
+                {t('auth.termsLink')}
+              </Text>
+              {t('auth.termsMiddle')}
+              <Text
+                className="font-bold text-brand dark:text-brand-dark"
+                onPress={() => void WebBrowser.openBrowserAsync('https://getdailyme.com/privacy')}
+              >
+                {t('auth.privacyLink')}
+              </Text>
+            </Text>
+          </Pressable>
+
+          <Text className="px-2 pt-1 text-center text-xs leading-relaxed text-text-subtle dark:text-text-subtle-dark">
             {t('auth.legal')}
           </Text>
           </Animated.View>

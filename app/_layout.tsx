@@ -117,7 +117,7 @@ function WidgetBinder() {
 
     const pending = withGoal
       .filter((activity) => !reachedCount(activity))
-      .slice(0, 3)
+      .slice(0, 5)
       .map((activity) => {
         const entry = totals.get(activity.id)
         const progress =
