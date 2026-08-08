@@ -113,7 +113,7 @@
                   }
                 },
                 {
-                  "targetName": "getdailyme",
+                  "targetName": "GetdailymeWidget",
                   "bundleIdentifier": "com.getdailyme.app.widget",
                   "entitlements": {
                     "com.apple.security.application-groups": [
