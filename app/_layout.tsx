@@ -3,7 +3,7 @@ import '../global.css'
 import * as QuickActions from 'expo-quick-actions'
 import { useQuickActionRouting } from 'expo-quick-actions/router'
 import { Stack, useRouter, useSegments } from 'expo-router'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Platform, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -13,9 +13,14 @@ import { Spinner } from '@/components/ui/feedback'
 import { ToastProvider } from '@/components/ui/toast'
 import { I18nProvider, useT } from '@/i18n/provider'
 import { AuthProvider, useAuth } from '@/lib/auth/provider'
+import { ACTIVITY_HEX, useThemeColors } from '@/constants/colors'
+import { computeStreak } from '@/lib/activities/streaks'
+import { useActiveActivities } from '@/lib/hooks/use-activities'
+import { useHistorySummary, useTodayTotals } from '@/lib/hooks/use-logs'
 import { initOneSignal, loginOneSignal, logoutOneSignal } from '@/lib/onesignal'
 import { QueryProvider } from '@/lib/query/provider'
 import { ThemeProvider } from '@/lib/theme-context'
+import { updateWidget } from '@/lib/widget'
 
 // El guardia de rutas: sin sesion -> acceso; con sesion sin onboarding ->
 // bienvenida; el resto -> tabs. Es el equivalente movil del proxy de la web.
@@ -83,6 +88,62 @@ function QuickActionsBinder() {
   return null
 }
 
+// Mantiene el widget de iOS al dia: cada cambio en actividades o registros
+// reescribe el resumen en el App Group y pide redibujar.
+function WidgetBinder() {
+  const { data: activities } = useActiveActivities()
+  const { totals } = useTodayTotals()
+  const { allDates, today } = useHistorySummary()
+  const colors = useThemeColors()
+
+  const streak = useMemo(() => computeStreak(allDates, today).current, [allDates, today])
+
+  useEffect(() => {
+    const list = activities ?? []
+    if (list.length === 0) return
+
+    const withGoal = list.filter(
+      (activity) =>
+        activity.input_mode === 'check' ||
+        (activity.daily_target !== null && activity.target_period === 'day'),
+    )
+    const reachedCount = (activity: (typeof list)[number]) => {
+      const entry = totals.get(activity.id)
+      if (activity.input_mode === 'check') return (entry?.count ?? 0) > 0
+      return (entry?.amount ?? 0) >= (activity.daily_target ?? Infinity)
+    }
+    const done = withGoal.filter(reachedCount).length
+    const due = withGoal.length
+
+    const pending = withGoal
+      .filter((activity) => !reachedCount(activity))
+      .slice(0, 3)
+      .map((activity) => {
+        const entry = totals.get(activity.id)
+        const progress =
+          activity.input_mode === 'check'
+            ? 0
+            : Math.min(1, (entry?.amount ?? 0) / (activity.daily_target ?? 1))
+        return {
+          name: activity.name,
+          color: ACTIVITY_HEX[activity.color]?.light ?? '#6B4EE6',
+          progress,
+        }
+      })
+
+    updateWidget({
+      done,
+      due,
+      streak,
+      brand: colors.brand,
+      complete: due > 0 && done === due,
+      activities: pending,
+    })
+  }, [activities, totals, streak, colors.brand])
+
+  return null
+}
+
 function PushBinder() {
   const { user } = useAuth()
 
@@ -111,6 +172,7 @@ export default function RootLayout() {
                 <ToastProvider>
                   <PushBinder />
                   <QuickActionsBinder />
+                  <WidgetBinder />
                   <Gate>
                     <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
                   </Gate>
