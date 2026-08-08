@@ -41,6 +41,8 @@ export const es = {
     },
   },
   auth: {
+    welcomeTitle: "¡Hola! Qué bueno verte",
+    welcomeSubtitle: "Tus hábitos, tus amistades y tus momentos, todo en un solo lugar.",
     heroTitle: "Registra tu día en un toque",
     heroSubtitle:
       "Agua, comidas, entrenamientos y momentos. Compártelo solo con quien tú elijas.",

@@ -1,8 +1,9 @@
 import DateTimePicker from '@react-native-community/datetimepicker'
+import { useQueryClient } from '@tanstack/react-query'
 import * as ImagePicker from 'expo-image-picker'
 import { Check, Flame, ImagePlus, Minus, Plus, Timer, X } from 'lucide-react-native'
 import { useMemo, useState } from 'react'
-import { FlatList, Image, Pressable, Text, View } from 'react-native'
+import { FlatList, Image, Pressable, RefreshControl, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
 
@@ -37,6 +38,8 @@ import { todayKey, shiftDateKey, zonedDateTimeToIso } from '@/lib/utils/dates'
 
 export default function TodayScreen() {
   const { t } = useI18n()
+  const queryClient = useQueryClient()
+  const brandColors = useThemeColors()
   const { profile } = useAuth()
   const userId = useCurrentUserId()
   const { showToast } = useToast()
@@ -53,6 +56,14 @@ export default function TodayScreen() {
   const [detailActivity, setDetailActivity] = useState<Activity | null>(null)
   const [quickActivity, setQuickActivity] = useState<Activity | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const refresh = async () => {
+    setRefreshing(true)
+    await queryClient.invalidateQueries({ queryKey: ['logs'] })
+    await queryClient.invalidateQueries({ queryKey: ['activities'] })
+    setRefreshing(false)
+  }
 
   const quickSession = useSessionFor(quickActivity?.id ?? null)
 
@@ -104,6 +115,14 @@ export default function TodayScreen() {
         numColumns={2}
         columnWrapperClassName="gap-3 px-4"
         contentContainerClassName="gap-3 pb-8"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void refresh()}
+            tintColor={brandColors.brand}
+            colors={[brandColors.brand]}
+          />
+        }
         ListHeaderComponent={
           <View className="px-4 pb-2 pt-4">
             <Text className="text-2xl font-extrabold text-text dark:text-text-dark">

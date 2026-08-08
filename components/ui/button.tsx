@@ -45,6 +45,7 @@ export function Button({
   loading,
   icon,
   className,
+  labelClassName,
   disabled,
   style,
   ...props
@@ -56,6 +57,7 @@ export function Button({
   loading?: boolean
   icon?: React.ReactNode
   className?: string
+  labelClassName?: string
 }) {
   const colors = useThemeColors()
 
@@ -83,7 +85,7 @@ export function Button({
       ) : (
         icon
       )}
-      <Text className={cn('font-semibold', LABEL[variant], SIZE[size].label)}>{title}</Text>
+      <Text className={cn('font-semibold', LABEL[variant], SIZE[size].label, labelClassName)}>{title}</Text>
     </Pressable>
   )
 }

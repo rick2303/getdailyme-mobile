@@ -36,7 +36,8 @@ export const TextInput = forwardRef<
         {leading}
         <RNTextInput
           ref={ref}
-          className="min-h-12 flex-1 py-3 text-base text-text dark:text-text-dark"
+          className="min-h-12 flex-1 text-base text-text dark:text-text-dark"
+          style={{ paddingVertical: props.multiline ? 12 : 0, textAlignVertical: props.multiline ? 'top' : 'center' }}
           placeholderTextColor={colors.textSubtle}
           onFocus={(event) => {
             setFocused(true)

@@ -77,7 +77,7 @@ export default function RootLayout() {
                 <ToastProvider>
                   <PushBinder />
                   <Gate>
-                    <Stack screenOptions={{ headerShown: false }} />
+                    <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
                   </Gate>
                 </ToastProvider>
               </ThemeProvider>

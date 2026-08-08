@@ -1,8 +1,10 @@
 import * as AppleAuthentication from 'expo-apple-authentication'
+import { LinearGradient } from 'expo-linear-gradient'
 import * as WebBrowser from 'expo-web-browser'
 import { ArrowRight, AtSign, Lock } from 'lucide-react-native'
 import { useEffect, useState } from 'react'
 import { Alert, Platform, Pressable, ScrollView, Text, useColorScheme, View } from 'react-native'
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { BrandLogo } from '@/components/brand/brand-logo'
@@ -10,8 +12,6 @@ import { GoogleMark } from '@/components/brand/google-mark'
 import { Button } from '@/components/ui/button'
 import { TextInput } from '@/components/ui/field'
 import { useToast } from '@/components/ui/toast'
-import { LOCALES, LOCALE_LABELS } from '@/i18n/config'
-import { Segmented } from '@/components/ui/segmented'
 import { useI18n } from '@/i18n/provider'
 import { SHADOW_TILE, useThemeColors } from '@/constants/colors'
 import { supabase } from '@/lib/supabase/client'
@@ -28,7 +28,7 @@ const OAUTH_REDIRECT = 'getdailyme://auth/callback'
 // con el boton oficial. El enlace magico se queda en la web: en nativo el
 // correo no puede volver a la app hasta que el dominio este vivo.
 export default function SignInScreen() {
-  const { t, locale, setLocale } = useI18n()
+  const { t } = useI18n()
   const { showToast } = useToast()
   const colors = useThemeColors()
   const scheme = useColorScheme()
@@ -199,24 +199,36 @@ export default function SignInScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark">
-      <ScrollView
-        contentContainerClassName="flex-grow justify-center px-6 py-8"
-        keyboardShouldPersistTaps="handled"
-      >
-        <View className="items-center gap-4 pb-8">
-          <BrandLogo size={56} />
-          <View className="items-center">
-            <Text className="text-center text-2xl font-extrabold tracking-tight text-text dark:text-text-dark">
-              {t('auth.heroTitle')}
-            </Text>
-            <Text className="mt-1.5 text-center text-sm text-text-muted dark:text-text-muted-dark">
-              {t('auth.heroSubtitle')}
-            </Text>
-          </View>
-        </View>
+    <View className="flex-1 bg-bg dark:bg-bg-dark">
+      <LinearGradient
+        colors={[colors.brandSoft, scheme === 'dark' ? '#121219' : '#F8F8FB']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 0.55 }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 420 }}
+      />
+      <SafeAreaView className="flex-1">
+        <ScrollView
+          contentContainerClassName="flex-grow justify-center px-6 py-8"
+          keyboardShouldPersistTaps="handled"
+        >
+          <Animated.View entering={FadeInDown.duration(500)} className="items-center gap-4 pb-8">
+            <View
+              style={SHADOW_TILE}
+              className="h-24 w-24 items-center justify-center rounded-[28px] bg-surface dark:bg-surface-dark"
+            >
+              <BrandLogo size={56} />
+            </View>
+            <View className="items-center">
+              <Text className="text-center text-3xl font-extrabold tracking-tight text-text dark:text-text-dark">
+                {t('auth.welcomeTitle')}
+              </Text>
+              <Text className="mt-2 px-4 text-center text-[15px] leading-relaxed text-text-muted dark:text-text-muted-dark">
+                {t('auth.welcomeSubtitle')}
+              </Text>
+            </View>
+          </Animated.View>
 
-        <View className="gap-4">
+          <Animated.View entering={FadeInUp.delay(120).duration(500)} className="gap-4">
           <TextInput
             label={t('auth.emailLabel')}
             placeholder={t('auth.emailPlaceholder')}
@@ -294,7 +306,8 @@ export default function SignInScreen() {
             size="lg"
             fullWidth
             loading={busyGoogle}
-            icon={busyGoogle ? undefined : <GoogleMark size={18} />}
+            labelClassName="text-[17px]"
+            icon={busyGoogle ? undefined : <GoogleMark size={20} />}
             onPress={() => void signInWithGoogle()}
           />
 
@@ -315,16 +328,9 @@ export default function SignInScreen() {
           <Text className="px-2 pt-2 text-center text-xs leading-relaxed text-text-subtle dark:text-text-subtle-dark">
             {t('auth.legal')}
           </Text>
-
-          <View className="pt-2">
-            <Segmented
-              value={locale}
-              options={LOCALES.map((item) => ({ value: item, label: LOCALE_LABELS[item] }))}
-              onChange={setLocale}
-            />
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+          </Animated.View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   )
 }

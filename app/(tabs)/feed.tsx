@@ -41,6 +41,7 @@ type FeedTab = 'activity' | 'events'
 
 export default function FeedScreen() {
   const { t } = useI18n()
+  const colors = useThemeColors()
   const feed = useFeed()
   useFeedRealtime()
 
@@ -82,7 +83,7 @@ export default function FeedScreen() {
         keyExtractor={(item) => item.entry.id}
         contentContainerClassName="gap-3 px-4 pb-8"
         refreshControl={
-          <RefreshControl refreshing={feed.isRefetching} onRefresh={() => void feed.refetch()} />
+          <RefreshControl refreshing={feed.isRefetching} onRefresh={() => void feed.refetch()} tintColor={colors.brand} colors={[colors.brand]} />
         }
         onEndReached={() => {
           if (feed.hasNextPage && !feed.isFetchingNextPage) void feed.fetchNextPage()

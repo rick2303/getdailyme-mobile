@@ -1,7 +1,7 @@
 import { Check, Flame, Hand, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native'
 import { useState } from 'react'
 import { Share } from 'react-native'
-import { Pressable, ScrollView, Text, View } from 'react-native'
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { Avatar } from '@/components/ui/avatar'
@@ -25,6 +25,8 @@ import {
   useUnreadNudges,
   useMarkNudgesRead,
 } from '@/lib/hooks/use-friends'
+import { useQueryClient } from '@tanstack/react-query'
+
 import { useInviteToken } from '@/lib/hooks/use-invite'
 import { useFriendActiveDates } from '@/lib/hooks/use-friends'
 import { useHistorySummary } from '@/lib/hooks/use-logs'
@@ -36,10 +38,19 @@ import { haptic } from '@/lib/utils/haptics'
 export default function FriendsScreen() {
   const { t } = useI18n()
   const colors = useThemeColors()
+  const queryClient = useQueryClient()
   const { friends, incoming, blocked, isLoading } = useFriends()
   const { data: inviteToken } = useInviteToken()
 
   const [query, setQuery] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
+
+  const refresh = async () => {
+    setRefreshing(true)
+    await queryClient.invalidateQueries({ queryKey: ['friends'] })
+    await queryClient.invalidateQueries({ queryKey: ['challenges'] })
+    setRefreshing(false)
+  }
 
   // El enlace de invitacion de la web: lo comparte el share nativo y quien lo
   // abra queda como amistad al canjearlo (la ruta vive en la PWA).
@@ -57,7 +68,18 @@ export default function FriendsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark" edges={['top']}>
-      <ScrollView contentContainerClassName="gap-5 pb-8 pt-2" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerClassName="gap-5 pb-8 pt-2"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void refresh()}
+            tintColor={colors.brand}
+            colors={[colors.brand]}
+          />
+        }
+      >
         <PageHeader
           title={t('friends.title')}
           subtitle={friends.length > 0 ? t('friends.friendsCount', { count: friends.length }) : undefined}

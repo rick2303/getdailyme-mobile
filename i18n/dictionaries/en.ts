@@ -43,6 +43,8 @@ export const en: Dictionary = {
     },
   },
   auth: {
+    welcomeTitle: "Hey! Good to see you",
+    welcomeSubtitle: "Your habits, your friends and your moments, all in one place.",
     heroTitle: "Log your day in one tap",
     heroSubtitle:
       "Water, meals, workouts and moments. Share them only with the people you pick.",
