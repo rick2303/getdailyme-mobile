@@ -82,7 +82,8 @@
           "cameraPermission": "getdailyme necesita acceso a la cámara para tomar una foto de tu registro.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-quick-actions"
     ],
     "extra": {
       "router": {},

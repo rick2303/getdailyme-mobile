@@ -115,7 +115,20 @@ export const es = {
     activitiesHelp: "Empieza con las que de verdad vayas a registrar. Toca para quitar o añadir.",
     activitiesNone: "Deja al menos una actividad para empezar.",
   },
+  milestones: {
+    title: "¡Racha de {count} días!",
+    body: "Constancia pura. Presume un poco, te lo has ganado.",
+    shareCta: "Compartir logro",
+    cardFooter: "getdailyme · mi racha",
+  },
+  quickActions: {
+    log: "Registrar",
+    feed: "Ver feed",
+    newActivity: "Nueva actividad",
+  },
   today: {
+    dayComplete: "¡Día completo!",
+    dayCompleteSubtitle: "Todo lo de hoy está registrado. Disfruta.",
     greetingMorning: "Buenos días",
     greetingAfternoon: "Buenas tardes",
     greetingEvening: "Buenas noches",

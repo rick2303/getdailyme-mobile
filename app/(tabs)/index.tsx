@@ -14,9 +14,14 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
 
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useLocalSearchParams } from 'expo-router'
+
 import { ActivityGlyph } from '@/components/activities/activity-icon'
 import { ActivityEditorSheet } from '@/components/activities/activity-editor-sheet'
 import { QuickLogSheet } from '@/components/activities/quick-log-sheet'
+import { Confetti } from '@/components/ui/confetti'
+import { MilestoneSheet, STREAK_MILESTONES } from '@/components/profile/milestone-sheet'
 import { Button, IconButton } from '@/components/ui/button'
 import { TextArea } from '@/components/ui/field'
 import { Sheet } from '@/components/ui/sheet'
@@ -37,7 +42,7 @@ import { uploadActivityPhoto } from '@/lib/api/storage'
 import type { Activity } from '@/lib/api/types'
 import { useAuth, useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
 import { useActiveActivities } from '@/lib/hooks/use-activities'
-import { useCreateLog, useDatesByActivity, useDeleteLog, useTodayTotals, useWeekProgress } from '@/lib/hooks/use-logs'
+import { useCreateLog, useDatesByActivity, useDeleteLog, useHistorySummary, useTodayTotals, useWeekProgress } from '@/lib/hooks/use-logs'
 import { formatElapsed, useClearSession, useSessionFor, useStartSession, useTicker } from '@/lib/hooks/use-sessions'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { haptic } from '@/lib/utils/haptics'
@@ -64,6 +69,8 @@ export default function TodayScreen() {
   const [quickActivity, setQuickActivity] = useState<Activity | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [celebrating, setCelebrating] = useState(false)
+  const [milestone, setMilestone] = useState<number | null>(null)
 
   const refresh = async () => {
     setRefreshing(true)
@@ -71,6 +78,12 @@ export default function TodayScreen() {
     await queryClient.invalidateQueries({ queryKey: ['activities'] })
     setRefreshing(false)
   }
+
+  // Un acceso rapido del icono de la app puede pedir crear actividad.
+  const { create } = useLocalSearchParams<{ create?: string }>()
+  useEffect(() => {
+    if (create === '1') setEditorOpen(true)
+  }, [create])
 
   const quickSession = useSessionFor(quickActivity?.id ?? null)
 
@@ -80,6 +93,52 @@ export default function TodayScreen() {
     () => [...totals.values()].reduce((sum, entry) => sum + entry.count, 0),
     [totals],
   )
+
+  // Dia completo: todas las actividades con meta diaria o de check cumplidas.
+  const dayComplete = useMemo(() => {
+    const due = list.filter(
+      (activity) =>
+        activity.input_mode === 'check' ||
+        (activity.daily_target !== null && activity.target_period === 'day'),
+    )
+    if (due.length === 0) return false
+    return due.every((activity) => {
+      const entry = totals.get(activity.id)
+      if (activity.input_mode === 'check') return (entry?.count ?? 0) > 0
+      return (entry?.amount ?? 0) >= (activity.daily_target ?? Infinity)
+    })
+  }, [list, totals])
+
+  // Celebrar solo la transicion en vivo: abrir la app con el dia ya completo
+  // no tira confetti.
+  const [sawComplete, setSawComplete] = useState<boolean | null>(null)
+  useEffect(() => {
+    if (list.length === 0) return
+    if (sawComplete === null) {
+      setSawComplete(dayComplete)
+      return
+    }
+    if (dayComplete && !sawComplete) {
+      setSawComplete(true)
+      setCelebrating(true)
+      haptic('success')
+      const timeout = setTimeout(() => setCelebrating(false), 2400)
+      return () => clearTimeout(timeout)
+    }
+    if (!dayComplete && sawComplete) setSawComplete(false)
+  }, [dayComplete, sawComplete, list.length])
+
+  // Hitos de racha: al cruzar 7/30/100/365 se celebra una sola vez.
+  const { allDates, today: streakToday } = useHistorySummary()
+  const streak = useMemo(() => computeStreak(allDates, streakToday).current, [allDates, streakToday])
+  useEffect(() => {
+    if (!STREAK_MILESTONES.includes(streak)) return
+    void AsyncStorage.getItem('gdm_milestone_seen').then((seen) => {
+      if (Number(seen ?? 0) >= streak) return
+      setMilestone(streak)
+      void AsyncStorage.setItem('gdm_milestone_seen', String(streak))
+    })
+  }, [streak])
 
   // Registrar con deshacer, como la web: el toast trae el boton y borrar el
   // registro optimista lo revierte todo.
@@ -133,13 +192,16 @@ export default function TodayScreen() {
         ListHeaderComponent={
           <View className="px-4 pb-2 pt-4">
             <Text className="text-2xl font-extrabold text-text dark:text-text-dark">
-              {greeting}
-              {profile ? `, ${profile.display_name.split(' ')[0]}` : ''}
+              {dayComplete
+                ? t('today.dayComplete')
+                : `${greeting}${profile ? `, ${profile.display_name.split(' ')[0]}` : ''}`}
             </Text>
             <Text className="mt-1 text-sm text-text-muted dark:text-text-muted-dark">
-              {todayCount > 0
-                ? t('today.subtitleProgress', { count: todayCount })
-                : t('today.subtitleEmpty')}
+              {dayComplete
+                ? t('today.dayCompleteSubtitle')
+                : todayCount > 0
+                  ? t('today.subtitleProgress', { count: todayCount })
+                  : t('today.subtitleEmpty')}
             </Text>
             <Text className="mt-1 text-xs text-text-subtle dark:text-text-subtle-dark">
               {t('today.tapHint')}
@@ -207,6 +269,10 @@ export default function TodayScreen() {
       />
 
       <ActivityEditorSheet open={editorOpen} onClose={() => setEditorOpen(false)} />
+
+      <MilestoneSheet milestone={milestone} onClose={() => setMilestone(null)} />
+
+      <Confetti visible={celebrating} />
     </SafeAreaView>
   )
 }

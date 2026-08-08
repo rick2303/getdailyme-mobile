@@ -117,7 +117,20 @@ export const en: Dictionary = {
     activitiesHelp: "Start with the ones you'll actually log. Tap to remove or add.",
     activitiesNone: "Keep at least one activity to get started.",
   },
+  milestones: {
+    title: "{count}-day streak!",
+    body: "Pure consistency. Go on, show it off — you earned it.",
+    shareCta: "Share achievement",
+    cardFooter: "getdailyme · my streak",
+  },
+  quickActions: {
+    log: "Log something",
+    feed: "Open feed",
+    newActivity: "New activity",
+  },
   today: {
+    dayComplete: "Day complete!",
+    dayCompleteSubtitle: "Everything for today is logged. Enjoy.",
     greetingMorning: "Good morning",
     greetingAfternoon: "Good afternoon",
     greetingEvening: "Good evening",
