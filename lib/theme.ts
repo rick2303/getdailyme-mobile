@@ -32,14 +32,14 @@ export async function saveThemeMode(mode: ThemeMode) {
 }
 
 // Acentos como en la web (data-accent + cookie): aqui son variables de
-// NativeWind mas AsyncStorage. Violeta es el defecto historico de la app.
+// NativeWind mas AsyncStorage. Celeste es el color principal de la marca.
 const ACCENT_KEY = 'gdm_accent'
 
 export const ACCENTS = ['celeste', 'menta', 'violeta'] as const
 
 export type Accent = (typeof ACCENTS)[number]
 
-export const DEFAULT_ACCENT: Accent = 'violeta'
+export const DEFAULT_ACCENT: Accent = 'celeste'
 
 export const ACCENT_HEX: Record<
   Accent,

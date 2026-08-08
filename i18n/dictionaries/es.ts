@@ -575,6 +575,10 @@ export const es = {
     hidden: "Este perfil ya no está a tu alcance.",
   },
   profile: {
+    hubSettings: "Ajustes",
+    hubSettingsHint: "Idioma, tema, color, zona horaria y tus datos",
+    hubAlertsHint: "Push, recordatorios y tipos de aviso",
+    hubSecurityHint: "Contraseña y eliminar cuenta",
     title: "Perfil",
     editTitle: "Editar perfil",
     displayNameLabel: "Nombre visible",

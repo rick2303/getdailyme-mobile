@@ -25,7 +25,7 @@ let placeholderData = WidgetData(
   done: 3,
   due: 5,
   streak: 12,
-  brand: "#6B4EE6",
+  brand: "#007EB6",
   complete: false,
   activities: [
     WidgetActivity(name: "Agua", color: "#3D7BE8", progress: 0.75),

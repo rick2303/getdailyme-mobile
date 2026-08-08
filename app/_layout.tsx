@@ -3,11 +3,12 @@ import '../global.css'
 import * as QuickActions from 'expo-quick-actions'
 import { useQuickActionRouting } from 'expo-quick-actions/router'
 import { Stack, useRouter, useSegments } from 'expo-router'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Platform, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 
+import { AnimatedSplash } from '@/components/brand/animated-splash'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { Spinner } from '@/components/ui/feedback'
 import { ToastProvider } from '@/components/ui/toast'
@@ -126,7 +127,7 @@ function WidgetBinder() {
             : Math.min(1, (entry?.amount ?? 0) / (activity.daily_target ?? 1))
         return {
           name: activity.name,
-          color: ACTIVITY_HEX[activity.color]?.light ?? '#6B4EE6',
+          color: ACTIVITY_HEX[activity.color]?.light ?? '#007EB6',
           progress,
         }
       })
@@ -161,6 +162,8 @@ function PushBinder() {
 }
 
 export default function RootLayout() {
+  const [splashDone, setSplashDone] = useState(false)
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ErrorBoundary>
@@ -176,6 +179,7 @@ export default function RootLayout() {
                   <Gate>
                     <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
                   </Gate>
+                  {!splashDone ? <AnimatedSplash onDone={() => setSplashDone(true)} /> : null}
                 </ToastProvider>
               </ThemeProvider>
             </AuthProvider>

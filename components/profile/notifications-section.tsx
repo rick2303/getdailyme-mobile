@@ -34,7 +34,7 @@ function reminderToDate(value: string | null): Date {
   return date
 }
 
-export function NotificationsSection() {
+export function NotificationsSection({ embedded = false }: { embedded?: boolean }) {
   const { t, locale } = useI18n()
   const { showToast } = useToast()
   const colors = useThemeColors()
@@ -89,9 +89,11 @@ export function NotificationsSection() {
 
   return (
     <View className="gap-2">
-      <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text dark:text-text-dark">
-        {t('notifications.sectionTitle')}
-      </Text>
+      {embedded ? null : (
+        <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text dark:text-text-dark">
+          {t('notifications.sectionTitle')}
+        </Text>
+      )}
 
       <View
         style={SHADOW_TILE}

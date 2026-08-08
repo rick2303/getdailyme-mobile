@@ -14,8 +14,8 @@ export const LIGHT = {
   text: '#26262F',
   textMuted: '#5D5D68',
   textSubtle: '#70707B',
-  brand: '#6B4EE6',
-  brandSoft: '#EDE9FC',
+  brand: '#007EB6',
+  brandSoft: '#D9F3FF',
   danger: '#D93A3A',
   success: '#2E9E5B',
 }
@@ -28,8 +28,8 @@ export const DARK: Record<keyof typeof LIGHT, string> = {
   text: '#F2F2F5',
   textMuted: '#A8A8B3',
   textSubtle: '#8F8F9A',
-  brand: '#8B75F0',
-  brandSoft: '#2E2850',
+  brand: '#44B0EB',
+  brandSoft: '#073248',
   danger: '#E66A6A',
   success: '#4FBF7E',
 }

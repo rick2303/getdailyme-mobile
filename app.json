@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#6B4EE6"
+      "backgroundColor": "#007EB6"
     },
     "ios": {
       "supportsTablet": false,
@@ -40,7 +40,7 @@
       "package": "com.getdailyme.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#6B4EE6"
+        "backgroundColor": "#007EB6"
       },
       "predictiveBackGestureEnabled": true,
       "softwareKeyboardLayoutMode": "pan",

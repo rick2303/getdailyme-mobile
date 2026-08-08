@@ -577,6 +577,10 @@ export const en: Dictionary = {
     hidden: "This profile is no longer within your reach.",
   },
   profile: {
+    hubSettings: "Settings",
+    hubSettingsHint: "Language, theme, color, time zone and your data",
+    hubAlertsHint: "Push, reminders and notification types",
+    hubSecurityHint: "Password and account deletion",
     title: "Profile",
     editTitle: "Edit profile",
     displayNameLabel: "Display name",

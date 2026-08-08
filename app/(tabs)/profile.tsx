@@ -2,6 +2,7 @@ import * as ImagePicker from 'expo-image-picker'
 import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
 import {
+  Bell,
   CalendarDays,
   Camera,
   ChevronLeft,
@@ -9,6 +10,7 @@ import {
   Clock,
   Download,
   Flame,
+  KeyRound,
   ListChecks,
   LogOut,
   Settings2,
@@ -133,29 +135,8 @@ export default function ProfileScreen() {
         <StatsSection />
         <RecapSection />
         <Heatmap />
-        <NotificationsSection />
-        <SettingsSection />
-        <SecuritySection />
 
-        <Button
-          title={t('profile.manageActivities')}
-          variant="secondary"
-          size="lg"
-          fullWidth
-          icon={<Settings2 size={18} color="#70707B" />}
-          onPress={() => setManaging(true)}
-        />
-
-        <Button
-          title={t('auth.signOut')}
-          variant="ghost"
-          size="lg"
-          fullWidth
-          icon={<LogOut size={18} color="#8F8F9A" />}
-          onPress={() => void signOut()}
-        />
-
-        <DeleteAccountSection />
+        <SettingsHub onManage={() => setManaging(true)} onSignOut={() => void signOut()} />
 
         <ProfileEditorSheet open={editing} onClose={() => setEditing(false)} />
         <ManageActivitiesSheet open={managing} onClose={() => setManaging(false)} />
@@ -323,7 +304,7 @@ function RecapSection() {
       name: activityName(row.activity.name),
       detail: amountWithUnit(row.total.amount, row.activity.unit),
       count: row.total.count,
-      color: ACTIVITY_HEX[row.activity.color]?.light ?? '#6B4EE6',
+      color: ACTIVITY_HEX[row.activity.color]?.light ?? '#007EB6',
     })),
     activitiesLabel: t('weekly.topActivities'),
     shareText: [
@@ -448,6 +429,135 @@ function RecapSection() {
 
       <RecapShareSheet open={sharing} data={shareData} onClose={() => setSharing(false)} />
     </View>
+  )
+}
+
+// El hub de ajustes: en vez del scroll infinito de secciones, una tarjeta de
+// filas al estilo iOS y cada tema se abre en su propia hoja.
+type HubSheet = 'alerts' | 'settings' | 'security' | null
+
+function SettingsHub({ onManage, onSignOut }: { onManage: () => void; onSignOut: () => void }) {
+  const { t } = useI18n()
+  const colors = useThemeColors()
+  const [open, setOpen] = useState<HubSheet>(null)
+
+  return (
+    <View className="gap-3">
+      <View
+        style={SHADOW_TILE}
+        className="overflow-hidden rounded-3xl border border-border bg-surface dark:border-border-dark dark:bg-surface-dark"
+      >
+        <HubRow
+          icon={Bell}
+          label={t('notifications.sectionTitle')}
+          hint={t('profile.hubAlertsHint')}
+          onPress={() => setOpen('alerts')}
+        />
+        <HubRow
+          icon={Settings2}
+          label={t('profile.hubSettings')}
+          hint={t('profile.hubSettingsHint')}
+          onPress={() => setOpen('settings')}
+        />
+        <HubRow
+          icon={KeyRound}
+          label={t('security.title')}
+          hint={t('profile.hubSecurityHint')}
+          onPress={() => setOpen('security')}
+        />
+        <HubRow
+          icon={ListChecks}
+          label={t('profile.manageActivities')}
+          onPress={onManage}
+          last
+        />
+      </View>
+
+      <Button
+        title={t('auth.signOut')}
+        variant="ghost"
+        size="lg"
+        fullWidth
+        icon={<LogOut size={18} color={colors.textSubtle} />}
+        onPress={onSignOut}
+      />
+
+      <Sheet
+        open={open === 'alerts'}
+        onClose={() => setOpen(null)}
+        title={t('notifications.sectionTitle')}
+        closeLabel={t('common.close')}
+      >
+        <View className="pb-2 pt-1">
+          <NotificationsSection embedded />
+        </View>
+      </Sheet>
+
+      <Sheet
+        open={open === 'settings'}
+        onClose={() => setOpen(null)}
+        title={t('profile.hubSettings')}
+        closeLabel={t('common.close')}
+      >
+        <View className="pb-2 pt-1">
+          <SettingsSection />
+        </View>
+      </Sheet>
+
+      <Sheet
+        open={open === 'security'}
+        onClose={() => setOpen(null)}
+        title={t('security.title')}
+        closeLabel={t('common.close')}
+      >
+        <View className="gap-4 pb-2 pt-1">
+          <SecuritySection embedded />
+          <DeleteAccountSection />
+        </View>
+      </Sheet>
+    </View>
+  )
+}
+
+function HubRow({
+  icon: Icon,
+  label,
+  hint,
+  onPress,
+  last = false,
+}: {
+  icon: LucideIcon
+  label: string
+  hint?: string
+  onPress: () => void
+  last?: boolean
+}) {
+  const colors = useThemeColors()
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      className={
+        last
+          ? 'flex-row items-center gap-3 px-4 py-3.5 active:opacity-70'
+          : 'flex-row items-center gap-3 border-b border-border px-4 py-3.5 active:opacity-70 dark:border-border-dark'
+      }
+    >
+      <View className="h-9 w-9 items-center justify-center rounded-xl bg-brand-soft dark:bg-brand-soft-dark">
+        <Icon size={18} color={colors.brand} />
+      </View>
+      <View className="min-w-0 flex-1">
+        <Text className="text-[15px] font-bold text-text dark:text-text-dark">{label}</Text>
+        {hint ? (
+          <Text className="mt-0.5 text-xs text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
+            {hint}
+          </Text>
+        ) : null}
+      </View>
+      <ChevronRight size={16} color={colors.textSubtle} />
+    </Pressable>
   )
 }
 

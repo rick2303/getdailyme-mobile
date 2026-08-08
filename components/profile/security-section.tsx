@@ -15,7 +15,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 // cuenta, tambien util para quien entro con Google o Apple.
 const MIN_PASSWORD_LENGTH = 8
 
-export function SecuritySection() {
+export function SecuritySection({ embedded = false }: { embedded?: boolean }) {
   const { t } = useI18n()
   const { user } = useAuth()
   const { showToast } = useToast()
@@ -27,9 +27,11 @@ export function SecuritySection() {
 
   return (
     <View className="gap-2">
-      <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text dark:text-text-dark">
-        {t('security.title')}
-      </Text>
+      {embedded ? null : (
+        <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text dark:text-text-dark">
+          {t('security.title')}
+        </Text>
+      )}
 
       <View
         style={SHADOW_TILE}
