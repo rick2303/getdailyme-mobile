@@ -27,6 +27,7 @@ import { TextArea } from '@/components/ui/field'
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/components/ui/toast'
 import {
+  ACTIVITY_HEX,
   SHADOW_TILE,
   useActivityHex,
   useActivityInk,
@@ -34,6 +35,7 @@ import {
   withTint,
   withTintStrong,
 } from '@/constants/colors'
+import { endTimerActivity, startTimerActivity } from '@/modules/live-activity'
 import { useI18n } from '@/i18n/provider'
 import { useActivityLabels } from '@/lib/activities/labels'
 import { stepperIncrement, usesQuickLogSheet } from '@/lib/activities/input-modes'
@@ -244,16 +246,27 @@ export default function TodayScreen() {
           if (quickActivity) logWithUndo(quickActivity, { amount })
         }}
         onStartTimer={() => {
-          if (quickActivity) startSession.mutate(quickActivity.id)
+          if (quickActivity) {
+            startSession.mutate(quickActivity.id)
+            startTimerActivity(
+              quickActivity.name,
+              ACTIVITY_HEX[quickActivity.color]?.light ?? '#007EB6',
+              new Date().toISOString(),
+            )
+          }
         }}
         onStopTimer={(elapsedMinutes) => {
           if (quickActivity) {
             logWithUndo(quickActivity, { amount: elapsedMinutes })
             clearSession.mutate(quickActivity.id)
+            endTimerActivity()
           }
         }}
         onDiscardTimer={() => {
-          if (quickActivity) clearSession.mutate(quickActivity.id)
+          if (quickActivity) {
+            clearSession.mutate(quickActivity.id)
+            endTimerActivity()
+          }
         }}
       />
 

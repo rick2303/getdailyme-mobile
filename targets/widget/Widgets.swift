@@ -366,5 +366,6 @@ struct GetdailymeWidget: Widget {
 struct GetdailymeWidgets: WidgetBundle {
   var body: some Widget {
     GetdailymeWidget()
+    TimerLiveActivity()
   }
 }
