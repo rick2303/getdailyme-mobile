@@ -96,6 +96,7 @@ function AppTabBar({
           ) : null}
         </View>
         <Text
+          maxFontSizeMultiplier={1.2}
           className="text-[11px] font-semibold"
           style={{ color: isActive ? colors.brand : colors.textSubtle }}
         >

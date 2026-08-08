@@ -31,6 +31,7 @@ export function Segmented<T extends string>({
             )}
           >
             <Text
+              maxFontSizeMultiplier={1.2}
               className={cn(
                 'text-sm font-semibold',
                 selected

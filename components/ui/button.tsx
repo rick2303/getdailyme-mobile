@@ -85,7 +85,12 @@ export function Button({
       ) : (
         icon
       )}
-      <Text className={cn('font-semibold', LABEL[variant], SIZE[size].label, labelClassName)}>{title}</Text>
+      <Text
+        maxFontSizeMultiplier={1.2}
+        className={cn('font-semibold', LABEL[variant], SIZE[size].label, labelClassName)}
+      >
+        {title}
+      </Text>
     </Pressable>
   )
 }

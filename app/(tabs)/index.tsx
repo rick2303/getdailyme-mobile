@@ -2,8 +2,15 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 import { useQueryClient } from '@tanstack/react-query'
 import * as ImagePicker from 'expo-image-picker'
 import { Check, Flame, ImagePlus, Minus, Plus, Timer, X } from 'lucide-react-native'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FlatList, Image, Pressable, RefreshControl, Text, View } from 'react-native'
+import Animated, {
+  FadeInDown,
+  FadeOutUp,
+  useAnimatedProps,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
 
@@ -139,13 +146,14 @@ export default function TodayScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <ActivityTile
             activity={item}
             todayTotal={totals.get(item.id)}
             weekTotal={weekProgress.totals.get(item.id) ?? 0}
             dates={datesByActivity.get(item.id)}
             today={today}
+            index={index}
             onTap={() => onTileTap(item)}
             onLongPress={() => {
               haptic('tap')
@@ -206,12 +214,15 @@ export default function TodayScreen() {
 const RING_RADIUS = 26
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
 
+const AnimatedCircle = Animated.createAnimatedComponent(Circle)
+
 function ActivityTile({
   activity,
   todayTotal,
   weekTotal,
   dates,
   today,
+  index,
   onTap,
   onLongPress,
 }: {
@@ -220,6 +231,7 @@ function ActivityTile({
   weekTotal: number
   dates?: Set<string>
   today: string
+  index: number
   onTap: () => void
   onLongPress: () => void
 }) {
@@ -232,6 +244,8 @@ function ActivityTile({
   const running = Boolean(session)
   const now = useTicker(running)
 
+  const [burst, setBurst] = useState<{ id: number; amount: number } | null>(null)
+
   const amount = todayTotal?.amount ?? 0
   const target = activity.daily_target
   const isCheck = activity.input_mode === 'check'
@@ -240,6 +254,24 @@ function ActivityTile({
   const periodTotal = isWeekly ? weekTotal : amount
   const progress = target ? Math.min(periodTotal / target, 1) : amount > 0 ? 1 : 0
   const goalReached = done || Boolean(target && periodTotal >= target)
+
+  // El anillo no salta: amortigua hacia el nuevo progreso como en la web.
+  const ringOffset = useSharedValue(RING_CIRCUMFERENCE * (1 - progress))
+  useEffect(() => {
+    ringOffset.value = withSpring(RING_CIRCUMFERENCE * (1 - progress), {
+      stiffness: 220,
+      damping: 28,
+    })
+  }, [progress, ringOffset])
+  const ringProps = useAnimatedProps(() => ({ strokeDashoffset: ringOffset.value }))
+
+  const tap = () => {
+    if (activity.input_mode === 'counter') {
+      setBurst((current) => ({ id: (current?.id ?? 0) + 1, amount: activity.step }))
+      setTimeout(() => setBurst(null), 900)
+    }
+    onTap()
+  }
 
   const streak = useMemo(
     () => (dates ? computeStreak(dates, today).current : 0),
@@ -258,10 +290,14 @@ function ActivityTile({
   }
 
   return (
+    <Animated.View
+      entering={FadeInDown.delay(Math.min(index, 8) * 40).duration(320)}
+      className="flex-1"
+    >
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={activity.name}
-      onPress={onTap}
+      onPress={tap}
       onLongPress={onLongPress}
       delayLongPress={350}
       style={({ pressed }) => [
@@ -284,7 +320,7 @@ function ActivityTile({
               stroke={hex}
               opacity={0.2}
             />
-            <Circle
+            <AnimatedCircle
               cx={32}
               cy={32}
               r={RING_RADIUS}
@@ -293,7 +329,7 @@ function ActivityTile({
               strokeLinecap="round"
               stroke={hex}
               strokeDasharray={`${RING_CIRCUMFERENCE}`}
-              strokeDashoffset={RING_CIRCUMFERENCE * (1 - progress)}
+              animatedProps={ringProps}
             />
           </Svg>
           <View
@@ -348,6 +384,20 @@ function ActivityTile({
         </Text>
       </View>
 
+      {burst ? (
+        <Animated.View
+          key={burst.id}
+          entering={FadeInDown.duration(150)}
+          exiting={FadeOutUp.duration(450)}
+          className="absolute bottom-4 right-4"
+          pointerEvents="none"
+        >
+          <Text className="text-lg font-extrabold" style={{ color: hex }}>
+            +{burst.amount}
+          </Text>
+        </Animated.View>
+      ) : null}
+
       {goalReached ? (
         <View
           className="absolute bottom-0 left-0 right-0 h-1"
@@ -355,6 +405,7 @@ function ActivityTile({
         />
       ) : null}
     </Pressable>
+    </Animated.View>
   )
 }
 
