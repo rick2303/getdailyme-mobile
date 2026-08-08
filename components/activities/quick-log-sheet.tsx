@@ -143,8 +143,11 @@ export function QuickLogSheet({
                     key={value}
                     accessibilityRole="button"
                     onPress={() => logAndClose(value)}
-                    className="h-16 min-w-[47%] flex-1 items-center justify-center rounded-2xl active:opacity-80"
-                    style={{ backgroundColor: withTint(hex) }}
+                    className="h-16 min-w-[47%] flex-1 items-center justify-center rounded-2xl"
+                    style={({ pressed }) => [
+                      { backgroundColor: withTint(hex) },
+                      pressed ? { transform: [{ scale: 0.95 }] } : null,
+                    ]}
                   >
                     <Text className="text-xl font-extrabold" style={{ color: hex }}>
                       {value}

@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, useState } from 'react'
 import { Text, TextInput as RNTextInput, View, type TextInputProps } from 'react-native'
 
 import { cn } from '@/lib/utils/cn'
@@ -14,8 +14,9 @@ export const TextInput = forwardRef<
     trailing?: React.ReactNode
     className?: string
   }
->(function TextInput({ label, hint, error, leading, trailing, className, ...props }, ref) {
+>(function TextInput({ label, hint, error, leading, trailing, className, onFocus, onBlur, ...props }, ref) {
   const colors = useThemeColors()
+  const [focused, setFocused] = useState(false)
 
   return (
     <View className="gap-1.5">
@@ -26,7 +27,8 @@ export const TextInput = forwardRef<
       ) : null}
       <View
         className={cn(
-          'flex-row items-center rounded-2xl border border-border bg-surface px-4 dark:border-border-dark dark:bg-surface-dark',
+          'flex-row items-center gap-2 rounded-2xl border border-border bg-surface px-4 dark:border-border-dark dark:bg-surface-dark',
+          focused && 'border-brand dark:border-brand-dark',
           error && 'border-danger',
           className,
         )}
@@ -36,6 +38,14 @@ export const TextInput = forwardRef<
           ref={ref}
           className="min-h-12 flex-1 py-3 text-base text-text dark:text-text-dark"
           placeholderTextColor={colors.textSubtle}
+          onFocus={(event) => {
+            setFocused(true)
+            onFocus?.(event)
+          }}
+          onBlur={(event) => {
+            setFocused(false)
+            onBlur?.(event)
+          }}
           {...props}
         />
         {trailing}

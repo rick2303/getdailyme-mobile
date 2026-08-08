@@ -1,18 +1,26 @@
 import DateTimePicker from '@react-native-community/datetimepicker'
 import * as ImagePicker from 'expo-image-picker'
-import { Flame, ImagePlus, Minus, Plus, Timer, X } from 'lucide-react-native'
+import { Check, Flame, ImagePlus, Minus, Plus, Timer, X } from 'lucide-react-native'
 import { useMemo, useState } from 'react'
 import { FlatList, Image, Pressable, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import Svg, { Circle } from 'react-native-svg'
 
-import { ActivityIcon } from '@/components/activities/activity-icon'
+import { ActivityGlyph } from '@/components/activities/activity-icon'
 import { ActivityEditorSheet } from '@/components/activities/activity-editor-sheet'
 import { QuickLogSheet } from '@/components/activities/quick-log-sheet'
 import { Button, IconButton } from '@/components/ui/button'
 import { TextArea } from '@/components/ui/field'
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/components/ui/toast'
-import { SHADOW_TILE, useThemeColors } from '@/constants/colors'
+import {
+  SHADOW_TILE,
+  useActivityHex,
+  useActivityInk,
+  useThemeColors,
+  withTint,
+  withTintStrong,
+} from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
 import { useActivityLabels } from '@/lib/activities/labels'
 import { stepperIncrement, usesQuickLogSheet } from '@/lib/activities/input-modes'
@@ -21,8 +29,8 @@ import { uploadActivityPhoto } from '@/lib/api/storage'
 import type { Activity } from '@/lib/api/types'
 import { useAuth, useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
 import { useActiveActivities } from '@/lib/hooks/use-activities'
-import { useCreateLog, useDatesByActivity, useDeleteLog, useTodayTotals } from '@/lib/hooks/use-logs'
-import { useClearSession, useSessionFor, useStartSession } from '@/lib/hooks/use-sessions'
+import { useCreateLog, useDatesByActivity, useDeleteLog, useTodayTotals, useWeekProgress } from '@/lib/hooks/use-logs'
+import { formatElapsed, useClearSession, useSessionFor, useStartSession, useTicker } from '@/lib/hooks/use-sessions'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { haptic } from '@/lib/utils/haptics'
 import { todayKey, shiftDateKey, zonedDateTimeToIso } from '@/lib/utils/dates'
@@ -34,6 +42,7 @@ export default function TodayScreen() {
   const { showToast } = useToast()
   const { data: activities } = useActiveActivities()
   const { totals } = useTodayTotals()
+  const weekProgress = useWeekProgress()
   const datesByActivity = useDatesByActivity()
   const timeZone = useTimeZone()
   const createLog = useCreateLog()
@@ -115,6 +124,7 @@ export default function TodayScreen() {
           <ActivityTile
             activity={item}
             todayTotal={totals.get(item.id)}
+            weekTotal={weekProgress.totals.get(item.id) ?? 0}
             dates={datesByActivity.get(item.id)}
             today={today}
             onTap={() => onTileTap(item)}
@@ -174,9 +184,13 @@ export default function TodayScreen() {
   )
 }
 
+const RING_RADIUS = 26
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
+
 function ActivityTile({
   activity,
   todayTotal,
+  weekTotal,
   dates,
   today,
   onTap,
@@ -184,22 +198,45 @@ function ActivityTile({
 }: {
   activity: Activity
   todayTotal?: { amount: number; count: number }
+  weekTotal: number
   dates?: Set<string>
   today: string
   onTap: () => void
   onLongPress: () => void
 }) {
   const { t } = useI18n()
-  const { unitLabel } = useActivityLabels()
-  const colors = useThemeColors()
+  const { activityName, unitLabel } = useActivityLabels()
+  const hex = useActivityHex(activity.color)
+  const ink = useActivityInk(activity.color)
+
+  const session = useSessionFor(activity.id)
+  const running = Boolean(session)
+  const now = useTicker(running)
 
   const amount = todayTotal?.amount ?? 0
   const target = activity.daily_target
-  const reached = target !== null && amount >= target
+  const isCheck = activity.input_mode === 'check'
+  const done = isCheck && amount > 0
+  const isWeekly = activity.target_period === 'week'
+  const periodTotal = isWeekly ? weekTotal : amount
+  const progress = target ? Math.min(periodTotal / target, 1) : amount > 0 ? 1 : 0
+  const goalReached = done || Boolean(target && periodTotal >= target)
+
   const streak = useMemo(
     () => (dates ? computeStreak(dates, today).current : 0),
     [dates, today],
   )
+
+  const summary = () => {
+    if (running && session) return formatElapsed(session.started_at, now)
+    if (isCheck) return done ? t('quickLog.doneToday') : t('quickLog.pendingToday')
+    if (target) {
+      return isWeekly
+        ? t('today.ofWeeklyTarget', { current: periodTotal, target })
+        : t('today.ofTarget', { current: amount, target })
+    }
+    return `${amount} ${unitLabel(activity.unit, amount)}`
+  }
 
   return (
     <Pressable
@@ -208,44 +245,95 @@ function ActivityTile({
       onPress={onTap}
       onLongPress={onLongPress}
       delayLongPress={350}
-      style={SHADOW_TILE}
-      className="mb-0 flex-1 gap-3 rounded-3xl border border-border bg-surface p-4 active:opacity-80 dark:border-border-dark dark:bg-surface-dark"
+      style={({ pressed }) => [
+        SHADOW_TILE,
+        goalReached ? { backgroundColor: withTint(hex), borderColor: 'transparent' } : null,
+        running ? { borderColor: hex } : null,
+        pressed ? { transform: [{ scale: 0.96 }] } : null,
+      ]}
+      className="relative mb-0 flex-1 gap-2 overflow-hidden rounded-3xl border border-border bg-surface p-3.5 dark:border-border-dark dark:bg-surface-dark"
     >
       <View className="flex-row items-start justify-between">
-        <ActivityIcon icon={activity.icon} color={activity.color} size="sm" />
-        <View className="flex-row items-center gap-1.5">
-          {usesQuickLogSheet(activity.input_mode) ? (
-            <Timer size={13} color={colors.textSubtle} />
+        <View className="h-16 w-16 items-center justify-center">
+          <Svg viewBox="0 0 64 64" width={64} height={64} style={{ position: 'absolute', transform: [{ rotate: '-90deg' }] }}>
+            <Circle
+              cx={32}
+              cy={32}
+              r={RING_RADIUS}
+              fill="none"
+              strokeWidth={5}
+              stroke={hex}
+              opacity={0.2}
+            />
+            <Circle
+              cx={32}
+              cy={32}
+              r={RING_RADIUS}
+              fill="none"
+              strokeWidth={5}
+              strokeLinecap="round"
+              stroke={hex}
+              strokeDasharray={`${RING_CIRCUMFERENCE}`}
+              strokeDashoffset={RING_CIRCUMFERENCE * (1 - progress)}
+            />
+          </Svg>
+          <View
+            className="h-[47px] w-[47px] items-center justify-center rounded-full"
+            style={{ backgroundColor: done ? hex : withTintStrong(hex) }}
+          >
+            {done ? (
+              <Check size={24} color="#fff" strokeWidth={3} />
+            ) : (
+              <ActivityGlyph icon={activity.icon} size={24} color={ink} />
+            )}
+          </View>
+        </View>
+
+        <View className="items-end gap-1">
+          {running ? (
+            <View
+              className="flex-row items-center gap-1 rounded-full px-2 py-1"
+              style={{ backgroundColor: withTint(hex) }}
+            >
+              <Timer size={14} color={ink} strokeWidth={3} />
+              <Text className="text-[11px] font-bold" style={{ color: ink }}>
+                {t('quickLog.timerRunning')}
+              </Text>
+            </View>
           ) : null}
-          {streak > 0 ? (
-            <View className="flex-row items-center gap-1">
-              <Flame size={14} color={colors.brand} />
-              <Text className="text-xs font-bold text-brand dark:text-brand-dark">{streak}</Text>
+          {streak > 1 ? (
+            <View className="flex-row items-center gap-1 rounded-full bg-surface-sunken px-2 py-1 dark:bg-surface-sunken-dark">
+              <Flame size={14} color="#F97316" strokeWidth={3} />
+              <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark">
+                {streak}
+              </Text>
             </View>
           ) : null}
         </View>
       </View>
 
-      <View>
+      <View className="w-full">
         <Text className="text-[15px] font-bold text-text dark:text-text-dark" numberOfLines={1}>
-          {activity.name}
+          {activityName(activity.name)}
         </Text>
-        <Text className="mt-0.5 text-xs text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
-          {target !== null
-            ? reached
-              ? t('today.goalReached')
-              : t('today.ofTarget', { current: amount, target })
-            : `${amount} ${unitLabel(activity.unit, amount)}`}
+        <Text
+          className={
+            running
+              ? 'mt-0.5 text-xs font-medium tabular-nums'
+              : 'mt-0.5 text-xs font-medium text-text-muted dark:text-text-muted-dark'
+          }
+          style={running ? { color: hex } : undefined}
+          numberOfLines={1}
+        >
+          {summary()}
         </Text>
       </View>
 
-      {target !== null ? (
-        <View className="h-1.5 overflow-hidden rounded-full bg-surface-sunken dark:bg-surface-sunken-dark">
-          <View
-            className={reached ? 'h-full rounded-full bg-success' : 'h-full rounded-full bg-brand'}
-            style={{ width: `${Math.min(100, Math.round((amount / target) * 100))}%` }}
-          />
-        </View>
+      {goalReached ? (
+        <View
+          className="absolute bottom-0 left-0 right-0 h-1"
+          style={{ backgroundColor: hex }}
+        />
       ) : null}
     </Pressable>
   )

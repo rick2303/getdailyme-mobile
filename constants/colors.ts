@@ -64,9 +64,39 @@ export function useActivityHex(color: string): string {
   return scheme === 'dark' ? entry.dark : entry.light
 }
 
-// Tinte al 14%: el fondo suave de los iconos de actividad, como activity-tint.
+// Tintes como los de la web: 12% para fondos suaves (activity-tint) y 22%
+// para el disco del icono (activity-tint-strong).
 export function withTint(hex: string): string {
-  return `${hex}24`
+  return `${hex}1F`
+}
+
+export function withTintStrong(hex: string): string {
+  return `${hex}38`
+}
+
+function mixChannel(a: number, b: number, amount: number): number {
+  return Math.round(a * amount + b * (1 - amount))
+}
+
+// El color de tinta de la web (activity-ink): la tonalidad de la actividad
+// mezclada hacia negro en claro y hacia blanco en oscuro para que lea bien
+// sobre su propio tinte.
+export function activityInk(hex: string, scheme: 'light' | 'dark'): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  const toward = scheme === 'dark' ? 255 : 0
+  const amount = scheme === 'dark' ? 0.8 : 0.82
+  const to = (v: number) => mixChannel(v, toward, amount).toString(16).padStart(2, '0')
+  return `#${to(r)}${to(g)}${to(b)}`
+}
+
+export function useActivityInk(color: string): string {
+  const scheme = useColorScheme()
+  const entry = ACTIVITY_HEX[color] ?? ACTIVITY_HEX.blue
+  return scheme === 'dark'
+    ? activityInk(entry.dark, 'dark')
+    : activityInk(entry.light, 'light')
 }
 
 // La sombra suave de los tiles de la web (shadow-tile), en las dos plataformas.

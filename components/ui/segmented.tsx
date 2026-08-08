@@ -1,5 +1,6 @@
 import { Pressable, Text, View } from 'react-native'
 
+import { SHADOW_TILE } from '@/constants/colors'
 import { cn } from '@/lib/utils/cn'
 
 export type SegmentedOption<T extends string> = { value: T; label: string }
@@ -14,7 +15,7 @@ export function Segmented<T extends string>({
   onChange: (next: T) => void
 }) {
   return (
-    <View className="flex-row rounded-2xl bg-surface-sunken p-1 dark:bg-surface-sunken-dark">
+    <View className="flex-row gap-1 rounded-2xl bg-surface-sunken p-1 dark:bg-surface-sunken-dark">
       {options.map((option) => {
         const selected = option.value === value
         return (
@@ -23,8 +24,9 @@ export function Segmented<T extends string>({
             accessibilityRole="radio"
             accessibilityState={{ selected }}
             onPress={() => onChange(option.value)}
+            style={selected ? SHADOW_TILE : undefined}
             className={cn(
-              'min-h-10 flex-1 items-center justify-center rounded-xl',
+              'min-h-11 flex-1 items-center justify-center rounded-xl',
               selected && 'bg-surface dark:bg-surface-raised-dark',
             )}
           >

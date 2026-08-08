@@ -10,6 +10,21 @@ const SIZES = {
   lg: { box: 64, radius: 20, glyph: 32 },
 } as const
 
+export function ActivityGlyph({
+  icon,
+  size,
+  color,
+  strokeWidth = 2.1,
+}: {
+  icon: string
+  size: number
+  color: string
+  strokeWidth?: number
+}) {
+  const Glyph = getIconComponent(icon)
+  return <Glyph size={size} color={color} strokeWidth={strokeWidth} />
+}
+
 export function ActivityIcon({
   icon,
   color,

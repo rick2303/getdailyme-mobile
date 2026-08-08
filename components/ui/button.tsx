@@ -1,8 +1,10 @@
-import { ActivityIndicator, Pressable, Text, type PressableProps } from 'react-native'
+import { ActivityIndicator, Pressable, Text, type PressableProps, type StyleProp, type ViewStyle } from 'react-native'
 
 import { cn } from '@/lib/utils/cn'
-import { useThemeColors } from '@/constants/colors'
+import { SHADOW_TILE, useThemeColors } from '@/constants/colors'
 
+// Mismos acabados que el boton de la web: sombra de tile en los solidos y
+// escala 0.97 al pulsar en vez de bajar la opacidad.
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type Size = 'sm' | 'md' | 'lg'
 
@@ -11,6 +13,13 @@ const CONTAINER: Record<Variant, string> = {
   secondary: 'bg-surface dark:bg-surface-dark border border-border dark:border-border-dark',
   ghost: 'bg-transparent',
   danger: 'bg-danger',
+}
+
+const HAS_SHADOW: Record<Variant, boolean> = {
+  primary: true,
+  secondary: true,
+  ghost: false,
+  danger: true,
 }
 
 const LABEL: Record<Variant, string> = {
@@ -26,6 +35,8 @@ const SIZE: Record<Size, { box: string; label: string }> = {
   lg: { box: 'h-14 px-6 rounded-2xl', label: 'text-base' },
 }
 
+const PRESSED_SCALE: ViewStyle = { transform: [{ scale: 0.97 }] }
+
 export function Button({
   title,
   variant = 'primary',
@@ -35,6 +46,7 @@ export function Button({
   icon,
   className,
   disabled,
+  style,
   ...props
 }: PressableProps & {
   title: string
@@ -51,8 +63,13 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       disabled={disabled || loading}
+      style={({ pressed }) => [
+        HAS_SHADOW[variant] && !disabled ? SHADOW_TILE : null,
+        pressed ? PRESSED_SCALE : null,
+        style as StyleProp<ViewStyle>,
+      ]}
       className={cn(
-        'flex-row items-center justify-center gap-2 active:opacity-80',
+        'flex-row items-center justify-center gap-2',
         CONTAINER[variant],
         SIZE[size].box,
         fullWidth && 'w-full',
@@ -71,20 +88,36 @@ export function Button({
   )
 }
 
+const ICON_PRESSED_SCALE: ViewStyle = { transform: [{ scale: 0.9 }] }
+
 export function IconButton({
   label,
+  variant = 'ghost',
   children,
   className,
   disabled,
+  style,
   ...props
-}: PressableProps & { label: string; children: React.ReactNode; className?: string }) {
+}: PressableProps & {
+  label: string
+  variant?: 'ghost' | 'secondary'
+  children: React.ReactNode
+  className?: string
+}) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       disabled={disabled}
+      style={({ pressed }) => [
+        variant === 'secondary' && !disabled ? SHADOW_TILE : null,
+        pressed ? ICON_PRESSED_SCALE : null,
+        style as StyleProp<ViewStyle>,
+      ]}
       className={cn(
-        'h-11 w-11 items-center justify-center rounded-full active:opacity-70',
+        'h-11 w-11 items-center justify-center rounded-full',
+        variant === 'secondary' &&
+          'border border-border bg-surface dark:border-border-dark dark:bg-surface-dark',
         disabled && 'opacity-50',
         className,
       )}

@@ -401,6 +401,7 @@ export function ActivityEditorSheet({
               {draft.reminder_at ? (
                 <IconButton
                   label={t('activity.reminderClear')}
+                  variant="secondary"
                   onPress={() => patch('reminder_at', null)}
                 >
                   <BellOff size={20} color={colors.textMuted} />
