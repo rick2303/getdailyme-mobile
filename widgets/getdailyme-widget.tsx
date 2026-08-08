@@ -63,7 +63,7 @@ export function GetdailymeWidget({ data }: { data: WidgetPayload }) {
       >
         <FlexWidget
           style={{
-            flexGrow: Math.max(4, Math.round(progress * 100)),
+            flex: Math.max(4, Math.round(progress * 100)),
             height: 'match_parent',
             backgroundColor: brand,
             borderRadius: 4,
@@ -71,7 +71,7 @@ export function GetdailymeWidget({ data }: { data: WidgetPayload }) {
         />
         <FlexWidget
           style={{
-            flexGrow: Math.max(0, 100 - Math.max(4, Math.round(progress * 100))),
+            flex: Math.max(1, 100 - Math.max(4, Math.round(progress * 100))),
             height: 'match_parent',
           }}
         />
