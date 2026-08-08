@@ -203,14 +203,14 @@ export function EventDetailSheet({
                   title={t('common.edit')}
                   variant="secondary"
                   size="sm"
-                  icon={<Pencil size={14} color={colors.text} />}
+                  icon={<Pencil size={16} color={colors.text} />}
                   onPress={() => onEdit(event)}
                 />
                 <Button
                   title={t('common.delete')}
                   variant="ghost"
                   size="sm"
-                  icon={<Trash2 size={14} color={colors.danger} />}
+                  icon={<Trash2 size={16} color={colors.danger} />}
                   onPress={() => setConfirming('delete')}
                 />
               </>

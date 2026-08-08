@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/toast'
 import { LOCALES, LOCALE_LABELS } from '@/i18n/config'
 import { Segmented } from '@/components/ui/segmented'
 import { useI18n } from '@/i18n/provider'
-import { useThemeColors } from '@/constants/colors'
+import { SHADOW_TILE, useThemeColors } from '@/constants/colors'
 import { supabase } from '@/lib/supabase/client'
 
 WebBrowser.maybeCompleteAuthSession()
@@ -255,7 +255,7 @@ export default function SignInScreen() {
             fullWidth
             disabled={busy}
             loading={busy}
-            icon={busy ? undefined : <ArrowRight size={16} color="#fff" />}
+            icon={busy ? undefined : <ArrowRight size={18} color="#fff" />}
             onPress={() => void submitPassword()}
           />
 
@@ -307,7 +307,7 @@ export default function SignInScreen() {
                   : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
               }
               cornerRadius={16}
-              style={{ height: 56, width: '100%' }}
+              style={[{ height: 56, width: '100%' }, SHADOW_TILE]}
               onPress={() => void signInWithApple()}
             />
           ) : null}

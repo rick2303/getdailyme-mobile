@@ -165,7 +165,7 @@ function FinishedCard({
         title={t('challenges.rematch')}
         size="sm"
         variant="secondary"
-        icon={<RotateCcw size={14} color={colors.text} />}
+        icon={<RotateCcw size={16} color={colors.text} />}
         onPress={() =>
           onRematch({
             title: challenge.title,

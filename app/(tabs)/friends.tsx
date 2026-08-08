@@ -66,7 +66,7 @@ export default function FriendsScreen() {
               title={t('friends.shareInvite')}
               size="sm"
               variant="secondary"
-              icon={<Share2 size={14} color={colors.text} />}
+              icon={<Share2 size={16} color={colors.text} />}
               onPress={() => void shareInvite()}
             />
           }

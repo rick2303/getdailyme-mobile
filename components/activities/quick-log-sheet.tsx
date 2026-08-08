@@ -112,7 +112,7 @@ export function QuickLogSheet({
                 title={t('quickLog.stopTimer')}
                 size="lg"
                 fullWidth
-                icon={<Square size={16} color="#fff" />}
+                icon={<Square size={18} color="#fff" />}
                 onPress={() => {
                   haptic('success')
                   onStopTimer(elapsedMinutes)
@@ -203,7 +203,7 @@ export function QuickLogSheet({
                 variant="secondary"
                 size="lg"
                 fullWidth
-                icon={<Play size={16} color={colors.text} />}
+                icon={<Play size={18} color={colors.text} />}
                 onPress={() => {
                   haptic('success')
                   onStartTimer()
