@@ -1,7 +1,10 @@
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { createElement } from 'react'
 import { Platform } from 'react-native'
 
-// El puente hacia el widget de iOS: la app escribe el estado del dia en el
-// App Group y pide al sistema redibujar. En Android aun no hay widget.
+// El puente hacia los widgets: en iOS la app escribe el estado del dia en el
+// App Group y pide redibujar; en Android lo deja en AsyncStorage y avisa al
+// task handler de react-native-android-widget.
 export type WidgetPayload = {
   done: number
   due: number
@@ -14,7 +17,7 @@ export type WidgetPayload = {
 let storage: { set: (key: string, value: string) => void } | null = null
 let reload: (() => void) | null = null
 
-function ensureBridge(): boolean {
+function ensureIosBridge(): boolean {
   if (Platform.OS !== 'ios') return false
   if (storage && reload) return true
   try {
@@ -30,12 +33,40 @@ function ensureBridge(): boolean {
   }
 }
 
-export function updateWidget(payload: WidgetPayload) {
-  if (!ensureBridge()) return
+function updateAndroidWidget(payload: WidgetPayload) {
   try {
-    storage!.set('widgetData', JSON.stringify(payload))
-    reload!()
+    const { requestWidgetUpdate } = require('react-native-android-widget') as {
+      requestWidgetUpdate: (options: {
+        widgetName: string
+        renderWidget: () => React.ReactElement
+      }) => Promise<void>
+    }
+    const { GetdailymeWidget } = require('../widgets/getdailyme-widget') as {
+      GetdailymeWidget: (props: { data: WidgetPayload }) => React.ReactElement
+    }
+    void requestWidgetUpdate({
+      widgetName: 'GetdailymeWidget',
+      renderWidget: () => createElement(GetdailymeWidget, { data: payload }),
+    })
   } catch {
-    // El widget es decorativo: si el puente falla, la app sigue como si nada.
+    // Sin el modulo nativo (Expo Go, web) el widget simplemente no se refresca.
+  }
+}
+
+export function updateWidget(payload: WidgetPayload) {
+  if (Platform.OS === 'ios') {
+    if (!ensureIosBridge()) return
+    try {
+      storage!.set('widgetData', JSON.stringify(payload))
+      reload!()
+    } catch {
+      // El widget es decorativo: si el puente falla, la app sigue como si nada.
+    }
+    return
+  }
+
+  if (Platform.OS === 'android') {
+    void AsyncStorage.setItem('widgetData', JSON.stringify(payload)).catch(() => undefined)
+    updateAndroidWidget(payload)
   }
 }

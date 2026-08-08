@@ -95,6 +95,24 @@
         {
           "appleTeamId": "9B9BZ24M35"
         }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "GetdailymeWidget",
+              "label": "Tu día",
+              "description": "El progreso de hoy, tus pendientes y tu racha",
+              "minWidth": "140dp",
+              "minHeight": "140dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
       ]
     ],
     "extra": {
