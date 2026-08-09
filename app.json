@@ -31,7 +31,7 @@
         "NSHealthUpdateUsageDescription": "getdailyme no escribe datos en Salud; este permiso lo declara la librería de salud.",
         "NSSupportsLiveActivities": true
       },
-      "buildNumber": "14",
+      "buildNumber": "15",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.getdailyme.app",
@@ -124,7 +124,15 @@
         }
       ],
       "@kingstinct/react-native-healthkit",
-      "react-native-health-connect"
+      "react-native-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ]
     ],
     "extra": {
       "router": {},
