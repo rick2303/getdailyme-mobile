@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Pressable, Switch, Text, View } from 'react-native'
 
 import { ActivityIcon } from '@/components/activities/activity-icon'
+import { DateRangeCalendar } from '@/components/events/date-range-calendar'
 import { Button } from '@/components/ui/button'
 import { TextArea, TextInput } from '@/components/ui/field'
 import { Sheet } from '@/components/ui/sheet'
@@ -25,7 +26,7 @@ const ICON_CHOICES = ICON_CATALOG.filter((entry) =>
   ['social', 'travel', 'hobby', 'fitness', 'food'].includes(entry.category),
 ).slice(0, 18)
 
-type PickerTarget = 'startDate' | 'startTime' | 'endDate' | 'endTime' | null
+type PickerTarget = 'startTime' | 'endTime' | null
 
 export function EventEditorSheet({
   open,
@@ -133,8 +134,6 @@ export function EventEditorSheet({
   }
 
   const pickerValue = () => {
-    if (picker === 'startDate') return new Date(`${startDate}T12:00:00`)
-    if (picker === 'endDate') return new Date(`${endDate}T12:00:00`)
     if (picker === 'startTime') return new Date(`2000-01-01T${startTime}:00`)
     return new Date(`2000-01-01T${endTime}:00`)
   }
@@ -143,12 +142,26 @@ export function EventEditorSheet({
     const target = picker
     setPicker(null)
     if (!selected || !target) return
-    const dateKey = `${selected.getFullYear()}-${String(selected.getMonth() + 1).padStart(2, '0')}-${String(selected.getDate()).padStart(2, '0')}`
     const time = `${String(selected.getHours()).padStart(2, '0')}:${String(selected.getMinutes()).padStart(2, '0')}`
-    if (target === 'startDate') setStartDate(dateKey)
-    if (target === 'endDate') setEndDate(dateKey)
     if (target === 'startTime') setStartTime(time)
     if (target === 'endTime') setEndTime(time)
+  }
+
+  // Un toque marca el inicio; otro posterior, el fin; uno anterior o un tercer
+  // toque reinician el rango desde ese dia.
+  const pickDay = (day: string) => {
+    haptic('tap')
+    if (!hasEnd) {
+      setStartDate(day)
+      setEndDate(day)
+      return
+    }
+    if (day <= startDate || endDate !== startDate) {
+      setStartDate(day)
+      setEndDate(day)
+    } else {
+      setEndDate(day)
+    }
   }
 
   return (
@@ -234,39 +247,49 @@ export function EventEditorSheet({
           />
         </View>
 
-        <View className="gap-2">
-          <Text className="px-1 text-sm font-semibold text-text-muted dark:text-text-muted-dark">
-            {t('events.startLabel')}
-          </Text>
-          <View className="flex-row gap-2">
-            <FieldChip label={startDate} onPress={() => setPicker('startDate')} />
-            {!allDay ? <FieldChip label={startTime} onPress={() => setPicker('startTime')} /> : null}
-          </View>
-        </View>
-
         <View className="flex-row items-center justify-between rounded-2xl bg-surface-sunken px-4 py-3 dark:bg-surface-sunken-dark">
           <Text className="text-sm font-semibold text-text dark:text-text-dark">
             {t('events.endToggle')}
           </Text>
-          <Switch value={hasEnd} onValueChange={setHasEnd} trackColor={{ true: colors.brand }} />
+          <Switch
+            value={hasEnd}
+            onValueChange={(value) => {
+              setHasEnd(value)
+              if (!value) setEndDate(startDate)
+            }}
+            trackColor={{ true: colors.brand }}
+          />
         </View>
 
-        {hasEnd ? (
-          <View className="gap-2">
-            <Text className="px-1 text-sm font-semibold text-text-muted dark:text-text-muted-dark">
-              {t('events.endLabel')}
-            </Text>
-            <View className="flex-row gap-2">
-              <FieldChip label={endDate} onPress={() => setPicker('endDate')} />
-              {!allDay ? <FieldChip label={endTime} onPress={() => setPicker('endTime')} /> : null}
+        <DateRangeCalendar
+          start={startDate}
+          end={hasEnd ? endDate : null}
+          onPickDay={pickDay}
+        />
+
+        {!allDay ? (
+          <View className="flex-row gap-3">
+            <View className="flex-1 gap-2">
+              <Text className="px-1 text-sm font-semibold text-text-muted dark:text-text-muted-dark">
+                {t('events.startLabel')}
+              </Text>
+              <FieldChip label={startTime} onPress={() => setPicker('startTime')} />
             </View>
+            {hasEnd ? (
+              <View className="flex-1 gap-2">
+                <Text className="px-1 text-sm font-semibold text-text-muted dark:text-text-muted-dark">
+                  {t('events.endLabel')}
+                </Text>
+                <FieldChip label={endTime} onPress={() => setPicker('endTime')} />
+              </View>
+            ) : null}
           </View>
         ) : null}
 
         {picker ? (
           <DateTimePicker
             value={pickerValue()}
-            mode={picker === 'startDate' || picker === 'endDate' ? 'date' : 'time'}
+            mode="time"
             onChange={(_event, selected) => onPicked(selected)}
           />
         ) : null}
