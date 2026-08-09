@@ -29,7 +29,7 @@
         "NSHealthUpdateUsageDescription": "getdailyme no escribe datos en Salud; este permiso lo declara la librería de salud.",
         "NSSupportsLiveActivities": true
       },
-      "buildNumber": "17",
+      "buildNumber": "19",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.getdailyme.app",
