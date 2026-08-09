@@ -1,5 +1,7 @@
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
 
+import { newId } from "@/lib/utils/ids";
+
 import type { Profile } from "./types";
 
 // Clubes: grupos con ranking semanal agregado y retos propios. La visibilidad
@@ -59,14 +61,13 @@ export async function createClub(
   userId: string,
   input: { name: string; icon: string; color: string },
 ): Promise<string> {
-  const { data, error } = await client
-    .from("clubs")
-    .insert({ ...input, creator_id: userId })
-    .select("id")
-    .single();
+  // Sin RETURNING: la fila recien creada aun no es visible por RLS hasta que
+  // el trigger inserta la membresia, asi que el id se genera en el cliente.
+  const id = newId();
+  const { error } = await client.from("clubs").insert({ id, ...input, creator_id: userId });
 
   if (error) throw error;
-  return data.id;
+  return id;
 }
 
 export async function joinClub(client: TypedSupabaseClient, code: string): Promise<string> {

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 
 import { ActivityIcon } from '@/components/activities/activity-icon'
+import { HealthSyncButton } from '@/components/activities/health-sync-button'
 import { Button, IconButton } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
 import { useActivityHex, useThemeColors, withTint } from '@/constants/colors'
@@ -87,6 +88,8 @@ export function QuickLogSheet({
             </Text>
           ) : null}
         </View>
+
+        <HealthSyncButton activityId={activity.id} />
 
         {running && session ? (
           <View

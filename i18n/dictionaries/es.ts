@@ -617,6 +617,8 @@ export const es = {
     none: "No vincular",
     linkHint: "Toca una métrica y elige en qué actividad se registra.",
     syncNow: "Sincronizar ahora",
+    syncActivity: "Sincronizar con Salud",
+    linkedBadge: "Vinculada a Salud: se registra sola",
     synced: "Salud sincronizada",
     nothingToSync: "Nada nuevo que registrar",
   },

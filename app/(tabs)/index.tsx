@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useLocalSearchParams } from 'expo-router'
 
 import { ActivityGlyph } from '@/components/activities/activity-icon'
+import { HealthSyncButton } from '@/components/activities/health-sync-button'
 import { ActivityEditorSheet } from '@/components/activities/activity-editor-sheet'
 import { QuickLogSheet } from '@/components/activities/quick-log-sheet'
 import { Confetti } from '@/components/ui/confetti'
@@ -584,6 +585,8 @@ function LogDetailSheet({
       }
     >
       <View className="gap-5 pt-2">
+        <HealthSyncButton activityId={activity.id} />
+
         <View className="flex-row items-center justify-between rounded-2xl bg-surface-sunken p-3 dark:bg-surface-sunken-dark">
           <IconButton
             label="-"

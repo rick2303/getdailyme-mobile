@@ -619,6 +619,8 @@ export const en: Dictionary = {
     none: "Do not link",
     linkHint: "Tap a metric and choose which activity it logs into.",
     syncNow: "Sync now",
+    syncActivity: "Sync with Health",
+    linkedBadge: "Linked to Health: logs itself",
     synced: "Health synced",
     nothingToSync: "Nothing new to log",
   },

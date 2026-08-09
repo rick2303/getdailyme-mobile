@@ -178,6 +178,7 @@ function CreateClubSheet({ open, onClose }: { open: boolean; onClose: () => void
 
 function JoinClubSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useI18n()
+  const colors = useThemeColors()
   const { showToast } = useToast()
   const join = useJoinClub()
 
@@ -227,7 +228,7 @@ function JoinClubSheet({ open, onClose }: { open: boolean; onClose: () => void }
           value={code}
           autoCapitalize="none"
           autoCorrect={false}
-          leading={<Ticket size={18} color="#8F8F9A" />}
+          leading={<Ticket size={18} color={colors.textSubtle} />}
           onChangeText={setCode}
         />
       </View>
