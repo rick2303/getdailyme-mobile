@@ -3,7 +3,8 @@ import { LinearGradient } from 'expo-linear-gradient'
 import * as WebBrowser from 'expo-web-browser'
 import { ArrowRight, AtSign, Lock } from 'lucide-react-native'
 import { useEffect, useState } from 'react'
-import { Alert, Platform, Pressable, ScrollView, Text, useColorScheme, View } from 'react-native'
+import { useColorScheme } from 'nativewind'
+import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -34,7 +35,7 @@ export default function SignInScreen() {
   const { t } = useI18n()
   const { showToast } = useToast()
   const colors = useThemeColors()
-  const scheme = useColorScheme()
+  const { colorScheme: scheme } = useColorScheme()
 
   const [creatingAccount, setCreatingAccount] = useState(false)
   const [email, setEmail] = useState('')
@@ -101,7 +102,6 @@ export default function SignInScreen() {
   // Receta splitwo: URL con skipBrowserRedirect, navegador del sistema y canje
   // del codigo PKCE aqui mismo, recortando el fragmento fantasma de iOS.
   const signInWithGoogle = async () => {
-    if (!requireTerms()) return
     setBusyGoogle(true)
     setError(null)
     try {
@@ -154,7 +154,6 @@ export default function SignInScreen() {
   }
 
   const signInWithApple = async () => {
-    if (!requireTerms()) return
     setError(null)
     try {
       const credential = await AppleAuthentication.signInAsync({
@@ -336,6 +335,7 @@ export default function SignInScreen() {
             />
           ) : null}
 
+          {creatingAccount ? (
           <Pressable
             accessibilityRole="checkbox"
             accessibilityState={{ checked: acceptedTerms }}
@@ -371,6 +371,7 @@ export default function SignInScreen() {
               </Text>
             </Text>
           </Pressable>
+          ) : null}
 
           <Text className="px-2 pt-1 text-center text-xs leading-relaxed text-text-subtle dark:text-text-subtle-dark">
             {t('auth.legal')}

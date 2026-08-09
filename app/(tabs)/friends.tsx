@@ -71,7 +71,7 @@ export default function FriendsScreen() {
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark" edges={['top']}>
       <ScrollView
         contentContainerClassName="gap-5 pb-8 pt-2"
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -176,8 +176,11 @@ function NudgeInboxCard() {
 function SearchResults({ query }: { query: string }) {
   const { t } = useI18n()
   const { showToast } = useToast()
+  const userId = useCurrentUserId()
   const search = useProfileSearch(query)
   const sendRequest = useSendFriendRequest()
+  const removeFriend = useRemoveFriend()
+  const { outgoing } = useFriends()
 
   if (query.trim().length < 2) return null
   if (search.isLoading) return <Spinner className="py-2" />
@@ -219,13 +222,21 @@ function SearchResults({ query }: { query: string }) {
                 }
               }}
             />
+          ) : result.relation === 'pending_out' ? (
+            <Button
+              title={t('friends.cancelRequest')}
+              variant="ghost"
+              size="sm"
+              onPress={() => {
+                const edge = outgoing.find((item) => item.profile.id === result.profile.id)
+                if (!edge || !userId) return
+                haptic('warning')
+                removeFriend.mutate({ friendshipId: edge.friendshipId, userId })
+              }}
+            />
           ) : (
             <Text className="text-xs font-semibold text-text-subtle dark:text-text-subtle-dark">
-              {result.relation === 'accepted'
-                ? t('friends.accepted')
-                : result.relation === 'pending_out'
-                  ? t('friends.pendingOut')
-                  : t('friends.requestsTitle')}
+              {result.relation === 'accepted' ? t('friends.accepted') : t('friends.requestsTitle')}
             </Text>
           )}
         </View>

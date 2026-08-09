@@ -78,6 +78,9 @@ export function Sheet({
               style={{ flexGrow: 0 }}
               contentContainerClassName="pb-4"
               keyboardShouldPersistTaps="handled"
+              contentInsetAdjustmentBehavior="never"
+              automaticallyAdjustsScrollIndicatorInsets={false}
+              automaticallyAdjustKeyboardInsets={false}
             >
               {children}
             </ScrollView>

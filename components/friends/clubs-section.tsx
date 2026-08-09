@@ -1,6 +1,6 @@
 import { Crown, Plus, Share2, Ticket, Trophy, Users } from 'lucide-react-native'
 import { useState } from 'react'
-import { Pressable, Share, Text, View } from 'react-native'
+import { Keyboard, Pressable, Share, Text, View } from 'react-native'
 
 import { ActivityIcon } from '@/components/activities/activity-icon'
 import {
@@ -123,8 +123,15 @@ function CreateClubSheet({ open, onClose }: { open: boolean; onClose: () => void
 
   const [name, setName] = useState('')
 
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) setName('')
+  }
+
   const save = () => {
     if (name.trim().length === 0) return
+    Keyboard.dismiss()
     create.mutate(
       { name: name.trim(), icon: 'users', color: 'blue' },
       {
@@ -176,8 +183,15 @@ function JoinClubSheet({ open, onClose }: { open: boolean; onClose: () => void }
 
   const [code, setCode] = useState('')
 
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) setCode('')
+  }
+
   const submit = () => {
     if (code.trim().length === 0) return
+    Keyboard.dismiss()
     join.mutate(code, {
       onSuccess: () => {
         haptic('success')

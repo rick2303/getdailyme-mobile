@@ -8,6 +8,7 @@ import {
   fetchChallenges,
   joinChallenge,
   leaveChallenge,
+  updateChallenge,
   type NewChallenge,
 } from "@/lib/api/challenges";
 import { useCurrentUserId } from "@/lib/auth/provider";
@@ -61,6 +62,21 @@ export function useCreateChallenge() {
     mutationFn: (input: NewChallenge) =>
       createChallenge(getSupabaseBrowserClient(), userId!, input),
     onSuccess: invalidate,
+  });
+}
+
+export function useUpdateChallenge() {
+  const invalidate = useInvalidateChallenges();
+
+  return useMutation({
+    mutationFn: ({
+      challengeId,
+      patch,
+    }: {
+      challengeId: string;
+      patch: { title?: string; target?: number; ends_on?: string };
+    }) => updateChallenge(getSupabaseBrowserClient(), challengeId, patch),
+    onSettled: invalidate,
   });
 }
 

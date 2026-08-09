@@ -127,6 +127,15 @@ export async function joinChallenge(
   if (error) throw error;
 }
 
+export async function updateChallenge(
+  client: TypedSupabaseClient,
+  challengeId: string,
+  patch: { title?: string; target?: number; ends_on?: string },
+): Promise<void> {
+  const { error } = await client.from("challenges").update(patch).eq("id", challengeId);
+  if (error) throw error;
+}
+
 export async function leaveChallenge(
   client: TypedSupabaseClient,
   challengeId: string,

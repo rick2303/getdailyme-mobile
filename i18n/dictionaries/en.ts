@@ -537,6 +537,7 @@ export const en: Dictionary = {
     addFriend: "Add",
     requestSent: "Request sent",
     pendingOut: "Pending",
+    cancelRequest: "Cancel request",
     pendingIn: "Added you",
     accept: "Accept",
     decline: "Decline",
@@ -623,6 +624,7 @@ export const en: Dictionary = {
   },
   profile: {
     hubSettings: "Settings",
+    hubAlerts: "Alerts",
     hubSettingsHint: "Language, theme, color, time zone and your data",
     hubAlertsHint: "Push, reminders and notification types",
     hubSecurityHint: "Password and account deletion",
@@ -771,6 +773,11 @@ export const en: Dictionary = {
       "You blocked alerts for this site. Turn them back on in your browser settings and come back here.",
   },
   challenges: {
+    leaveConfirmTitle: "Leave the challenge?",
+    leaveConfirmBody: "You will lose your progress in this challenge.",
+    editTitle: "Edit challenge",
+    edited: "Challenge updated",
+    daysFromToday: "Ends in (days from today)",
     title: "Challenges",
     create: "New",
     createTitle: "New challenge",

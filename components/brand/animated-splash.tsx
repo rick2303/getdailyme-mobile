@@ -30,9 +30,9 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
     logoOpacity.value = withTiming(1, { duration: 240 })
     logoScale.value = withSpring(1, { stiffness: 240, damping: 16 })
 
-    overlayScale.value = withDelay(950, withTiming(1.08, { duration: 420, easing: Easing.out(Easing.quad) }))
+    overlayScale.value = withDelay(1950, withTiming(1.08, { duration: 420, easing: Easing.out(Easing.quad) }))
     overlayOpacity.value = withDelay(
-      950,
+      1950,
       withTiming(0, { duration: 420, easing: Easing.out(Easing.quad) }, (finished) => {
         if (finished) runOnJS(setGone)(true)
       }),

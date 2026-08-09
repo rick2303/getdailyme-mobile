@@ -1,9 +1,10 @@
-import { Check, History, Plus, RotateCcw, Trophy } from 'lucide-react-native'
+import { Check, History, Pencil, Plus, RotateCcw, Trophy } from 'lucide-react-native'
 import { useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { TextInput } from '@/components/ui/field'
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/components/ui/toast'
@@ -18,6 +19,7 @@ import {
   useCreateChallenge,
   useJoinChallenge,
   useLeaveChallenge,
+  useUpdateChallenge,
 } from '@/lib/hooks/use-challenges'
 import { useFriends } from '@/lib/hooks/use-friends'
 import { daysBetweenKeys, shiftDateKey, todayKey } from '@/lib/utils/dates'
@@ -218,6 +220,10 @@ function ChallengeCard({ challenge }: { challenge: ChallengeMembership }) {
   const leave = useLeaveChallenge()
   const daysLeft = useDaysLeftLabel(challenge.ends_on)
 
+  const [confirmingLeave, setConfirmingLeave] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const isCreator = challenge.creator_id === userId
+
   return (
     <View className="gap-3 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
       <View className="flex-row items-start justify-between gap-3">
@@ -229,6 +235,16 @@ function ChallengeCard({ challenge }: { challenge: ChallengeMembership }) {
             {t('challenges.goal', { target: challenge.target })} · {daysLeft}
           </Text>
         </View>
+        {isCreator ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('challenges.editTitle')}
+            onPress={() => setEditing(true)}
+            className="h-9 w-9 items-center justify-center rounded-full active:opacity-70"
+          >
+            <Pencil size={16} color={colors.textMuted} />
+          </Pressable>
+        ) : null}
         <Trophy size={20} color="#D97706" />
       </View>
 
@@ -269,9 +285,122 @@ function ChallengeCard({ challenge }: { challenge: ChallengeMembership }) {
         variant="ghost"
         size="sm"
         disabled={leave.isPending}
-        onPress={() => leave.mutate(challenge.id)}
+        onPress={() => setConfirmingLeave(true)}
+      />
+
+      <ConfirmDialog
+        open={confirmingLeave}
+        title={t('challenges.leaveConfirmTitle')}
+        body={t('challenges.leaveConfirmBody')}
+        confirmLabel={t('challenges.leave')}
+        onConfirm={() => {
+          setConfirmingLeave(false)
+          leave.mutate(challenge.id)
+        }}
+        onCancel={() => setConfirmingLeave(false)}
+      />
+
+      <EditChallengeSheet
+        open={editing}
+        challenge={challenge}
+        onClose={() => setEditing(false)}
       />
     </View>
+  )
+}
+
+function EditChallengeSheet({
+  open,
+  challenge,
+  onClose,
+}: {
+  open: boolean
+  challenge: ChallengeMembership
+  onClose: () => void
+}) {
+  const { t } = useI18n()
+  const { showToast } = useToast()
+  const timeZone = useTimeZone()
+  const update = useUpdateChallenge()
+
+  const today = todayKey(timeZone)
+  const [title, setTitle] = useState(challenge.title)
+  const [target, setTarget] = useState(String(challenge.target))
+  const [days, setDays] = useState(String(Math.max(1, challengeDaysLeft(challenge.ends_on, today) + 1)))
+
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) {
+      setTitle(challenge.title)
+      setTarget(String(challenge.target))
+      setDays(String(Math.max(1, challengeDaysLeft(challenge.ends_on, today) + 1)))
+    }
+  }
+
+  const parsedTarget = Math.max(1, Number(target) || 0)
+  const parsedDays = Math.max(1, Number(days) || 0)
+  const canSave = title.trim().length > 0 && parsedTarget > 0
+
+  const save = () => {
+    if (!canSave) return
+    update.mutate(
+      {
+        challengeId: challenge.id,
+        patch: {
+          title: title.trim(),
+          target: parsedTarget,
+          ends_on: shiftDateKey(today, parsedDays - 1),
+        },
+      },
+      {
+        onSuccess: () => {
+          showToast(t('challenges.edited'), 'success')
+          onClose()
+        },
+        onError: () => showToast(t('common.genericError'), 'error'),
+      },
+    )
+  }
+
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={t('challenges.editTitle')}
+      closeLabel={t('common.close')}
+      footer={
+        <Button
+          title={update.isPending ? t('common.saving') : t('common.save')}
+          size="lg"
+          fullWidth
+          disabled={!canSave || update.isPending}
+          loading={update.isPending}
+          onPress={save}
+        />
+      }
+    >
+      <View className="gap-4 pt-2">
+        <TextInput
+          label={t('challenges.titleLabel')}
+          value={title}
+          maxLength={60}
+          onChangeText={setTitle}
+        />
+        <TextInput
+          label={t('challenges.targetLabel')}
+          keyboardType="number-pad"
+          value={target}
+          onChangeText={setTarget}
+        />
+        <TextInput
+          label={t('challenges.daysFromToday')}
+          keyboardType="number-pad"
+          value={days}
+          onChangeText={setDays}
+        />
+      </View>
+    </Sheet>
   )
 }
 

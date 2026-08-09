@@ -517,27 +517,29 @@ export function ActivityEditorSheet({
             ) : null}
           </View>
         </View>
+
+        <IconPickerSheet
+          open={iconPickerOpen}
+          value={draft.icon}
+          color={draft.color}
+          onSelect={(icon) => {
+            patch('icon', icon)
+            setIconPickerOpen(false)
+          }}
+          onClose={() => setIconPickerOpen(false)}
+        />
+
+        <ConfirmDialog
+          open={confirmingDelete}
+          title={t('activity.deleteTitle', { name: activity?.name ?? '' })}
+          body={t('activity.deleteBody')}
+          confirmLabel={t('common.delete')}
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmingDelete(false)}
+        />
       </Sheet>
 
-      <IconPickerSheet
-        open={iconPickerOpen}
-        value={draft.icon}
-        color={draft.color}
-        onSelect={(icon) => {
-          patch('icon', icon)
-          setIconPickerOpen(false)
-        }}
-        onClose={() => setIconPickerOpen(false)}
-      />
 
-      <ConfirmDialog
-        open={confirmingDelete}
-        title={t('activity.deleteTitle', { name: activity?.name ?? '' })}
-        body={t('activity.deleteBody')}
-        confirmLabel={t('common.delete')}
-        onConfirm={confirmDelete}
-        onCancel={() => setConfirmingDelete(false)}
-      />
     </>
   )
 }

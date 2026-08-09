@@ -27,7 +27,7 @@ export default function TabsLayout() {
   return (
     <>
       <Tabs
-        screenOptions={{ headerShown: false }}
+        screenOptions={{ headerShown: false, freezeOnBlur: true }}
         tabBar={(props) => <AppTabBar {...props} onQuickAdd={() => setCreating(true)} />}
       >
         <Tabs.Screen name="index" />

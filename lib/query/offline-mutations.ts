@@ -240,8 +240,10 @@ export function registerOfflineMutations(queryClient: QueryClient) {
   });
 
   queryClient.setMutationDefaults(mutationKeys.sendFriendRequest, {
-    mutationFn: async (variables: FriendRequestVariables) =>
-      sendFriendRequest(getSupabaseBrowserClient(), variables.userId, variables.addresseeId),
+    mutationFn: async (variables: FriendRequestVariables) => {
+      await sendFriendRequest(getSupabaseBrowserClient(), variables.userId, variables.addresseeId);
+      void notifyQuietly({ type: "friend_request", addresseeId: variables.addresseeId });
+    },
     onSettled: (_data, _error, variables) => {
       if (variables) invalidateFriends(variables.userId);
     },
@@ -253,7 +255,11 @@ export function registerOfflineMutations(queryClient: QueryClient) {
         getSupabaseBrowserClient(),
         variables.friendshipId,
         variables.status,
-      ),
+      ).then(() => {
+        if (variables.status === "accepted") {
+          void notifyQuietly({ type: "friend_accept", friendshipId: variables.friendshipId });
+        }
+      }),
     onSettled: (_data, _error, variables) => {
       if (variables) invalidateFriends(variables.userId);
     },

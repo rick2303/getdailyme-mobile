@@ -8,8 +8,6 @@
     "userInterfaceStyle": "automatic",
     "scheme": "getdailyme",
     "splash": {
-      "image": "./assets/icon.png",
-      "resizeMode": "contain",
       "backgroundColor": "#007EB6"
     },
     "ios": {
@@ -166,6 +164,10 @@
         "projectId": "0a35b136-db1d-4095-8404-7aa2b9367322"
       }
     },
-    "owner": "thunderhnd"
+    "owner": "thunderhnd",
+    "locales": {
+      "en": "./locales/en.json",
+      "es": "./locales/es.json"
+    }
   }
 }

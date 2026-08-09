@@ -451,7 +451,7 @@ function SettingsHub({ onManage, onSignOut }: { onManage: () => void; onSignOut:
       >
         <HubRow
           icon={Bell}
-          label={t('notifications.sectionTitle')}
+          label={t('profile.hubAlerts')}
           hint={t('profile.hubAlertsHint')}
           onPress={() => setOpen('alerts')}
         />
@@ -493,7 +493,7 @@ function SettingsHub({ onManage, onSignOut }: { onManage: () => void; onSignOut:
       <Sheet
         open={open === 'alerts'}
         onClose={() => setOpen(null)}
-        title={t('notifications.sectionTitle')}
+        title={t('profile.hubAlerts')}
         closeLabel={t('common.close')}
       >
         <View className="pb-2 pt-1">

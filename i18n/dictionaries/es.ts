@@ -535,6 +535,7 @@ export const es = {
     addFriend: "Agregar",
     requestSent: "Solicitud enviada",
     pendingOut: "Pendiente",
+    cancelRequest: "Cancelar solicitud",
     pendingIn: "Te agregó",
     accept: "Aceptar",
     decline: "Rechazar",
@@ -621,6 +622,7 @@ export const es = {
   },
   profile: {
     hubSettings: "Ajustes",
+    hubAlerts: "Avisos",
     hubSettingsHint: "Idioma, tema, color, zona horaria y tus datos",
     hubAlertsHint: "Push, recordatorios y tipos de aviso",
     hubSecurityHint: "Contraseña y eliminar cuenta",
@@ -769,6 +771,11 @@ export const es = {
       "Bloqueaste los avisos para este sitio. Actívalos desde los ajustes del navegador y vuelve aquí.",
   },
   challenges: {
+    leaveConfirmTitle: "¿Salir del reto?",
+    leaveConfirmBody: "Perderás tu progreso en este reto.",
+    editTitle: "Editar reto",
+    edited: "Reto actualizado",
+    daysFromToday: "Termina en (días desde hoy)",
     title: "Retos",
     create: "Nuevo",
     createTitle: "Nuevo reto",

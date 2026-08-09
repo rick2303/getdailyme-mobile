@@ -1,0 +1,8 @@
+{
+  "NSHealthShareUsageDescription": "getdailyme reads your steps, exercise minutes and sleep to log them automatically into the activities you choose.",
+  "NSHealthUpdateUsageDescription": "getdailyme does not write data to Health; this permission is declared by the health library.",
+  "NSPhotoLibraryUsageDescription": "getdailyme needs access to your photo library to attach a photo to your logs.",
+  "NSPhotoLibraryAddUsageDescription": "getdailyme needs permission to save images you generate from the app.",
+  "NSCameraUsageDescription": "getdailyme needs camera access to take a photo for your log.",
+  "NSLocationWhenInUseUsageDescription": "getdailyme does not use your location. This permission is required by a notifications library, but the app never accesses your location."
+}

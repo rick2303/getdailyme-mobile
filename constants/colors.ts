@@ -1,4 +1,4 @@
-import { useColorScheme } from 'react-native'
+import { useColorScheme } from 'nativewind'
 
 import { ACCENT_HEX } from '@/lib/theme'
 import { useAccent } from '@/lib/theme-context'
@@ -51,7 +51,7 @@ export const ACTIVITY_HEX: Record<string, { light: string; dark: string }> = {
 }
 
 export function useThemeColors() {
-  const scheme = useColorScheme()
+  const { colorScheme: scheme } = useColorScheme()
   const accent = useAccent()
   const palette = scheme === 'dark' ? DARK : LIGHT
   const hex = ACCENT_HEX[accent][scheme === 'dark' ? 'dark' : 'light']
@@ -59,7 +59,7 @@ export function useThemeColors() {
 }
 
 export function useActivityHex(color: string): string {
-  const scheme = useColorScheme()
+  const { colorScheme: scheme } = useColorScheme()
   const entry = ACTIVITY_HEX[color] ?? ACTIVITY_HEX.blue
   return scheme === 'dark' ? entry.dark : entry.light
 }
@@ -92,7 +92,7 @@ export function activityInk(hex: string, scheme: 'light' | 'dark'): string {
 }
 
 export function useActivityInk(color: string): string {
-  const scheme = useColorScheme()
+  const { colorScheme: scheme } = useColorScheme()
   const entry = ACTIVITY_HEX[color] ?? ACTIVITY_HEX.blue
   return scheme === 'dark'
     ? activityInk(entry.dark, 'dark')
