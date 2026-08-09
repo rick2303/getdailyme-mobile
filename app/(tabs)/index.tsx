@@ -1,9 +1,9 @@
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { useQueryClient } from '@tanstack/react-query'
 import * as ImagePicker from 'expo-image-picker'
-import { Check, Flame, ImagePlus, Minus, Plus, Timer, X } from 'lucide-react-native'
+import { Check, Flame, ImagePlus, Minus, Plus, Timer, Trash2, X } from 'lucide-react-native'
 import { useEffect, useMemo, useState } from 'react'
-import { FlatList, Image, Pressable, RefreshControl, Text, View } from 'react-native'
+import { FlatList, Image, Platform, Pressable, RefreshControl, Text, View } from 'react-native'
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -41,16 +41,16 @@ import { endTimerActivity, startTimerActivity } from '@/modules/live-activity'
 import { useI18n } from '@/i18n/provider'
 import { useActivityLabels } from '@/lib/activities/labels'
 import { stepperIncrement, usesQuickLogSheet } from '@/lib/activities/input-modes'
-import { computeStreak } from '@/lib/activities/streaks'
+import { computeStreak, computeWeeklyStreak } from '@/lib/activities/streaks'
 import { uploadActivityPhoto } from '@/lib/api/storage'
 import type { Activity } from '@/lib/api/types'
 import { useAuth, useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
 import { useActiveActivities } from '@/lib/hooks/use-activities'
-import { useCreateLog, useDatesByActivity, useDeleteLog, useHistorySummary, useTodayTotals, useWeekProgress } from '@/lib/hooks/use-logs'
+import { useAmountsByActivity, useCreateLog, useDatesByActivity, useDeleteLog, useHistorySummary, useRecentLogs, useTodayTotals, useWeekProgress } from '@/lib/hooks/use-logs'
 import { formatElapsed, useClearSession, useSessionFor, useStartSession, useTicker } from '@/lib/hooks/use-sessions'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { haptic } from '@/lib/utils/haptics'
-import { todayKey, shiftDateKey, zonedDateTimeToIso } from '@/lib/utils/dates'
+import { formatTime, todayKey, shiftDateKey, zonedDateTimeToIso } from '@/lib/utils/dates'
 
 export default function TodayScreen() {
   const { t } = useI18n()
@@ -62,6 +62,7 @@ export default function TodayScreen() {
   const { data: activities } = useActiveActivities()
   const { totals } = useTodayTotals()
   const weekProgress = useWeekProgress()
+  const amountsBy = useAmountsByActivity()
   const datesByActivity = useDatesByActivity()
   const timeZone = useTimeZone()
   const createLog = useCreateLog()
@@ -217,6 +218,7 @@ export default function TodayScreen() {
             activity={item}
             todayTotal={totals.get(item.id)}
             weekTotal={weekProgress.totals.get(item.id) ?? 0}
+            amounts={amountsBy.byActivity.get(item.id)}
             dates={datesByActivity.get(item.id)}
             today={today}
             index={index}
@@ -301,6 +303,7 @@ function ActivityTile({
   activity,
   todayTotal,
   weekTotal,
+  amounts,
   dates,
   today,
   index,
@@ -310,6 +313,7 @@ function ActivityTile({
   activity: Activity
   todayTotal?: { amount: number; count: number }
   weekTotal: number
+  amounts?: Map<string, number>
   dates?: Set<string>
   today: string
   index: number
@@ -354,10 +358,13 @@ function ActivityTile({
     onTap()
   }
 
-  const streak = useMemo(
-    () => (dates ? computeStreak(dates, today).current : 0),
-    [dates, today],
-  )
+  // Meta semanal: la racha va en semanas cumplidas, como en la web.
+  const streak = useMemo(() => {
+    if (activity.target_period === 'week') {
+      return computeWeeklyStreak(amounts ?? new Map(), activity.daily_target ?? 0, today)
+    }
+    return dates ? computeStreak(dates, today).current : 0
+  }, [activity.target_period, activity.daily_target, amounts, dates, today])
 
   const summary = () => {
     if (running && session) return formatElapsed(session.started_at, now)
@@ -372,7 +379,7 @@ function ActivityTile({
 
   return (
     <Animated.View
-      entering={FadeIn.delay(Math.min(index, 8) * 40).duration(320)}
+      entering={Platform.OS === 'ios' ? FadeIn.delay(Math.min(index, 8) * 40).duration(320) : undefined}
       className="flex-1"
     >
     <Pressable
@@ -506,7 +513,7 @@ function LogDetailSheet({
     photoUrl: string | null,
   ) => void
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const { unitLabel } = useActivityLabels()
   const { showToast } = useToast()
   const colors = useThemeColors()
@@ -514,6 +521,8 @@ function LogDetailSheet({
   const timeZone = useTimeZone()
   const today = todayKey(timeZone)
   const yesterday = shiftDateKey(today, -1)
+  const { data: recentLogs } = useRecentLogs()
+  const removeLog = useDeleteLog()
 
   const [amount, setAmount] = useState(1)
   const [dateKey, setDateKey] = useState(today)
@@ -686,6 +695,51 @@ function LogDetailSheet({
           maxLength={280}
           onChangeText={setNote}
         />
+
+        <View className="gap-2">
+          <Text className="px-1 text-sm font-bold text-text-muted dark:text-text-muted-dark">
+            {t('log.historyTitle')}
+          </Text>
+          {(recentLogs ?? []).filter(
+            (log) => log.activity_id === activity.id && log.local_date === today,
+          ).length === 0 ? (
+            <Text className="rounded-2xl bg-surface-sunken px-4 py-5 text-center text-sm text-text-muted dark:bg-surface-sunken-dark dark:text-text-muted-dark">
+              {t('log.historyEmpty')}
+            </Text>
+          ) : (
+            (recentLogs ?? [])
+              .filter((log) => log.activity_id === activity.id && log.local_date === today)
+              .map((log) => (
+                <View
+                  key={log.id}
+                  className="flex-row items-center gap-3 rounded-2xl bg-surface-sunken px-3.5 py-2.5 dark:bg-surface-sunken-dark"
+                >
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-sm font-bold text-text dark:text-text-dark">
+                      +{log.amount} {unitLabel(activity.unit, log.amount)}
+                    </Text>
+                    <Text
+                      className="text-xs text-text-muted dark:text-text-muted-dark"
+                      numberOfLines={1}
+                    >
+                      {formatTime(new Date(log.logged_at), locale, timeZone)}
+                      {log.note ? ` · ${log.note}` : ''}
+                    </Text>
+                  </View>
+                  <IconButton
+                    label={t('log.deleteLog')}
+                    onPress={() => {
+                      if (!userId) return
+                      haptic('warning')
+                      removeLog.mutate({ logId: log.id, userId, photoUrl: log.photo_url })
+                    }}
+                  >
+                    <Trash2 size={16} color={colors.danger} />
+                  </IconButton>
+                </View>
+              ))
+          )}
+        </View>
       </View>
     </Sheet>
   )
