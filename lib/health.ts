@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { Platform } from 'react-native'
+import { Linking, Platform } from 'react-native'
 
-import { createLog, updateLog } from '@/lib/api/logs'
+import { createLog } from '@/lib/api/logs'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { newId } from '@/lib/utils/ids'
 import { todayKey } from '@/lib/utils/dates'
@@ -17,11 +17,79 @@ export type HealthToday = Record<HealthMetric, number>
 
 export type HealthLinks = Partial<Record<HealthMetric, string>>
 
+// Que metricas puede leer la app de verdad. En Android lo dice Health Connect;
+// en iOS, HealthKit oculta a proposito si un permiso de lectura fue denegado
+// (una consulta sin permiso devuelve cero, no un error), asi que se deduce
+// mirando si hay algun dato en el ultimo mes.
+export type HealthAccess = Record<HealthMetric, boolean>
+
+const NO_ACCESS: HealthAccess = { steps: false, exercise: false, sleep: false }
+
+const IOS_TYPES: Record<HealthMetric, string> = {
+  steps: 'HKQuantityTypeIdentifierStepCount',
+  exercise: 'HKQuantityTypeIdentifierAppleExerciseTime',
+  sleep: 'HKCategoryTypeIdentifierSleepAnalysis',
+}
+
+const ANDROID_TYPES: Record<HealthMetric, 'Steps' | 'ExerciseSession' | 'SleepSession'> = {
+  steps: 'Steps',
+  exercise: 'ExerciseSession',
+  sleep: 'SleepSession',
+}
+
+const PROBE_DAYS = 30
+
 const CONNECTED_KEY = 'gdm_health_connected'
 const LINKS_KEY = 'gdm_health_links'
 const SYNCED_KEY = 'gdm_health_synced'
+const LAST_SYNC_KEY = 'gdm_health_last_sync'
 
-type SyncedState = Partial<Record<HealthMetric, { date: string; logId: string; amount: number }>>
+type SyncedEntry = { date: string; logId: string; amount: number; removed?: boolean }
+
+type SyncedState = Partial<Record<HealthMetric, SyncedEntry>>
+
+type DateFilter = { date?: { startDate?: Date; endDate?: Date } }
+
+type HealthKitModule = {
+  isHealthDataAvailable: () => boolean
+  requestAuthorization: (toRequest: { toRead?: readonly string[] }) => Promise<boolean>
+  queryStatisticsForQuantity: (
+    identifier: string,
+    statistics: readonly string[],
+    options?: { filter?: DateFilter; unit?: string },
+  ) => Promise<{ sumQuantity?: { quantity: number } }>
+  queryCategorySamples: (
+    identifier: string,
+    options: { filter?: DateFilter; limit?: number },
+  ) => Promise<{ value: number; startDate: Date; endDate: Date }[]>
+}
+
+type HealthConnectPermission = { accessType: string; recordType: string }
+
+type HealthConnectModule = {
+  initialize: () => Promise<boolean>
+  openHealthConnectSettings: () => void
+  requestPermission: (
+    permissions: { accessType: 'read'; recordType: string }[],
+  ) => Promise<HealthConnectPermission[]>
+  getGrantedPermissions: () => Promise<HealthConnectPermission[]>
+  aggregateRecord: (request: {
+    recordType: 'Steps' | 'ExerciseSession' | 'SleepSession'
+    timeRangeFilter: { operator: 'between'; startTime: string; endTime: string }
+  }) => Promise<{
+    COUNT_TOTAL?: number
+    EXERCISE_DURATION_TOTAL?: { inSeconds: number }
+    SLEEP_DURATION_TOTAL?: number
+  }>
+}
+
+function healthKit(): HealthKitModule {
+  return require('@kingstinct/react-native-healthkit') as HealthKitModule
+}
+
+function healthConnect(): HealthConnectModule {
+  return require('react-native-health-connect') as HealthConnectModule
+}
 
 export async function isHealthConnected(): Promise<boolean> {
   try {
@@ -48,50 +116,116 @@ export async function saveHealthLinks(links: HealthLinks) {
   }
 }
 
-export async function requestHealthPermissions(): Promise<boolean> {
+export async function getLastHealthSync(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(LAST_SYNC_KEY)
+  } catch {
+    return null
+  }
+}
+
+// Pide permiso solo de las metricas indicadas. Devuelve que quedo concedido de
+// verdad, o null si el aparato no sabe leer salud.
+export async function requestHealthPermissions(
+  metrics: HealthMetric[] = HEALTH_METRICS,
+): Promise<HealthAccess | null> {
+  if (metrics.length === 0) return readHealthAccess()
+
   try {
     if (Platform.OS === 'ios') {
-      const healthkit = require('@kingstinct/react-native-healthkit') as {
-        isHealthDataAvailable: () => boolean
-        requestAuthorization: (toRequest: {
-          toRead?: readonly string[]
-        }) => Promise<boolean>
-      }
-      if (!healthkit.isHealthDataAvailable()) return false
-      const granted = await healthkit.requestAuthorization({
-        toRead: [
-          'HKQuantityTypeIdentifierStepCount',
-          'HKQuantityTypeIdentifierAppleExerciseTime',
-          'HKCategoryTypeIdentifierSleepAnalysis',
-        ],
-      })
-      if (granted) await AsyncStorage.setItem(CONNECTED_KEY, '1')
-      return granted
+      const kit = healthKit()
+      if (!kit.isHealthDataAvailable()) return null
+      await kit.requestAuthorization({ toRead: metrics.map((metric) => IOS_TYPES[metric]) })
+      await AsyncStorage.setItem(CONNECTED_KEY, '1')
+      return await readHealthAccess()
     }
 
     if (Platform.OS === 'android') {
-      const hc = require('react-native-health-connect') as {
-        initialize: () => Promise<boolean>
-        requestPermission: (
-          permissions: { accessType: 'read'; recordType: string }[],
-        ) => Promise<unknown[]>
-      }
-      const ready = await hc.initialize()
-      if (!ready) return false
-      const granted = await hc.requestPermission([
-        { accessType: 'read', recordType: 'Steps' },
-        { accessType: 'read', recordType: 'ExerciseSession' },
-        { accessType: 'read', recordType: 'SleepSession' },
-      ])
-      const ok = Array.isArray(granted) && granted.length > 0
-      if (ok) await AsyncStorage.setItem(CONNECTED_KEY, '1')
-      return ok
+      const hc = healthConnect()
+      if (!(await hc.initialize())) return null
+      await hc.requestPermission(
+        metrics.map((metric) => ({ accessType: 'read' as const, recordType: ANDROID_TYPES[metric] })),
+      )
+      await AsyncStorage.setItem(CONNECTED_KEY, '1')
+      return await readHealthAccess()
     }
 
-    return false
+    return null
   } catch {
-    return false
+    return null
   }
+}
+
+// Abre la pantalla del sistema donde se revisan los permisos: en iOS no se
+// puede volver a preguntar una vez respondido, hay que ir a Salud.
+export async function openHealthSettings() {
+  try {
+    if (Platform.OS === 'android') {
+      healthConnect().openHealthConnectSettings()
+      return
+    }
+    await Linking.openURL('x-apple-health://')
+  } catch {
+    try {
+      await Linking.openSettings()
+    } catch {
+      // sin pantalla a la que ir no queda nada que hacer
+    }
+  }
+}
+
+export async function readHealthAccess(): Promise<HealthAccess> {
+  try {
+    if (Platform.OS === 'android') {
+      const hc = healthConnect()
+      if (!(await hc.initialize())) return NO_ACCESS
+      const granted = await hc.getGrantedPermissions()
+      const types = new Set(
+        (granted ?? [])
+          .filter((permission) => permission.accessType === 'read')
+          .map((permission) => permission.recordType),
+      )
+      return {
+        steps: types.has(ANDROID_TYPES.steps),
+        exercise: types.has(ANDROID_TYPES.exercise),
+        sleep: types.has(ANDROID_TYPES.sleep),
+      }
+    }
+
+    if (Platform.OS === 'ios') return await probeIosAccess()
+
+    return NO_ACCESS
+  } catch {
+    return NO_ACCESS
+  }
+}
+
+async function probeIosAccess(): Promise<HealthAccess> {
+  const kit = healthKit()
+  if (!kit.isHealthDataAvailable()) return NO_ACCESS
+
+  const endDate = new Date()
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - PROBE_DAYS)
+  startDate.setHours(0, 0, 0, 0)
+  const filter = { date: { startDate, endDate } }
+
+  const [steps, exercise, sleep] = await Promise.all([
+    kit
+      .queryStatisticsForQuantity(IOS_TYPES.steps, ['cumulativeSum'], { filter, unit: 'count' })
+      .then((result) => (result.sumQuantity?.quantity ?? 0) > 0)
+      .catch(() => false),
+    kit
+      .queryStatisticsForQuantity(IOS_TYPES.exercise, ['cumulativeSum'], { filter, unit: 'min' })
+      .then((result) => (result.sumQuantity?.quantity ?? 0) > 0)
+      .catch(() => false),
+    kit
+      .queryCategorySamples(IOS_TYPES.sleep, { filter, limit: 1 })
+      .then((samples) => samples.length > 0)
+      .catch(() => false),
+  ])
+
+  return { steps, exercise, sleep }
 }
 
 function dayStart(): Date {
@@ -101,30 +235,20 @@ function dayStart(): Date {
 }
 
 async function readIosToday(): Promise<HealthToday> {
-  const healthkit = require('@kingstinct/react-native-healthkit') as {
-    queryStatisticsForQuantity: (
-      identifier: string,
-      statistics: readonly string[],
-      options?: { filter?: { date?: { startDate?: Date; endDate?: Date } }; unit?: string },
-    ) => Promise<{ sumQuantity?: { quantity: number } }>
-    queryCategorySamples: (
-      identifier: string,
-      options: { filter?: { date?: { startDate?: Date; endDate?: Date } }; limit?: number },
-    ) => Promise<{ value: number; startDate: Date; endDate: Date }[]>
-  }
+  const kit = healthKit()
 
   const now = new Date()
   const filter = { date: { startDate: dayStart(), endDate: now } }
 
   const [steps, exercise] = await Promise.all([
-    healthkit
-      .queryStatisticsForQuantity('HKQuantityTypeIdentifierStepCount', ['cumulativeSum'], {
+    kit
+      .queryStatisticsForQuantity(IOS_TYPES.steps, ['cumulativeSum'], {
         filter,
         unit: 'count',
       })
       .catch(() => ({ sumQuantity: undefined })),
-    healthkit
-      .queryStatisticsForQuantity('HKQuantityTypeIdentifierAppleExerciseTime', ['cumulativeSum'], {
+    kit
+      .queryStatisticsForQuantity(IOS_TYPES.exercise, ['cumulativeSum'], {
         filter,
         unit: 'min',
       })
@@ -138,7 +262,7 @@ async function readIosToday(): Promise<HealthToday> {
   sleepStart.setHours(18, 0, 0, 0)
   let sleepMs = 0
   try {
-    const samples = await healthkit.queryCategorySamples('HKCategoryTypeIdentifierSleepAnalysis', {
+    const samples = await kit.queryCategorySamples(IOS_TYPES.sleep, {
       filter: { date: { startDate: sleepStart, endDate: now } },
       limit: 500,
     })
@@ -158,17 +282,7 @@ async function readIosToday(): Promise<HealthToday> {
 }
 
 async function readAndroidToday(): Promise<HealthToday> {
-  const hc = require('react-native-health-connect') as {
-    initialize: () => Promise<boolean>
-    aggregateRecord: (request: {
-      recordType: 'Steps' | 'ExerciseSession' | 'SleepSession'
-      timeRangeFilter: { operator: 'between'; startTime: string; endTime: string }
-    }) => Promise<{
-      COUNT_TOTAL?: number
-      EXERCISE_DURATION_TOTAL?: { inSeconds: number }
-      SLEEP_DURATION_TOTAL?: number
-    }>
-  }
+  const hc = healthConnect()
 
   await hc.initialize()
   const now = new Date().toISOString()
@@ -208,6 +322,40 @@ export async function readHealthToday(): Promise<HealthToday | null> {
   }
 }
 
+async function loadSynced(): Promise<SyncedState> {
+  try {
+    const raw = await AsyncStorage.getItem(SYNCED_KEY)
+    return raw ? (JSON.parse(raw) as SyncedState) : {}
+  } catch {
+    return {}
+  }
+}
+
+async function saveSynced(synced: SyncedState) {
+  try {
+    await AsyncStorage.setItem(SYNCED_KEY, JSON.stringify(synced))
+  } catch {
+    // sin persistencia se reintentara y el update es idempotente
+  }
+}
+
+// Si el usuario borra a mano el registro que puso la salud, la sincronizacion
+// no debe resucitarlo el resto del dia.
+export async function forgetHealthLog(logId: string) {
+  const synced = await loadSynced()
+  let touched = false
+
+  for (const metric of HEALTH_METRICS) {
+    const entry = synced[metric]
+    if (entry && entry.logId === logId && !entry.removed) {
+      synced[metric] = { ...entry, removed: true }
+      touched = true
+    }
+  }
+
+  if (touched) await saveSynced(synced)
+}
+
 // Registra los valores de hoy en las actividades vinculadas: un solo registro
 // por dia y por metrica que se actualiza si el valor crece.
 export async function syncHealthToLogs(userId: string, timeZone: string): Promise<number> {
@@ -218,13 +366,7 @@ export async function syncHealthToLogs(userId: string, timeZone: string): Promis
   const today = await readHealthToday()
   if (!today) return 0
 
-  let synced: SyncedState = {}
-  try {
-    const raw = await AsyncStorage.getItem(SYNCED_KEY)
-    if (raw) synced = JSON.parse(raw) as SyncedState
-  } catch {
-    synced = {}
-  }
+  const synced = await loadSynced()
 
   const client = getSupabaseBrowserClient()
   const localDate = todayKey(timeZone)
@@ -235,16 +377,32 @@ export async function syncHealthToLogs(userId: string, timeZone: string): Promis
     if (!amount || amount <= 0) continue
 
     const previous = synced[metric]
-    if (previous && previous.date === localDate && previous.amount === amount) continue
+    const sameDay = previous?.date === localDate
 
-    if (previous && previous.date === localDate) {
+    if (sameDay && previous!.removed) continue
+    if (sameDay && previous!.amount === amount) continue
+
+    if (sameDay) {
       try {
-        await updateLog(client, previous.logId, { amount })
-        synced[metric] = { ...previous, amount }
-        changes += 1
+        // Sin `single()`: si la fila ya no esta, el update no falla, devuelve
+        // cero filas, y eso es justo lo que hay que distinguir.
+        const { data, error } = await client
+          .from('activity_logs')
+          .update({ amount })
+          .eq('id', previous!.logId)
+          .select('id')
+        if (error) throw error
+
+        if (data && data.length > 0) {
+          synced[metric] = { ...previous!, amount }
+          changes += 1
+        } else {
+          synced[metric] = { ...previous!, removed: true }
+        }
         continue
       } catch {
-        // el registro ya no existe: se crea de nuevo abajo
+        // sin red: se reintenta en la proxima sincronizacion
+        continue
       }
     }
 
@@ -265,10 +423,11 @@ export async function syncHealthToLogs(userId: string, timeZone: string): Promis
     }
   }
 
+  await saveSynced(synced)
   try {
-    await AsyncStorage.setItem(SYNCED_KEY, JSON.stringify(synced))
+    await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString())
   } catch {
-    // sin persistencia se reintentara y el update es idempotente
+    // la marca de tiempo es solo informativa
   }
 
   return changes

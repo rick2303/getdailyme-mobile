@@ -1,5 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { HeartPulse } from 'lucide-react-native'
+import { Check, HeartPulse, RefreshCw } from 'lucide-react-native'
 import { useEffect, useState } from 'react'
 import { Text, View } from 'react-native'
 
@@ -7,8 +6,9 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
 import { useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
-import { useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
-import { isHealthConnected, loadHealthLinks, syncHealthToLogs } from '@/lib/health'
+import { isHealthConnected, loadHealthLinks } from '@/lib/health'
+import { useHealthSync } from '@/lib/hooks/use-health-sync'
+import { useRelativeTime } from '@/lib/hooks/use-relative-time'
 
 // Si la actividad esta vinculada a una metrica de salud, la ficha muestra el
 // aviso y un boton para traer los datos al momento, sin pasar por ajustes.
@@ -16,12 +16,10 @@ export function HealthSyncButton({ activityId }: { activityId: string }) {
   const { t } = useI18n()
   const { showToast } = useToast()
   const colors = useThemeColors()
-  const userId = useCurrentUserId()
-  const timeZone = useTimeZone()
-  const queryClient = useQueryClient()
+  const relative = useRelativeTime()
+  const { status, lastSync, sync } = useHealthSync()
 
   const [linked, setLinked] = useState(false)
-  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -37,14 +35,19 @@ export function HealthSyncButton({ activityId }: { activityId: string }) {
 
   if (!linked) return null
 
-  const sync = async () => {
-    if (!userId) return
-    setBusy(true)
-    const changes = await syncHealthToLogs(userId, timeZone)
-    setBusy(false)
-    await queryClient.invalidateQueries({ queryKey: ['logs'] })
+  const run = async () => {
+    const changes = await sync()
     showToast(changes > 0 ? t('health.synced') : t('health.nothingToSync'), 'success')
   }
+
+  const title =
+    status === 'syncing'
+      ? t('health.syncing')
+      : status === 'done'
+        ? t('health.synced')
+        : status === 'empty'
+          ? t('health.nothingToSync')
+          : t('health.syncActivity')
 
   return (
     <View className="gap-2 rounded-2xl bg-brand-soft p-3 dark:bg-brand-soft-dark">
@@ -55,13 +58,26 @@ export function HealthSyncButton({ activityId }: { activityId: string }) {
         </Text>
       </View>
       <Button
-        title={t('health.syncActivity')}
+        title={title}
         variant="secondary"
         size="sm"
         fullWidth
-        loading={busy}
-        onPress={() => void sync()}
+        loading={status === 'syncing'}
+        disabled={status === 'syncing'}
+        icon={
+          status === 'done' || status === 'empty' ? (
+            <Check size={16} color={colors.brand} />
+          ) : (
+            <RefreshCw size={16} color={colors.text} />
+          )
+        }
+        onPress={() => void run()}
       />
+      {lastSync ? (
+        <Text className="text-center text-[11px] text-text-subtle dark:text-text-subtle-dark">
+          {t('health.lastSync', { time: relative(lastSync) })}
+        </Text>
+      ) : null}
     </View>
   )
 }

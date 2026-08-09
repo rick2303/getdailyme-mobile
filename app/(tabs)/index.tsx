@@ -2,15 +2,19 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 import { useQueryClient } from '@tanstack/react-query'
 import * as ImagePicker from 'expo-image-picker'
 import { Check, Flame, ImagePlus, Minus, Plus, Timer, Trash2, X } from 'lucide-react-native'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, Image, Platform, Pressable, RefreshControl, Text, View } from 'react-native'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
   FadeIn,
   FadeInDown,
   FadeOutUp,
+  runOnJS,
   useAnimatedProps,
+  useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
@@ -48,6 +52,7 @@ import { useAuth, useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
 import { useActiveActivities } from '@/lib/hooks/use-activities'
 import { useAmountsByActivity, useCreateLog, useDatesByActivity, useDeleteLog, useHistorySummary, useRecentLogs, useTodayTotals, useWeekProgress } from '@/lib/hooks/use-logs'
 import { formatElapsed, useClearSession, useSessionFor, useStartSession, useTicker } from '@/lib/hooks/use-sessions'
+import { forgetHealthLog } from '@/lib/health'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { haptic } from '@/lib/utils/haptics'
 import { formatTime, todayKey, shiftDateKey, zonedDateTimeToIso } from '@/lib/utils/dates'
@@ -297,6 +302,11 @@ export default function TodayScreen() {
 const RING_RADIUS = 26
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
 
+const ACCESSIBILITY_ACTIONS = [
+  { name: 'activate' as const },
+  { name: 'longpress' as const },
+]
+
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
 
 function ActivityTile({
@@ -358,6 +368,46 @@ function ActivityTile({
     onTap()
   }
 
+  // El toque y el mantener pulsado se reconocen en el hilo nativo. Con el
+  // Pressable de React Native el temporizador del long-press vive en JS: justo
+  // despues de registrar algo (o de sincronizar salud) el hilo esta ocupado
+  // repintando la lista, el temporizador llega tarde y lo que se cuela es un
+  // toque, o sea otro registro en vez de abrir el detalle.
+  const handlers = useRef({ tap, long: onLongPress })
+  handlers.current = { tap, long: onLongPress }
+  const fireTap = useCallback(() => handlers.current.tap(), [])
+  const fireLongPress = useCallback(() => handlers.current.long(), [])
+
+  const pressScale = useSharedValue(1)
+  const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: pressScale.value }] }))
+
+  const gesture = useMemo(() => {
+    const longPress = Gesture.LongPress()
+      .minDuration(300)
+      .maxDistance(24)
+      .onBegin(() => {
+        'worklet'
+        pressScale.value = withTiming(0.96, { duration: 90 })
+      })
+      .onStart(() => {
+        'worklet'
+        runOnJS(fireLongPress)()
+      })
+      .onFinalize(() => {
+        'worklet'
+        pressScale.value = withTiming(1, { duration: 120 })
+      })
+
+    const singleTap = Gesture.Tap()
+      .maxDistance(16)
+      .onEnd((_event, success) => {
+        'worklet'
+        if (success) runOnJS(fireTap)()
+      })
+
+    return Gesture.Exclusive(longPress, singleTap)
+  }, [fireLongPress, fireTap, pressScale])
+
   // Meta semanal: la racha va en semanas cumplidas, como en la web.
   const streak = useMemo(() => {
     if (activity.target_period === 'week') {
@@ -382,17 +432,25 @@ function ActivityTile({
       entering={Platform.OS === 'ios' ? FadeIn.delay(Math.min(index, 8) * 40).duration(320) : undefined}
       className="flex-1"
     >
-    <Pressable
+    <GestureDetector gesture={gesture}>
+    <Animated.View
+      collapsable={false}
+      accessible
       accessibilityRole="button"
       accessibilityLabel={activity.name}
-      onPress={tap}
-      onLongPress={onLongPress}
-      delayLongPress={350}
-      style={({ pressed }) => [
+      accessibilityActions={ACCESSIBILITY_ACTIONS}
+      onAccessibilityTap={fireTap}
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === 'longpress') fireLongPress()
+        else fireTap()
+      }}
+      style={[{ flex: 1 }, pressStyle]}
+    >
+    <View
+      style={[
         SHADOW_TILE,
         goalReached ? { backgroundColor: withTint(hex), borderColor: 'transparent' } : null,
         running ? { borderColor: hex } : null,
-        pressed ? { transform: [{ scale: 0.96 }] } : null,
       ]}
       className="relative mb-0 flex-1 gap-2 overflow-hidden rounded-3xl border border-border bg-surface p-3.5 dark:border-border-dark dark:bg-surface-dark"
     >
@@ -492,7 +550,9 @@ function ActivityTile({
           style={{ backgroundColor: hex }}
         />
       ) : null}
-    </Pressable>
+    </View>
+    </Animated.View>
+    </GestureDetector>
     </Animated.View>
   )
 }
@@ -731,6 +791,10 @@ function LogDetailSheet({
                     onPress={() => {
                       if (!userId) return
                       haptic('warning')
+                      // Si el registro lo puso la salud hay que decirselo, o la
+                      // siguiente sincronizacion lo vuelve a crear y parece que
+                      // la papelera no hace nada.
+                      void forgetHealthLog(log.id)
                       removeLog.mutate({ logId: log.id, userId, photoUrl: log.photo_url })
                     }}
                   >
