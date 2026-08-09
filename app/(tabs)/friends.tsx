@@ -11,6 +11,7 @@ import { EmptyState, Spinner } from '@/components/ui/feedback'
 import { TextInput } from '@/components/ui/field'
 import { useToast } from '@/components/ui/toast'
 import { ChallengesSection } from '@/components/friends/challenges-section'
+import { ClubsSection } from '@/components/friends/clubs-section'
 import { PageHeader } from '@/components/layout/page-header'
 import { useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
@@ -109,6 +110,8 @@ export default function FriendsScreen() {
         {incoming.length > 0 ? <Requests requests={incoming} /> : null}
 
         <ChallengesSection />
+
+        <ClubsSection />
 
         {isLoading ? (
           <Spinner className="py-8" />

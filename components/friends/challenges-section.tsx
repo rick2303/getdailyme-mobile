@@ -331,7 +331,7 @@ function InvitationCard({ challenge }: { challenge: ChallengeMembership }) {
 
 const DURATION_PRESETS = [7, 14, 30]
 
-type ChallengePrefill = {
+export type ChallengePrefill = {
   title: string
   target: number
   days: number
@@ -339,13 +339,15 @@ type ChallengePrefill = {
   friendIds: string[]
 }
 
-function CreateChallengeSheet({
+export function CreateChallengeSheet({
   open,
   prefill,
+  clubId = null,
   onClose,
 }: {
   open: boolean
   prefill?: ChallengePrefill | null
+  clubId?: string | null
   onClose: () => void
 }) {
   const { t } = useI18n()
@@ -386,6 +388,7 @@ function CreateChallengeSheet({
         endsOn: shiftDateKey(today, days - 1),
         activityId: activityId!,
         friendIds: invited,
+        clubId,
       },
       {
         onSuccess: () => {

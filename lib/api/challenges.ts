@@ -24,6 +24,7 @@ export type ChallengeStanding = {
 };
 
 export type NewChallenge = {
+  clubId?: string | null;
   title: string;
   target: number;
   endsOn: string;
@@ -79,6 +80,7 @@ export async function createChallenge(
       title: input.title,
       target: input.target,
       ends_on: input.endsOn,
+      club_id: input.clubId ?? null,
     })
     .select("id")
     .single();

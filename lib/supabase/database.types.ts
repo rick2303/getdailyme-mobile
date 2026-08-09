@@ -268,8 +268,44 @@ export type Database = {
           },
         ]
       }
+      club_members: {
+        Row: { club_id: string; joined_at: string; role: string; user_id: string }
+        Insert: { club_id: string; joined_at?: string; role?: string; user_id: string }
+        Update: { club_id?: string; joined_at?: string; role?: string; user_id?: string }
+        Relationships: [
+          {
+            foreignKeyName: 'club_members_club_id_fkey'
+            columns: ['club_id']
+            isOneToOne: false
+            referencedRelation: 'clubs'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'club_members_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      clubs: {
+        Row: { color: string; created_at: string; creator_id: string; icon: string; id: string; invite_code: string; name: string }
+        Insert: { color?: string; created_at?: string; creator_id: string; icon?: string; id?: string; invite_code?: string; name: string }
+        Update: { color?: string; created_at?: string; creator_id?: string; icon?: string; id?: string; invite_code?: string; name?: string }
+        Relationships: [
+          {
+            foreignKeyName: 'clubs_creator_id_fkey'
+            columns: ['creator_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       challenges: {
         Row: {
+          club_id: string | null
           created_at: string
           creator_id: string
           ends_on: string
@@ -279,6 +315,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          club_id?: string | null
           created_at?: string
           creator_id: string
           ends_on: string
@@ -288,6 +325,7 @@ export type Database = {
           title: string
         }
         Update: {
+          club_id?: string | null
           created_at?: string
           creator_id?: string
           ends_on?: string
@@ -925,6 +963,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      club_weekly_ranking: {
+        Args: { p_club_id: string }
+        Returns: { user_id: string; log_count: number }[]
+      }
+      join_club: {
+        Args: { p_code: string }
+        Returns: string
+      }
       activity_streak: {
         Args: { p_activity_id: string }
         Returns: {
