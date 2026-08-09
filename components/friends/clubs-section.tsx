@@ -366,38 +366,39 @@ function ClubDetailSheet({ club, onClose }: { club: Club | null; onClose: () => 
             </Text>
           </View>
         </View>
+
+        <CreateChallengeSheet
+          open={challenge !== null}
+          prefill={challenge}
+          clubId={club.id}
+          onClose={() => setChallenge(null)}
+        />
+
+        <ConfirmDialog
+          open={confirming !== null}
+          title={
+            confirming === 'delete'
+              ? t('clubs.deleteTitle', { name: club.name })
+              : t('clubs.leaveTitle')
+          }
+          body={confirming === 'delete' ? t('clubs.deleteBody') : t('clubs.leaveBody')}
+          confirmLabel={confirming === 'delete' ? t('common.delete') : t('clubs.leave')}
+          onConfirm={() => {
+            haptic('warning')
+            if (confirming === 'delete') {
+              remove.mutate(club.id)
+              showToast(t('clubs.deleted'), 'success')
+            } else if (userId) {
+              leave.mutate({ clubId: club.id, userId })
+              showToast(t('clubs.left'), 'success')
+            }
+            setConfirming(null)
+            onClose()
+          }}
+          onCancel={() => setConfirming(null)}
+        />
       </Sheet>
 
-      <CreateChallengeSheet
-        open={challenge !== null}
-        prefill={challenge}
-        clubId={club.id}
-        onClose={() => setChallenge(null)}
-      />
-
-      <ConfirmDialog
-        open={confirming !== null}
-        title={
-          confirming === 'delete'
-            ? t('clubs.deleteTitle', { name: club.name })
-            : t('clubs.leaveTitle')
-        }
-        body={confirming === 'delete' ? t('clubs.deleteBody') : t('clubs.leaveBody')}
-        confirmLabel={confirming === 'delete' ? t('common.delete') : t('clubs.leave')}
-        onConfirm={() => {
-          haptic('warning')
-          if (confirming === 'delete') {
-            remove.mutate(club.id)
-            showToast(t('clubs.deleted'), 'success')
-          } else if (userId) {
-            leave.mutate({ clubId: club.id, userId })
-            showToast(t('clubs.left'), 'success')
-          }
-          setConfirming(null)
-          onClose()
-        }}
-        onCancel={() => setConfirming(null)}
-      />
     </>
   )
 }

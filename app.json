@@ -169,6 +169,10 @@
     "locales": {
       "en": "./locales/en.json",
       "es": "./locales/es.json"
+    },
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#007EB6"
     }
   }
 }

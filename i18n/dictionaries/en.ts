@@ -538,6 +538,7 @@ export const en: Dictionary = {
     requestSent: "Request sent",
     pendingOut: "Pending",
     cancelRequest: "Cancel request",
+    tabFriends: "Friends",
     pendingIn: "Added you",
     accept: "Accept",
     decline: "Decline",

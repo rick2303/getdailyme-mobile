@@ -5,6 +5,7 @@ import { Check, Flame, ImagePlus, Minus, Plus, Timer, X } from 'lucide-react-nat
 import { useEffect, useMemo, useState } from 'react'
 import { FlatList, Image, Pressable, RefreshControl, Text, View } from 'react-native'
 import Animated, {
+  FadeIn,
   FadeInDown,
   FadeOutUp,
   useAnimatedProps,
@@ -371,7 +372,7 @@ function ActivityTile({
 
   return (
     <Animated.View
-      entering={FadeInDown.delay(Math.min(index, 8) * 40).duration(320)}
+      entering={FadeIn.delay(Math.min(index, 8) * 40).duration(320)}
       className="flex-1"
     >
     <Pressable

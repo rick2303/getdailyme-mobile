@@ -536,6 +536,7 @@ export const es = {
     requestSent: "Solicitud enviada",
     pendingOut: "Pendiente",
     cancelRequest: "Cancelar solicitud",
+    tabFriends: "Amistades",
     pendingIn: "Te agregó",
     accept: "Aceptar",
     decline: "Rechazar",

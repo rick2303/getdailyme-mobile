@@ -32,6 +32,7 @@ import { useInviteToken } from '@/lib/hooks/use-invite'
 import { useFriendActiveDates } from '@/lib/hooks/use-friends'
 import { useHistorySummary } from '@/lib/hooks/use-logs'
 import { computeSharedStreak } from '@/lib/activities/streaks'
+import { Segmented } from '@/components/ui/segmented'
 import { Sheet } from '@/components/ui/sheet'
 import { useCurrentUserId } from '@/lib/auth/provider'
 import { haptic } from '@/lib/utils/haptics'
@@ -45,6 +46,7 @@ export default function FriendsScreen() {
 
   const [query, setQuery] = useState('')
   const [refreshing, setRefreshing] = useState(false)
+  const [tab, setTab] = useState<'friends' | 'challenges' | 'clubs'>('friends')
 
   const refresh = async () => {
     setRefreshing(true)
@@ -95,38 +97,54 @@ export default function FriendsScreen() {
           }
         />
 
-        <View className="gap-5 px-4">
-        <NudgeInboxCard />
-
-        <TextInput
-          placeholder={t('friends.searchPlaceholder')}
-          value={query}
-          autoCapitalize="none"
-          onChangeText={setQuery}
-          leading={<Search size={18} color={colors.textSubtle} />}
-        />
-        <SearchResults query={query} />
-
-        {incoming.length > 0 ? <Requests requests={incoming} /> : null}
-
-        <ChallengesSection />
-
-        <ClubsSection />
-
-        {isLoading ? (
-          <Spinner className="py-8" />
-        ) : friends.length > 0 ? (
-          <FriendListSection friends={friends} />
-        ) : (
-          <EmptyState
-            icon={<UserPlus size={28} color={colors.textSubtle} />}
-            title={t('friends.emptyTitle')}
-            body={t('friends.emptyBody')}
+        <View className="px-4 pb-1">
+          <Segmented
+            value={tab}
+            options={[
+              { value: 'friends', label: t('friends.tabFriends') },
+              { value: 'challenges', label: t('challenges.title') },
+              { value: 'clubs', label: t('clubs.title') },
+            ]}
+            onChange={setTab}
           />
-        )}
-
-        {blocked.length > 0 ? <BlockedSection blocked={blocked} /> : null}
         </View>
+
+        {tab === 'friends' ? (
+          <View className="gap-5 px-4">
+            <NudgeInboxCard />
+
+            <TextInput
+              placeholder={t('friends.searchPlaceholder')}
+              value={query}
+              autoCapitalize="none"
+              onChangeText={setQuery}
+              leading={<Search size={18} color={colors.textSubtle} />}
+            />
+            <SearchResults query={query} />
+
+            {incoming.length > 0 ? <Requests requests={incoming} /> : null}
+
+            {isLoading ? (
+              <Spinner className="py-8" />
+            ) : friends.length > 0 ? (
+              <FriendListSection friends={friends} />
+            ) : (
+              <EmptyState
+                icon={<UserPlus size={28} color={colors.textSubtle} />}
+                title={t('friends.emptyTitle')}
+                body={t('friends.emptyBody')}
+              />
+            )}
+
+            {blocked.length > 0 ? <BlockedSection blocked={blocked} /> : null}
+          </View>
+        ) : tab === 'challenges' ? (
+          <View className="gap-5 px-4">
+            <ChallengesSection />
+          </View>
+        ) : (
+          <ClubsSection />
+        )}
       </ScrollView>
     </SafeAreaView>
   )
