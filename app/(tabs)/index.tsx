@@ -10,6 +10,7 @@ import Animated, {
   runOnJS,
   useAnimatedProps,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withSpring,
   withTiming,
@@ -28,6 +29,7 @@ import { Confetti } from '@/components/ui/confetti'
 import { MilestoneSheet, STREAK_MILESTONES } from '@/components/profile/milestone-sheet'
 import { Button, IconButton } from '@/components/ui/button'
 import { TextArea } from '@/components/ui/field'
+import { Spinner } from '@/components/ui/feedback'
 import { Sheet } from '@/components/ui/sheet'
 import { TimePicker } from '@/components/ui/time-picker'
 import { useToast } from '@/components/ui/toast'
@@ -64,7 +66,7 @@ export default function TodayScreen() {
   const { profile } = useAuth()
   const userId = useCurrentUserId()
   const { showToast } = useToast()
-  const { data: activities } = useActiveActivities()
+  const { data: activities, isLoading: loadingActivities } = useActiveActivities()
   const { totals } = useTodayTotals()
   const weekProgress = useWeekProgress()
   const amountsBy = useAmountsByActivity()
@@ -173,7 +175,10 @@ export default function TodayScreen() {
             label: t('today.undo'),
             onPress: () => {
               haptic('warning')
-              deleteLog.mutate({ logId, userId, photoUrl: options?.photoUrl ?? null })
+              deleteLog.mutate(
+                { logId, userId, photoUrl: options?.photoUrl ?? null },
+                { onError: () => showToast(t('common.genericError'), 'error') },
+              )
             },
           }
         : undefined,
@@ -246,6 +251,12 @@ export default function TodayScreen() {
           />
         )}
         ListEmptyComponent={
+          // Mientras carga, `data` ya es un array vacio: sin esta guarda el
+          // primer arranque enseñaba "aun no tienes actividades" durante un
+          // instante, justo a quien si las tiene.
+          loadingActivities ? (
+            <Spinner className="py-16" />
+          ) : (
           <View className="items-center gap-2 px-8 pb-4 pt-10">
             <Text className="text-center text-lg font-bold text-text dark:text-text-dark">
               {t('today.emptyTitle')}
@@ -261,6 +272,7 @@ export default function TodayScreen() {
               />
             </View>
           </View>
+          )
         }
         ListFooterComponent={
           list.length > 0 ? (
@@ -286,7 +298,9 @@ export default function TodayScreen() {
         }}
         onStartTimer={() => {
           if (quickActivity) {
-            startSession.mutate(quickActivity.id)
+            startSession.mutate(quickActivity.id, {
+              onError: () => showToast(t('common.genericError'), 'error'),
+            })
             startTimerActivity(
               quickActivity.name,
               ACTIVITY_HEX[quickActivity.color]?.light ?? '#007EB6',
@@ -391,13 +405,16 @@ function ActivityTile({
   const goalReached = done || Boolean(target && periodTotal >= target)
 
   // El anillo no salta: amortigua hacia el nuevo progreso como en la web.
+  // Ajustes del sistema: "reducir movimiento". Todo lo que aqui es resorte,
+  // cascada o escala pasa a ser un cambio directo. El anillo sigue marcando el
+  // progreso y la tarjeta sigue respondiendo, simplemente sin recorrido.
+  const reducedMotion = useReducedMotion()
+
   const ringOffset = useSharedValue(RING_CIRCUMFERENCE * (1 - progress))
   useEffect(() => {
-    ringOffset.value = withSpring(RING_CIRCUMFERENCE * (1 - progress), {
-      stiffness: 220,
-      damping: 28,
-    })
-  }, [progress, ringOffset])
+    const target = RING_CIRCUMFERENCE * (1 - progress)
+    ringOffset.value = reducedMotion ? target : withSpring(target, { stiffness: 220, damping: 28 })
+  }, [progress, ringOffset, reducedMotion])
   const ringProps = useAnimatedProps(() => ({ strokeDashoffset: ringOffset.value }))
 
   const tap = () => {
@@ -422,8 +439,15 @@ function ActivityTile({
   const fireTap = useCallback(() => handlers.current.tap(), [])
   const fireLongPress = useCallback(() => handlers.current.long(), [])
 
-  const pressScale = useSharedValue(1)
-  const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: pressScale.value }] }))
+  // Con movimiento reducido el feedback no desaparece, cambia de forma: en vez
+  // de encoger la tarjeta se baja la opacidad. Quitarlo del todo dejaria el
+  // toque sin respuesta, que es peor que la animacion.
+  const pressed = useSharedValue(0)
+  const pressStyle = useAnimatedStyle(() =>
+    reducedMotion
+      ? { opacity: 1 - pressed.value * 0.3 }
+      : { transform: [{ scale: 1 - pressed.value * 0.04 }] },
+  )
 
   const gesture = useMemo(() => {
     const longPress = Gesture.LongPress()
@@ -431,7 +455,7 @@ function ActivityTile({
       .maxDistance(24)
       .onBegin(() => {
         'worklet'
-        pressScale.value = withTiming(0.96, { duration: 90 })
+        pressed.value = withTiming(1, { duration: 90 })
       })
       .onStart(() => {
         'worklet'
@@ -439,7 +463,7 @@ function ActivityTile({
       })
       .onFinalize(() => {
         'worklet'
-        pressScale.value = withTiming(1, { duration: 120 })
+        pressed.value = withTiming(0, { duration: 120 })
       })
 
     const singleTap = Gesture.Tap()
@@ -450,7 +474,7 @@ function ActivityTile({
       })
 
     return Gesture.Exclusive(longPress, singleTap)
-  }, [fireLongPress, fireTap, pressScale])
+  }, [fireLongPress, fireTap, pressed])
 
   // Meta semanal: la racha va en semanas cumplidas, como en la web.
   const streak = useMemo(() => {
@@ -473,7 +497,11 @@ function ActivityTile({
 
   return (
     <Animated.View
-      entering={Platform.OS === 'ios' ? FadeIn.delay(Math.min(index, 8) * 40).duration(320) : undefined}
+      entering={
+        Platform.OS === 'ios' && !reducedMotion
+          ? FadeIn.delay(Math.min(index, 8) * 40).duration(320)
+          : undefined
+      }
       className="flex-1"
     >
     <GestureDetector gesture={gesture}>
@@ -577,8 +605,8 @@ function ActivityTile({
       {burst ? (
         <Animated.View
           key={burst.id}
-          entering={FadeInDown.duration(150)}
-          exiting={FadeOutUp.duration(450)}
+          entering={reducedMotion ? undefined : FadeInDown.duration(150)}
+          exiting={reducedMotion ? undefined : FadeOutUp.duration(450)}
           className="absolute bottom-4 right-4"
           pointerEvents="none"
         >
@@ -844,7 +872,10 @@ function LogDetailSheet({
                       // siguiente sincronizacion lo vuelve a crear y parece que
                       // la papelera no hace nada.
                       void forgetHealthLog(log.id)
-                      removeLog.mutate({ logId: log.id, userId, photoUrl: log.photo_url })
+                      removeLog.mutate(
+                        { logId: log.id, userId, photoUrl: log.photo_url },
+                        { onError: () => showToast(t('common.genericError'), 'error') },
+                      )
                     }}
                   >
                     <Trash2 size={16} color={colors.danger} />
@@ -871,10 +902,11 @@ function PhotoSourceButton({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-surface-sunken dark:border-border-dark dark:bg-surface-sunken-dark"
+      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-surface-sunken dark:border-border-dark dark:bg-surface-sunken-dark active:opacity-70"
     >
       {icon}
       <Text
+        maxFontSizeMultiplier={1.2}
         className="text-sm font-bold text-text-muted dark:text-text-muted-dark"
         numberOfLines={1}
       >
@@ -915,11 +947,12 @@ function DayChip({
       onPress={onPress}
       className={
         selected
-          ? 'h-11 flex-1 items-center justify-center rounded-2xl border border-brand bg-brand-soft dark:bg-brand-soft-dark'
-          : 'h-11 flex-1 items-center justify-center rounded-2xl border border-border bg-surface-sunken dark:border-border-dark dark:bg-surface-sunken-dark'
+          ? 'h-11 flex-1 items-center justify-center rounded-2xl border border-brand bg-brand-soft dark:bg-brand-soft-dark active:opacity-70'
+          : 'h-11 flex-1 items-center justify-center rounded-2xl border border-border bg-surface-sunken dark:border-border-dark dark:bg-surface-sunken-dark active:opacity-70'
       }
     >
       <Text
+        maxFontSizeMultiplier={1.2}
         className={
           selected
             ? 'text-sm font-semibold text-brand dark:text-brand-dark'

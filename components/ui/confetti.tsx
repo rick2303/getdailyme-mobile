@@ -4,6 +4,7 @@ import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
+  useReducedMotion,
   withDelay,
   withTiming,
 } from 'react-native-reanimated'
@@ -83,8 +84,12 @@ function Piece({ spec, height }: { spec: PieceSpec; height: number }) {
 export function Confetti({ visible }: { visible: boolean }) {
   const { width, height } = useWindowDimensions()
   const pieces = useMemo(() => buildPieces(width), [width])
+  // Quien pide menos movimiento en los ajustes del sistema no quiere 26 piezas
+  // cayendo por la pantalla. La celebracion sigue existiendo: el titulo cambia
+  // a "dia completo" y el haptic se dispara igual, solo desaparece la lluvia.
+  const reducedMotion = useReducedMotion()
 
-  if (!visible) return null
+  if (!visible || reducedMotion) return null
 
   return (
     <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>

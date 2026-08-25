@@ -253,12 +253,13 @@ function ActivityChip({
       onPress={onToggle}
       className={
         selected
-          ? 'h-11 flex-row items-center gap-2 rounded-full border border-brand bg-brand-soft px-4 dark:bg-brand-soft-dark'
-          : 'h-11 flex-row items-center gap-2 rounded-full border border-border bg-surface-sunken px-4 dark:border-border-dark dark:bg-surface-sunken-dark'
+          ? 'h-11 flex-row items-center gap-2 rounded-full border border-brand bg-brand-soft px-4 dark:bg-brand-soft-dark active:opacity-70'
+          : 'h-11 flex-row items-center gap-2 rounded-full border border-border bg-surface-sunken px-4 dark:border-border-dark dark:bg-surface-sunken-dark active:opacity-70'
       }
     >
       <ActivityIcon icon={icon} color={color} size="sm" className="h-6 w-6 rounded-lg" />
       <Text
+        maxFontSizeMultiplier={1.2}
         className={
           selected
             ? 'text-sm font-semibold text-brand dark:text-brand-dark'

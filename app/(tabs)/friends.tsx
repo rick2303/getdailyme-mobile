@@ -267,7 +267,10 @@ function SearchResults({ query }: { query: string }) {
                 const edge = outgoing.find((item) => item.profile.id === result.profile.id)
                 if (!edge || !userId) return
                 haptic('warning')
-                removeFriend.mutate({ friendshipId: edge.friendshipId, userId })
+                removeFriend.mutate(
+                  { friendshipId: edge.friendshipId, userId },
+                  { onError: () => showToast(t('common.genericError'), 'error') },
+                )
               }}
             />
           ) : (
@@ -350,7 +353,7 @@ function FriendListSection({ friends }: { friends: FriendEdge[] }) {
             accessibilityRole="button"
             accessibilityLabel={edge.profile.display_name}
             onPress={() => setSelected(edge)}
-            className="min-w-0 flex-1 flex-row items-center gap-3"
+            className="min-w-0 flex-1 flex-row items-center gap-3 active:opacity-70"
           >
             <Avatar name={edge.profile.display_name} src={edge.profile.avatar_url} size="sm" />
             <View className="min-w-0 flex-1">
@@ -419,7 +422,12 @@ function BlockedSection({ blocked }: { blocked: FriendEdge[] }) {
 
   return (
     <View className="gap-2">
-      <Pressable accessibilityRole="button" onPress={() => setOpen((value) => !value)} className="min-h-10 justify-center px-1">
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => setOpen((value) => !value)}
+        hitSlop={{ top: 6, bottom: 6 }}
+        className="min-h-10 justify-center px-1 active:opacity-70"
+      >
         <Text className="text-xs font-bold text-text-subtle dark:text-text-subtle-dark">
           {open ? t('block.hideList') : t('block.showList', { count: blocked.length })}
         </Text>

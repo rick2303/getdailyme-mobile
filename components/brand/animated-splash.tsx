@@ -4,6 +4,7 @@ import Animated, {
   Easing,
   runOnJS,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withDelay,
   withSpring,
@@ -26,7 +27,25 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
   const overlayOpacity = useSharedValue(1)
   const overlayScale = useSharedValue(1)
 
+  const reducedMotion = useReducedMotion()
+
   useEffect(() => {
+    // Con movimiento reducido la marca se ve quieta y la portada se retira sin
+    // zoom ni resorte. Se mantiene una espera corta para que el logo llegue a
+    // leerse: quitarla dejaria un parpadeo, que es justo lo que molesta a quien
+    // pide menos movimiento.
+    if (reducedMotion) {
+      logoOpacity.value = 1
+      logoScale.value = 1
+      overlayOpacity.value = withDelay(
+        900,
+        withTiming(0, { duration: 200 }, (finished) => {
+          if (finished) runOnJS(setGone)(true)
+        }),
+      )
+      return
+    }
+
     logoOpacity.value = withTiming(1, { duration: 240 })
     logoScale.value = withSpring(1, { stiffness: 240, damping: 16 })
 
@@ -37,7 +56,7 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
         if (finished) runOnJS(setGone)(true)
       }),
     )
-  }, [logoOpacity, logoScale, overlayOpacity, overlayScale])
+  }, [logoOpacity, logoScale, overlayOpacity, overlayScale, reducedMotion])
 
   useEffect(() => {
     if (gone) onDone()

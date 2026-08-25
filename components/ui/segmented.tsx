@@ -25,7 +25,7 @@ export function Segmented<T extends string>({
             accessibilityState={{ selected }}
             onPress={() => onChange(option.value)}
             style={selected ? SHADOW_TILE : undefined}
-            className={cn(
+            className={cn('active:opacity-70', 
               'min-h-11 flex-1 items-center justify-center rounded-xl',
               selected && 'bg-surface dark:bg-surface-raised-dark',
             )}

@@ -169,7 +169,10 @@ export function Heatmap() {
                           const isSelected = selected?.date === cell.date
                           return (
                             <Pressable
+                              className="active:opacity-70"
                               key={cell.date}
+                              accessibilityRole="button"
+                              accessibilityState={{ selected: isSelected }}
                               accessibilityLabel={`${cell.date} · ${cell.total}`}
                               onPress={() =>
                                 setSelected((previous) =>
@@ -239,11 +242,12 @@ function FilterChip({
       onPress={onPress}
       className={
         selected
-          ? 'h-10 items-center justify-center rounded-full bg-brand-soft px-4 dark:bg-brand-soft-dark'
-          : 'h-10 items-center justify-center rounded-full border border-border bg-surface px-4 dark:border-border-dark dark:bg-surface-dark'
+          ? 'h-10 items-center justify-center rounded-full bg-brand-soft px-4 dark:bg-brand-soft-dark active:opacity-70'
+          : 'h-10 items-center justify-center rounded-full border border-border bg-surface px-4 dark:border-border-dark dark:bg-surface-dark active:opacity-70'
       }
     >
       <Text
+        maxFontSizeMultiplier={1.2}
         className={
           selected
             ? 'text-sm font-semibold text-brand dark:text-brand-dark'

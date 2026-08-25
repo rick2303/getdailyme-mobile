@@ -87,8 +87,8 @@ export function ReportSheet({
               onPress={() => setReason(value)}
               className={
                 reason === value
-                  ? 'min-h-12 justify-center rounded-2xl border border-brand bg-brand-soft px-4 dark:bg-brand-soft-dark'
-                  : 'min-h-12 justify-center rounded-2xl border border-border bg-surface-sunken px-4 dark:border-border-dark dark:bg-surface-sunken-dark'
+                  ? 'min-h-12 justify-center rounded-2xl border border-brand bg-brand-soft px-4 dark:bg-brand-soft-dark active:opacity-70'
+                  : 'min-h-12 justify-center rounded-2xl border border-border bg-surface-sunken px-4 dark:border-border-dark dark:bg-surface-sunken-dark active:opacity-70'
               }
             >
               <Text

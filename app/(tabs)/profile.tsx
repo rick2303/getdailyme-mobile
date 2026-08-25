@@ -111,7 +111,7 @@ export default function ProfileScreen() {
         </Text>
 
         <View className="items-center gap-2">
-          <Pressable
+          <Pressable className="active:opacity-70"
             accessibilityRole="button"
             accessibilityLabel={t('profile.changeAvatar')}
             onPress={() => setChoosingAvatarSource(true)}
@@ -174,7 +174,7 @@ function PoweredByQalit() {
         accessibilityRole="link"
         accessibilityLabel="QALI-T"
         onPress={() => void WebBrowser.openBrowserAsync('https://qali-t.com')}
-        className="flex-row items-center gap-0.5"
+        className="flex-row items-center gap-0.5 active:opacity-70"
       >
         <Image
           source={require('@/assets/qali-t-logo.png')}
@@ -716,8 +716,8 @@ function SettingsSection() {
                 onPress={() => setAccent(value)}
                 className={
                   selected
-                    ? 'min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-brand bg-brand-soft px-3 dark:bg-brand-soft-dark'
-                    : 'min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-border bg-surface-sunken px-3 dark:border-border-dark dark:bg-surface-sunken-dark'
+                    ? 'min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-brand bg-brand-soft px-3 dark:bg-brand-soft-dark active:opacity-70'
+                    : 'min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-border bg-surface-sunken px-3 dark:border-border-dark dark:bg-surface-sunken-dark active:opacity-70'
                 }
               >
                 <View

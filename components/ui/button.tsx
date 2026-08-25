@@ -104,6 +104,7 @@ export function IconButton({
   className,
   disabled,
   style,
+  hitSlop = 8,
   ...props
 }: PressableProps & {
   label: string
@@ -116,6 +117,10 @@ export function IconButton({
       accessibilityRole="button"
       accessibilityLabel={label}
       disabled={disabled}
+      // El boton mide 44 de serie, pero varias pantallas lo encogen a 36 para
+      // que quepa en una fila. El hitSlop por defecto mantiene el area tactil
+      // por encima del minimo aunque el circulo se vea mas pequeno.
+      hitSlop={hitSlop}
       style={({ pressed }) => [
         variant === 'secondary' && !disabled ? SHADOW_TILE : null,
         pressed ? ICON_PRESSED_SCALE : null,

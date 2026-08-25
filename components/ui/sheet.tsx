@@ -42,7 +42,12 @@ export function Sheet({
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-black/45">
-        <Pressable accessibilityLabel={closeLabel} className="flex-1" onPress={onClose} />
+        <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={closeLabel}
+            className="flex-1"
+            onPress={onClose}
+          />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View
             className="rounded-t-[28px] bg-surface dark:bg-surface-dark"

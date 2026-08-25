@@ -47,7 +47,7 @@ export function Inbox() {
                 haptic('tap')
                 markRead.mutate([item.id])
               }}
-              className="min-h-12 flex-row items-center gap-2.5 py-1.5"
+              className="min-h-12 flex-row items-center gap-2.5 py-1.5 active:opacity-70"
             >
               <View>
                 <Avatar name={item.actor.display_name} src={item.actor.avatar_url} size="sm" />

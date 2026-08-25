@@ -132,7 +132,10 @@ export function ActivityEditorSheet({
     let activityId: string | null = activity?.id ?? null
 
     if (activity) {
-      update.mutate({ userId, activityId: activity.id, patch: cleanInput })
+      update.mutate(
+        { userId, activityId: activity.id, patch: cleanInput },
+        { onError: () => showToast(t('common.genericError'), 'error') },
+      )
     } else {
       const position =
         (activities ?? []).reduce((max, item) => Math.max(max, item.position), -1) + 1
@@ -196,7 +199,7 @@ export function ActivityEditorSheet({
       >
         <View className="gap-5 pt-2">
           <View className="flex-row items-center gap-3">
-            <Pressable
+            <Pressable className="active:opacity-70"
               accessibilityRole="button"
               accessibilityLabel={t('activity.iconChange')}
               onPress={() => setIconPickerOpen(true)}
@@ -256,8 +259,8 @@ export function ActivityEditorSheet({
                     }}
                     className={
                       selected
-                        ? 'rounded-full bg-brand px-3.5 py-2'
-                        : 'rounded-full bg-surface-sunken px-3.5 py-2 dark:bg-surface-sunken-dark'
+                        ? 'rounded-full bg-brand px-3.5 py-2 active:opacity-70'
+                        : 'rounded-full bg-surface-sunken px-3.5 py-2 dark:bg-surface-sunken-dark active:opacity-70'
                     }
                   >
                     <Text
@@ -288,8 +291,8 @@ export function ActivityEditorSheet({
                     onPress={() => patch('input_mode', mode)}
                     className={
                       selected
-                        ? 'min-w-[45%] flex-1 rounded-2xl border border-brand bg-brand-soft px-3.5 py-3 dark:bg-brand-soft-dark'
-                        : 'min-w-[45%] flex-1 rounded-2xl border border-border bg-surface px-3.5 py-3 dark:border-border-dark dark:bg-surface-dark'
+                        ? 'min-w-[45%] flex-1 rounded-2xl border border-brand bg-brand-soft px-3.5 py-3 dark:bg-brand-soft-dark active:opacity-70'
+                        : 'min-w-[45%] flex-1 rounded-2xl border border-border bg-surface px-3.5 py-3 dark:border-border-dark dark:bg-surface-dark active:opacity-70'
                     }
                   >
                     <Text className="text-sm font-bold text-text dark:text-text-dark">
@@ -360,11 +363,12 @@ export function ActivityEditorSheet({
                       onPress={() => patch('target_period', period)}
                       className={
                         selected
-                          ? 'h-11 flex-1 items-center justify-center rounded-2xl border border-brand bg-brand-soft dark:bg-brand-soft-dark'
-                          : 'h-11 flex-1 items-center justify-center rounded-2xl border border-border bg-surface-sunken dark:border-border-dark dark:bg-surface-sunken-dark'
+                          ? 'h-11 flex-1 items-center justify-center rounded-2xl border border-brand bg-brand-soft dark:bg-brand-soft-dark active:opacity-70'
+                          : 'h-11 flex-1 items-center justify-center rounded-2xl border border-border bg-surface-sunken dark:border-border-dark dark:bg-surface-sunken-dark active:opacity-70'
                       }
                     >
                       <Text
+                        maxFontSizeMultiplier={1.2}
                         className={
                           selected
                             ? 'text-sm font-semibold text-brand dark:text-brand-dark'
@@ -390,9 +394,10 @@ export function ActivityEditorSheet({
                 accessibilityRole="button"
                 accessibilityLabel={t('activity.reminderLabel')}
                 onPress={() => setTimePickerOpen(true)}
-                className="h-12 flex-1 justify-center rounded-2xl border border-border bg-surface px-4 dark:border-border-dark dark:bg-surface-dark"
+                className="h-12 flex-1 justify-center rounded-2xl border border-border bg-surface px-4 dark:border-border-dark dark:bg-surface-dark active:opacity-70"
               >
                 <Text
+                  maxFontSizeMultiplier={1.2}
                   className={
                     draft.reminder_at
                       ? 'text-base font-semibold text-text dark:text-text-dark'
@@ -438,8 +443,8 @@ export function ActivityEditorSheet({
                   onPress={() => patch('visibility', option)}
                   className={
                     selected
-                      ? 'flex-row items-center gap-3 rounded-2xl border border-brand bg-brand-soft px-4 py-3 dark:bg-brand-soft-dark'
-                      : 'flex-row items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 dark:border-border-dark dark:bg-surface-dark'
+                      ? 'flex-row items-center gap-3 rounded-2xl border border-brand bg-brand-soft px-4 py-3 dark:bg-brand-soft-dark active:opacity-70'
+                      : 'flex-row items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 dark:border-border-dark dark:bg-surface-dark active:opacity-70'
                   }
                 >
                   <Icon size={20} color={selected ? colors.brand : colors.textSubtle} />
@@ -478,7 +483,7 @@ export function ActivityEditorSheet({
                               : [...draft.sharedWith, edge.profile.id],
                           )
                         }
-                        className="flex-row items-center gap-3 rounded-xl px-2 py-2"
+                        className="flex-row items-center gap-3 rounded-xl px-2 py-2 active:opacity-70"
                       >
                         <Avatar name={edge.profile.display_name} src={edge.profile.avatar_url} size="sm" />
                         <View className="min-w-0 flex-1">
@@ -570,7 +575,7 @@ function ColorSwatch({
       accessibilityLabel={color}
       accessibilityState={{ selected }}
       onPress={onPress}
-      className="h-12 w-12 items-center justify-center rounded-2xl"
+      className="h-12 w-12 items-center justify-center rounded-2xl active:opacity-70"
       style={{
         backgroundColor: hex,
         borderWidth: selected ? 2 : 0,

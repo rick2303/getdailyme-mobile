@@ -5,7 +5,7 @@ import { ArrowRight, AtSign, Lock } from 'lucide-react-native'
 import { useEffect, useState } from 'react'
 import { useColorScheme } from 'nativewind'
 import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native'
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated'
+import Animated, { FadeInDown, FadeInUp, useReducedMotion } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { Check } from 'lucide-react-native'
@@ -32,6 +32,8 @@ const OAUTH_REDIRECT = 'getdailyme://auth/callback'
 // con el boton oficial. El enlace magico se queda en la web: en nativo el
 // correo no puede volver a la app hasta que el dominio este vivo.
 export default function SignInScreen() {
+  // Con movimiento reducido la pantalla aparece ya montada, sin entrada.
+  const reducedMotion = useReducedMotion()
   const { t } = useI18n()
   const { showToast } = useToast()
   const colors = useThemeColors()
@@ -248,7 +250,7 @@ export default function SignInScreen() {
           contentContainerClassName="flex-grow justify-center px-6 py-8"
           keyboardShouldPersistTaps="handled"
         >
-          <Animated.View entering={FadeInDown.duration(500)} className="items-center gap-4 pb-8">
+          <Animated.View entering={reducedMotion ? undefined : FadeInDown.duration(500)} className="items-center gap-4 pb-8">
             <View
               style={SHADOW_TILE}
               className="h-24 w-24 items-center justify-center rounded-[28px] bg-surface dark:bg-surface-dark"
@@ -265,7 +267,7 @@ export default function SignInScreen() {
             </View>
           </Animated.View>
 
-          <Animated.View entering={FadeInUp.delay(120).duration(500)} className="gap-4">
+          <Animated.View entering={reducedMotion ? undefined : FadeInUp.delay(120).duration(500)} className="gap-4">
           <TextInput
             label={t('auth.emailLabel')}
             placeholder={t('auth.emailPlaceholder')}
@@ -309,7 +311,7 @@ export default function SignInScreen() {
           />
 
           <View className="flex-row items-center justify-between px-1">
-            <Pressable
+            <Pressable className="active:opacity-70"
               accessibilityRole="button"
               onPress={() => {
                 setCreatingAccount((value) => !value)
@@ -321,7 +323,7 @@ export default function SignInScreen() {
               </Text>
             </Pressable>
             {creatingAccount ? null : (
-              <Pressable accessibilityRole="button" onPress={() => void resetPassword()}>
+              <Pressable className="active:opacity-70" accessibilityRole="button" onPress={() => void resetPassword()}>
                 <Text className="text-sm font-semibold text-text-muted dark:text-text-muted-dark">
                   {t('auth.forgotPassword')}
                 </Text>
@@ -369,7 +371,7 @@ export default function SignInScreen() {
               setAcceptedTerms((value) => !value)
               setError(null)
             }}
-            className="flex-row items-start gap-2.5 px-1 pt-2"
+            className="flex-row items-start gap-2.5 px-1 pt-2 active:opacity-70"
           >
             <View
               className={

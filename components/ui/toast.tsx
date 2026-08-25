@@ -59,7 +59,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   if (timeoutRef.current) clearTimeout(timeoutRef.current)
                   dismiss()
                 }}
-                className="rounded-full bg-white/20 px-3 py-1.5"
+                className="rounded-full bg-white/20 px-3 py-1.5 active:opacity-70"
               >
                 <Text className="text-sm font-bold text-white dark:text-text-dark">
                   {toast.action.label}

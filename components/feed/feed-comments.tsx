@@ -90,7 +90,8 @@ export function FeedComments({
       <Pressable
         accessibilityRole="button"
         onPress={() => setOpen((value) => !value)}
-        className="min-h-10 flex-row items-center gap-1.5"
+        hitSlop={{ top: 6, bottom: 6 }}
+        className="min-h-10 flex-row items-center gap-1.5 active:opacity-70"
       >
         <MessageCircle size={16} color={colors.textSubtle} />
         <Text className="text-xs font-bold text-text-subtle dark:text-text-subtle-dark">
@@ -206,6 +207,7 @@ function StatusBand({
   text: string
   onCancel: () => void
 }) {
+  const { t } = useI18n()
   const colors = useThemeColors()
 
   return (
@@ -217,7 +219,13 @@ function StatusBand({
       >
         {text}
       </Text>
-      <Pressable accessibilityRole="button" onPress={onCancel}>
+      <Pressable
+        className="active:opacity-70"
+        accessibilityRole="button"
+        accessibilityLabel={t('common.cancel')}
+        hitSlop={10}
+        onPress={onCancel}
+      >
         <X size={16} color={colors.textSubtle} />
       </Pressable>
     </View>
@@ -265,7 +273,12 @@ function Thread({
 
       {replyCount > 0 ? (
         <View className="gap-2 pl-10">
-          <Pressable accessibilityRole="button" onPress={onToggle} className="min-h-8 justify-center">
+          <Pressable
+            accessibilityRole="button"
+            onPress={onToggle}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="min-h-8 justify-center active:opacity-70"
+          >
             <Text className="text-xs font-bold text-text-subtle dark:text-text-subtle-dark">
               {isOpen ? t('comments.hideReplies') : t('comments.showReplies', { count: replyCount })}
             </Text>
@@ -319,7 +332,7 @@ function CommentRow({
 
   return (
     <View className="flex-row items-start gap-2.5">
-      <Pressable
+      <Pressable className="active:opacity-70"
         accessibilityRole="button"
         accessibilityLabel={t('profileCard.open', { name: comment.author.display_name })}
         onPress={() => onOpenProfile(comment.author.id)}
@@ -348,13 +361,23 @@ function CommentRow({
         </Text>
 
         <View className="mt-0.5 flex-row items-center gap-4">
-          <Pressable accessibilityRole="button" onPress={onReply} className="min-h-8 justify-center">
+          <Pressable
+            accessibilityRole="button"
+            onPress={onReply}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="min-h-8 justify-center active:opacity-70"
+          >
             <Text className="text-[11px] font-bold text-text-subtle dark:text-text-subtle-dark">
               {t('comments.reply')}
             </Text>
           </Pressable>
           {isOwn ? (
-            <Pressable accessibilityRole="button" onPress={onEdit} className="min-h-8 justify-center">
+            <Pressable
+              accessibilityRole="button"
+              onPress={onEdit}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="min-h-8 justify-center active:opacity-70"
+            >
               <Text className="text-[11px] font-bold text-text-subtle dark:text-text-subtle-dark">
                 {t('comments.edit')}
               </Text>
@@ -363,7 +386,8 @@ function CommentRow({
             <Pressable
               accessibilityRole="button"
               onPress={() => onReport({ type: 'comment', commentId: comment.id })}
-              className="min-h-8 justify-center"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="min-h-8 justify-center active:opacity-70"
             >
               <Text className="text-[11px] font-bold text-text-subtle dark:text-text-subtle-dark">
                 {t('report.comment')}

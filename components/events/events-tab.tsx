@@ -277,7 +277,7 @@ function EventsCalendar({
                 key={day.key}
                 accessibilityRole="button"
                 onPress={() => setSelectedDay(isSelected ? null : day.key)}
-                className="items-center py-1"
+                className="items-center py-1 active:opacity-70"
                 style={{ width: `${100 / 7}%` }}
               >
                 <View
@@ -290,6 +290,7 @@ function EventsCalendar({
                   }
                 >
                   <Text
+                    maxFontSizeMultiplier={1.2}
                     className="text-sm font-semibold"
                     style={{
                       color: isSelected

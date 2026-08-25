@@ -138,7 +138,7 @@ export default function FeedScreen() {
               listRef.current?.scrollToOffset({ offset: 0, animated: true })
             }}
             style={SHADOW_TILE}
-            className="flex-row items-center gap-2 rounded-full bg-brand px-4 py-2.5"
+            className="flex-row items-center gap-2 rounded-full bg-brand px-4 py-2.5 active:opacity-70"
           >
             <Flame size={14} color="#fff" strokeWidth={2.5} />
             <Text className="text-xs font-bold text-white">
@@ -206,7 +206,7 @@ function FeedEntryCard({
           accessibilityRole="button"
           accessibilityLabel={t('profileCard.open', { name: entry.author.display_name })}
           onPress={() => onOpenProfile(entry.user_id)}
-          className="flex-1 flex-row items-center gap-3"
+          className="flex-1 flex-row items-center gap-3 active:opacity-70"
         >
           <Avatar name={entry.author.display_name} src={entry.author.avatar_url} />
           <View className="min-w-0 flex-1">
@@ -271,7 +271,7 @@ function FeedEntryCard({
             accessibilityRole="imagebutton"
             accessibilityLabel={t('log.openPhoto')}
             onPress={() => setViewerOpen(true)}
-            className="mt-3 overflow-hidden rounded-2xl bg-surface-sunken dark:bg-surface-sunken-dark"
+            className="mt-3 overflow-hidden rounded-2xl bg-surface-sunken dark:bg-surface-sunken-dark active:opacity-70"
           >
             <Image source={{ uri: photoUrl }} className="aspect-video w-full" resizeMode="cover" />
           </Pressable>
@@ -309,8 +309,8 @@ function FeedEntryCard({
               }}
               className={
                 isActive
-                  ? 'h-11 flex-1 flex-row items-center justify-center gap-1 rounded-full bg-brand-soft dark:bg-brand-soft-dark'
-                  : 'h-11 flex-1 flex-row items-center justify-center gap-1 rounded-full bg-surface-sunken dark:bg-surface-sunken-dark'
+                  ? 'h-11 flex-1 flex-row items-center justify-center gap-1 rounded-full bg-brand-soft dark:bg-brand-soft-dark active:opacity-70'
+                  : 'h-11 flex-1 flex-row items-center justify-center gap-1 rounded-full bg-surface-sunken dark:bg-surface-sunken-dark active:opacity-70'
               }
             >
               <Glyph

@@ -98,11 +98,16 @@ export type RespondInviteVariables = {
 
 export type LeaveEventVariables = { eventId: string; userId: string };
 
+// El aviso no puede tumbar la mutacion: reaccionar tiene que funcionar aunque
+// el push falle. Pero tragarselo del todo fue justo lo que hizo invisible
+// durante semanas que los avisos no llegaban, asi que el fallo se anota. En
+// produccion no molesta a nadie y en desarrollo sale en la consola de Metro.
 async function notifyQuietly(source: NotifySource) {
   try {
     await requestPush(source);
-  } catch {
-    return;
+  } catch (caught) {
+    const label = typeof source === "string" ? source : source.type;
+    console.warn(`push-notify fallo para "${label}":`, caught);
   }
 }
 

@@ -47,7 +47,9 @@ export function ManageActivitiesSheet({ open, onClose }: { open: boolean; onClos
     if (index < 0 || target < 0 || target >= ids.length) return
     haptic('tap')
     ;[ids[index], ids[target]] = [ids[target], ids[index]]
-    reorder.mutate([...ids, ...archived.map((item) => item.id)])
+    reorder.mutate([...ids, ...archived.map((item) => item.id)], {
+      onError: () => showToast(t('common.genericError'), 'error'),
+    })
   }
 
   const setArchived = (activity: Activity, isArchived: boolean) => {

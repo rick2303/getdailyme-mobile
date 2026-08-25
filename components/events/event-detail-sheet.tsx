@@ -325,6 +325,7 @@ function EventPhotoThumb({
   photo: EventPhoto
   onOpen: (src: string) => void
 }) {
+  const { t } = useI18n()
   const { data: url } = useQuery({
     queryKey: queryKeys.eventPhotoUrl(photo.photo_url),
     staleTime: 50 * 60 * 1000,
@@ -334,7 +335,12 @@ function EventPhotoThumb({
   if (!url) return <View className="h-24 w-24 rounded-2xl bg-surface-sunken dark:bg-surface-sunken-dark" />
 
   return (
-    <Pressable accessibilityRole="imagebutton" onPress={() => onOpen(url)}>
+    <Pressable
+      className="active:opacity-70"
+      accessibilityRole="imagebutton"
+      accessibilityLabel={t('log.openPhoto')}
+      onPress={() => onOpen(url)}
+    >
       <Image source={{ uri: url }} className="h-24 w-24 rounded-2xl" />
     </Pressable>
   )

@@ -11,6 +11,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { TextInput } from '@/components/ui/field'
+import { Spinner } from '@/components/ui/feedback'
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/components/ui/toast'
 import { SHADOW_TILE, useThemeColors } from '@/constants/colors'
@@ -32,7 +33,7 @@ import { haptic } from '@/lib/utils/haptics'
 export function ClubsSection() {
   const { t } = useI18n()
   const colors = useThemeColors()
-  const { data: clubs } = useClubs()
+  const { data: clubs, isLoading } = useClubs()
 
   const [creating, setCreating] = useState(false)
   const [joining, setJoining] = useState(false)
@@ -47,7 +48,9 @@ export function ClubsSection() {
         {t('clubs.title')}
       </Text>
 
-      {list.length === 0 ? (
+      {isLoading && list.length === 0 ? (
+        <Spinner className="py-6" />
+      ) : list.length === 0 ? (
         <Text className="px-1 text-sm text-text-muted dark:text-text-muted-dark">
           {t('clubs.empty')}
         </Text>
@@ -59,7 +62,7 @@ export function ClubsSection() {
             accessibilityLabel={club.name}
             onPress={() => setSelected(club)}
             style={({ pressed }) => [SHADOW_TILE, pressed ? { transform: [{ scale: 0.98 }] } : null]}
-            className="flex-row items-center gap-3 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark"
+            className="flex-row items-center gap-3 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark active:opacity-70"
           >
             <ActivityIcon icon={club.icon} color={club.color} size="md" />
             <View className="min-w-0 flex-1">

@@ -227,8 +227,8 @@ export function HealthSection() {
                   onPress={() => setPicking(open ? null : metric)}
                   className={
                     open
-                      ? 'flex-row items-center gap-3 rounded-2xl border border-brand bg-brand-soft px-4 py-3 dark:bg-brand-soft-dark'
-                      : 'flex-row items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 dark:border-border-dark dark:bg-surface-dark'
+                      ? 'flex-row items-center gap-3 rounded-2xl border border-brand bg-brand-soft px-4 py-3 dark:bg-brand-soft-dark active:opacity-70'
+                      : 'flex-row items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 dark:border-border-dark dark:bg-surface-dark active:opacity-70'
                   }
                 >
                   <Icon
@@ -294,7 +294,7 @@ export function HealthSection() {
                         <Pressable
                           accessibilityRole="button"
                           onPress={() => link(metric, null)}
-                          className="rounded-xl px-3 py-2.5"
+                          className="rounded-xl px-3 py-2.5 active:opacity-70"
                         >
                           <Text className="text-sm font-semibold text-text-muted dark:text-text-muted-dark">
                             {t('health.none')}
@@ -305,7 +305,7 @@ export function HealthSection() {
                             key={activity.id}
                             accessibilityRole="button"
                             onPress={() => link(metric, activity.id)}
-                            className="flex-row items-center gap-2.5 rounded-xl px-3 py-2"
+                            className="flex-row items-center gap-2.5 rounded-xl px-3 py-2 active:opacity-70"
                           >
                             <ActivityIcon icon={activity.icon} color={activity.color} size="sm" />
                             <Text

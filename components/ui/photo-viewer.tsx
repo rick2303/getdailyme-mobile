@@ -20,7 +20,12 @@ export function PhotoViewer({
   return (
     <Modal visible={open && src !== null} transparent animationType="fade" onRequestClose={onClose}>
       <View className="flex-1 items-center justify-center bg-black/95">
-        <Pressable accessibilityLabel={closeLabel} className="absolute inset-0" onPress={onClose} />
+        <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={closeLabel}
+        className="absolute inset-0"
+        onPress={onClose}
+      />
         {src ? (
           <Image source={{ uri: src }} className="h-[80%] w-full" resizeMode="contain" />
         ) : null}

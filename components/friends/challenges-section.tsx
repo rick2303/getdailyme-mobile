@@ -6,6 +6,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { TextInput } from '@/components/ui/field'
+import { Spinner } from '@/components/ui/feedback'
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/components/ui/toast'
 import { useThemeColors } from '@/constants/colors'
@@ -31,7 +32,7 @@ import { haptic } from '@/lib/utils/haptics'
 export function ChallengesSection() {
   const { t } = useI18n()
   const timeZone = useTimeZone()
-  const { active, invitations } = useChallenges()
+  const { active, invitations, isLoading } = useChallenges()
   const [creator, setCreator] = useState<{ open: boolean; prefill: ChallengePrefill | null }>({
     open: false,
     prefill: null,
@@ -53,7 +54,9 @@ export function ChallengesSection() {
   return (
     <View className="gap-2">
       <SectionHeader onCreate={() => setCreator({ open: true, prefill: null })} />
-      {isEmpty ? (
+      {isLoading && isEmpty ? (
+        <Spinner className="py-6" />
+      ) : isEmpty ? (
         <Text className="px-1 text-sm text-text-muted dark:text-text-muted-dark">
           {t('challenges.empty')}
         </Text>
@@ -98,7 +101,12 @@ function FinishedChallenges({
 
   return (
     <View className="gap-2">
-      <Pressable accessibilityRole="button" onPress={onToggle} className="min-h-10 flex-row items-center gap-2 px-1">
+      <Pressable
+        accessibilityRole="button"
+        onPress={onToggle}
+        hitSlop={{ top: 6, bottom: 6 }}
+        className="min-h-10 flex-row items-center gap-2 px-1 active:opacity-70"
+      >
         <History size={14} color={colors.textSubtle} />
         <Text className="text-xs font-bold text-text-subtle dark:text-text-subtle-dark">
           {show ? t('challenges.hideFinished') : t('challenges.showFinished', { count: finished.length })}
@@ -208,6 +216,7 @@ function useDaysLeftLabel(endsOn: string) {
 
 function ChallengeCard({ challenge }: { challenge: ChallengeMembership }) {
   const { t } = useI18n()
+  const { showToast } = useToast()
   const colors = useThemeColors()
   const userId = useCurrentUserId()
   const { data: standings } = useChallengeStandings(challenge.id)
@@ -234,6 +243,7 @@ function ChallengeCard({ challenge }: { challenge: ChallengeMembership }) {
             accessibilityRole="button"
             accessibilityLabel={t('challenges.editTitle')}
             onPress={() => setEditing(true)}
+            hitSlop={8}
             className="h-9 w-9 items-center justify-center rounded-full active:opacity-70"
           >
             <Pencil size={16} color={colors.textMuted} />
@@ -289,7 +299,9 @@ function ChallengeCard({ challenge }: { challenge: ChallengeMembership }) {
         confirmLabel={t('challenges.leave')}
         onConfirm={() => {
           setConfirmingLeave(false)
-          leave.mutate(challenge.id)
+          leave.mutate(challenge.id, {
+            onError: () => showToast(t('common.genericError'), 'error'),
+          })
         }}
         onCancel={() => setConfirmingLeave(false)}
       />
@@ -577,11 +589,12 @@ export function CreateChallengeSheet({
                 onPress={() => setDays(value)}
                 className={
                   days === value
-                    ? 'h-11 flex-1 items-center justify-center rounded-2xl border border-brand bg-brand-soft dark:bg-brand-soft-dark'
-                    : 'h-11 flex-1 items-center justify-center rounded-2xl border border-border bg-surface-sunken dark:border-border-dark dark:bg-surface-sunken-dark'
+                    ? 'h-11 flex-1 items-center justify-center rounded-2xl border border-brand bg-brand-soft dark:bg-brand-soft-dark active:opacity-70'
+                    : 'h-11 flex-1 items-center justify-center rounded-2xl border border-border bg-surface-sunken dark:border-border-dark dark:bg-surface-sunken-dark active:opacity-70'
                 }
               >
                 <Text
+                  maxFontSizeMultiplier={1.2}
                   className={
                     days === value
                       ? 'text-sm font-semibold text-brand dark:text-brand-dark'
@@ -660,8 +673,8 @@ function SelectRow({
       }}
       className={
         selected
-          ? 'min-h-11 flex-row items-center justify-between rounded-2xl border border-brand bg-brand-soft px-3 dark:bg-brand-soft-dark'
-          : 'min-h-11 flex-row items-center justify-between rounded-2xl border border-border bg-surface-sunken px-3 dark:border-border-dark dark:bg-surface-sunken-dark'
+          ? 'min-h-11 flex-row items-center justify-between rounded-2xl border border-brand bg-brand-soft px-3 dark:bg-brand-soft-dark active:opacity-70'
+          : 'min-h-11 flex-row items-center justify-between rounded-2xl border border-border bg-surface-sunken px-3 dark:border-border-dark dark:bg-surface-sunken-dark active:opacity-70'
       }
     >
       <Text

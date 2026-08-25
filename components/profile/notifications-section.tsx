@@ -87,6 +87,14 @@ export function NotificationsSection({ embedded = false }: { embedded?: boolean 
     }
   }
 
+  // Un interruptor de avisos que falla en silencio es de los peores: el usuario
+  // cree que los apago y le siguen llegando, o al reves. Todos pasan por aqui.
+  const savePreference = (patch: Parameters<typeof updatePreferences.mutate>[0]) => {
+    updatePreferences.mutate(patch, {
+      onError: () => showToast(t('common.genericError'), 'error'),
+    })
+  }
+
   const reminderEnabled = Boolean(preferences?.daily_reminder_at)
   const reminderLabel =
     (reminderDraft ?? preferences?.daily_reminder_at)?.slice(0, 5) ?? DEFAULT_REMINDER
@@ -121,23 +129,23 @@ export function NotificationsSection({ embedded = false }: { embedded?: boolean 
               <PreferenceToggle
                 label={t('notifications.typeNudges')}
                 checked={preferences?.notify_nudges ?? true}
-                onChange={(checked) => updatePreferences.mutate({ notify_nudges: checked })}
+                onChange={(checked) => savePreference({ notify_nudges: checked })}
               />
               <PreferenceToggle
                 label={t('notifications.typeReactions')}
                 checked={preferences?.notify_reactions ?? true}
-                onChange={(checked) => updatePreferences.mutate({ notify_reactions: checked })}
+                onChange={(checked) => savePreference({ notify_reactions: checked })}
               />
               <PreferenceToggle
                 label={t('notifications.typeComments')}
                 checked={preferences?.notify_comments ?? true}
-                onChange={(checked) => updatePreferences.mutate({ notify_comments: checked })}
+                onChange={(checked) => savePreference({ notify_comments: checked })}
               />
               <PreferenceToggle
                 label={t('notifications.typeReminder')}
                 checked={reminderEnabled}
                 onChange={(checked) =>
-                  updatePreferences.mutate({
+                  savePreference({
                     daily_reminder_at: checked ? `${DEFAULT_REMINDER}:00` : null,
                   })
                 }
@@ -152,7 +160,7 @@ export function NotificationsSection({ embedded = false }: { embedded?: boolean 
                     accessibilityRole="button"
                     accessibilityLabel={t('notifications.reminderAt')}
                     onPress={() => setTimePickerOpen(true)}
-                    className="rounded-xl bg-surface px-3 py-1.5 dark:bg-surface-dark"
+                    className="rounded-xl bg-surface px-3 py-1.5 dark:bg-surface-dark active:opacity-70"
                   >
                     <Text className="text-sm font-bold text-text dark:text-text-dark">
                       {reminderLabel}
@@ -172,7 +180,7 @@ export function NotificationsSection({ embedded = false }: { embedded?: boolean 
                   onClose={() => {
                     setTimePickerOpen(false)
                     if (reminderDraft && reminderDraft !== preferences?.daily_reminder_at) {
-                      updatePreferences.mutate({ daily_reminder_at: reminderDraft })
+                      savePreference({ daily_reminder_at: reminderDraft })
                     }
                     setReminderDraft(null)
                   }}

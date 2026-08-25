@@ -76,7 +76,7 @@ function AppTabBar({
           haptic('tap')
           navigation.navigate(routeName)
         }}
-        className="relative flex-1 items-center justify-center gap-1 pt-1"
+        className="relative flex-1 items-center justify-center gap-1 pt-1 active:opacity-70"
       >
         {isActive ? (
           <View className="absolute top-0 h-1 w-10 rounded-full bg-brand" />

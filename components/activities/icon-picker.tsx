@@ -101,8 +101,8 @@ export function IconPickerSheet({
                   }}
                   className={
                     selected
-                      ? 'items-center justify-center rounded-2xl'
-                      : 'items-center justify-center rounded-2xl bg-surface-sunken dark:bg-surface-sunken-dark'
+                      ? 'items-center justify-center rounded-2xl active:opacity-70'
+                      : 'items-center justify-center rounded-2xl bg-surface-sunken dark:bg-surface-sunken-dark active:opacity-70'
                   }
                   style={{
                     width: cell,
@@ -137,8 +137,8 @@ function CategoryChip({
       onPress={onPress}
       className={
         active
-          ? 'rounded-full bg-brand px-3.5 py-1.5'
-          : 'rounded-full bg-surface-sunken px-3.5 py-1.5 dark:bg-surface-sunken-dark'
+          ? 'rounded-full bg-brand px-3.5 py-1.5 active:opacity-70'
+          : 'rounded-full bg-surface-sunken px-3.5 py-1.5 dark:bg-surface-sunken-dark active:opacity-70'
       }
     >
       <Text

@@ -79,7 +79,7 @@ export function DateRangeCalendar({
               accessibilityRole="button"
               accessibilityState={{ selected: isEdge }}
               onPress={() => onPickDay(day.key)}
-              className="items-center py-0.5"
+              className="items-center py-0.5 active:opacity-70"
               style={{ width: `${100 / 7}%` }}
             >
               <View
@@ -97,6 +97,7 @@ export function DateRangeCalendar({
                   }}
                 >
                   <Text
+                    maxFontSizeMultiplier={1.2}
                     className="text-sm font-semibold"
                     style={{
                       color: isEdge

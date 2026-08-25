@@ -37,7 +37,7 @@ export function EventEditorSheet({
   event: EventSummary | null
   onClose: () => void
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const { showToast } = useToast()
   const colors = useThemeColors()
   const userId = useCurrentUserId()
@@ -115,15 +115,18 @@ export function EventEditorSheet({
 
     haptic('success')
     if (event) {
-      update.mutate({
-        eventId: event.id,
-        userId,
-        patch: input,
-        invitees,
-        currentInvitees: event.members
-          .filter((member) => member.user_id !== event.creator_id)
-          .map((member) => member.user_id),
-      })
+      update.mutate(
+        {
+          eventId: event.id,
+          userId,
+          patch: input,
+          invitees,
+          currentInvitees: event.members
+            .filter((member) => member.user_id !== event.creator_id)
+            .map((member) => member.user_id),
+        },
+        { onError: () => showToast(t('common.genericError'), 'error') },
+      )
     } else if (!create.createEvent(input, invitees)) {
       showToast(t('events.saveError'), 'error')
       return
@@ -200,12 +203,13 @@ export function EventEditorSheet({
               <Pressable
                 key={entry.name}
                 accessibilityRole="button"
+                accessibilityLabel={entry.labels[locale] ?? entry.labels.es}
                 accessibilityState={{ selected: icon === entry.name }}
                 onPress={() => setIcon(entry.name)}
                 className={
                   icon === entry.name
-                    ? 'rounded-2xl border-2 border-brand'
-                    : 'rounded-2xl border-2 border-transparent'
+                    ? 'rounded-2xl border-2 border-brand active:opacity-70'
+                    : 'rounded-2xl border-2 border-transparent active:opacity-70'
                 }
               >
                 <ActivityIcon icon={entry.name} color={color} size="sm" />
@@ -313,8 +317,8 @@ export function EventEditorSheet({
                     }
                     className={
                       selected
-                        ? 'min-h-11 flex-row items-center justify-between rounded-2xl border border-brand bg-brand-soft px-3 dark:bg-brand-soft-dark'
-                        : 'min-h-11 flex-row items-center justify-between rounded-2xl border border-border bg-surface-sunken px-3 dark:border-border-dark dark:bg-surface-sunken-dark'
+                        ? 'min-h-11 flex-row items-center justify-between rounded-2xl border border-brand bg-brand-soft px-3 dark:bg-brand-soft-dark active:opacity-70'
+                        : 'min-h-11 flex-row items-center justify-between rounded-2xl border border-border bg-surface-sunken px-3 dark:border-border-dark dark:bg-surface-sunken-dark active:opacity-70'
                     }
                   >
                     <Text
@@ -344,9 +348,9 @@ function FieldChip({ label, onPress }: { label: string; onPress: () => void }) {
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      className="h-11 flex-1 items-center justify-center rounded-2xl border border-border bg-surface-sunken dark:border-border-dark dark:bg-surface-sunken-dark"
+      className="h-11 flex-1 items-center justify-center rounded-2xl border border-border bg-surface-sunken dark:border-border-dark dark:bg-surface-sunken-dark active:opacity-70"
     >
-      <Text className="text-sm font-semibold text-text dark:text-text-dark">{label}</Text>
+      <Text maxFontSizeMultiplier={1.2} className="text-sm font-semibold text-text dark:text-text-dark">{label}</Text>
     </Pressable>
   )
 }
@@ -368,7 +372,7 @@ function ColorDot({
       accessibilityLabel={color}
       accessibilityState={{ selected }}
       onPress={onPress}
-      className="h-11 w-11 items-center justify-center rounded-full"
+      className="h-11 w-11 items-center justify-center rounded-full active:opacity-70"
       style={{ backgroundColor: hex }}
     >
       {selected ? <Check size={18} color="#fff" strokeWidth={3} /> : null}
