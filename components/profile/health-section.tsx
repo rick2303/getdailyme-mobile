@@ -10,17 +10,19 @@ import { useI18n } from '@/i18n/provider'
 import {
   HEALTH_METRICS,
   isHealthConnected,
+  loadForcedMetrics,
   loadHealthLinks,
   openHealthSettings,
   readHealthAccess,
   requestHealthPermissions,
+  saveForcedMetrics,
   saveHealthLinks,
   type HealthAccess,
   type HealthLinks,
   type HealthMetric,
 } from '@/lib/health'
 import { useAuth } from '@/lib/auth/provider'
-import { useActiveActivities } from '@/lib/hooks/use-activities'
+import { useActiveActivities, useActivities } from '@/lib/hooks/use-activities'
 import { useHealthSync } from '@/lib/hooks/use-health-sync'
 import { useRelativeTime } from '@/lib/hooks/use-relative-time'
 
@@ -40,7 +42,11 @@ export function HealthSection() {
   const { showToast } = useToast()
   const colors = useThemeColors()
   const relative = useRelativeTime()
+  // Para elegir solo valen las activas, pero para saber a que apunta un vinculo
+  // hacen falta todas: si no, una actividad archivada se mostraba como "sin
+  // vincular" mientras la salud le seguia escribiendo.
   const { data: activities } = useActiveActivities()
+  const { data: allActivities } = useActivities()
   const { status, lastSync, sync } = useHealthSync()
   useAuth()
 
@@ -56,10 +62,15 @@ export function HealthSection() {
     let cancelled = false
 
     const load = async () => {
-      const [isConnected, savedLinks] = await Promise.all([isHealthConnected(), loadHealthLinks()])
+      const [isConnected, savedLinks, savedForced] = await Promise.all([
+        isHealthConnected(),
+        loadHealthLinks(),
+        loadForcedMetrics(),
+      ])
       if (cancelled) return
       setConnected(isConnected)
       setLinks(savedLinks)
+      setForced(savedForced)
       if (!isConnected) return
       const current = await readHealthAccess()
       if (!cancelled) setAccess(current)
@@ -116,18 +127,36 @@ export function HealthSection() {
     showToast(next[metric] ? t('health.granted') : t('health.stillBlocked'), next[metric] ? 'success' : 'error')
   }
 
+  // Con el updater y no con `{...links}`: dos toques seguidos leian el mismo
+  // estado y el segundo borraba el vinculo del primero.
   const link = (metric: HealthMetric, activityId: string | null) => {
-    const next = { ...links }
-    if (activityId) next[metric] = activityId
-    else delete next[metric]
-    setLinks(next)
+    setLinks((current) => {
+      const next = { ...current }
+      if (activityId) next[metric] = activityId
+      else delete next[metric]
+      void saveHealthLinks(next)
+      return next
+    })
     setPicking(null)
-    void saveHealthLinks(next)
+  }
+
+  const forceLink = (metric: HealthMetric) => {
+    setForced((current) => {
+      if (current.includes(metric)) return current
+      const next = [...current, metric]
+      void saveForcedMetrics(next)
+      return next
+    })
   }
 
   const syncNow = async () => {
-    const changes = await sync()
-    showToast(changes > 0 ? t('health.synced') : t('health.nothingToSync'), 'success')
+    const result = await sync()
+    if (!result) return
+    if (result.failed > 0) {
+      showToast(t('health.syncFailed'), 'error')
+      return
+    }
+    showToast(result.changes > 0 ? t('health.synced') : t('health.nothingToSync'), 'success')
   }
 
   const metricLabel: Record<HealthMetric, string> = {
@@ -136,7 +165,7 @@ export function HealthSection() {
     sleep: t('health.metricSleep'),
   }
 
-  const activityById = new Map((activities ?? []).map((activity) => [activity.id, activity]))
+  const activityById = new Map((allActivities ?? []).map((activity) => [activity.id, activity]))
   const syncTitle =
     status === 'syncing'
       ? t('health.syncing')
@@ -144,7 +173,9 @@ export function HealthSection() {
         ? t('health.synced')
         : status === 'empty'
           ? t('health.nothingToSync')
-          : t('health.syncNow')
+          : status === 'error'
+            ? t('health.syncFailed')
+            : t('health.syncNow')
 
   return (
     <View className="gap-3">
@@ -171,10 +202,23 @@ export function HealthSection() {
 
           {HEALTH_METRICS.map((metric) => {
             const Icon = METRIC_ICONS[metric]
-            const linked = links[metric] ? activityById.get(links[metric]!) : undefined
+            const linkedId = links[metric] ?? null
+            const linked = linkedId ? activityById.get(linkedId) : undefined
             const open = picking === metric
-            const allowed = access[metric] || forced.includes(metric) || Boolean(links[metric])
+            const allowed = access[metric] || forced.includes(metric) || Boolean(linkedId)
             const blocked = !access[metric]
+            // Un vinculo se enseña siempre, aunque la app crea que no hay
+            // acceso: en iOS eso es una sospecha (no hay datos en 30 dias), no
+            // un hecho, y tapar el vinculo hacia parecer que no se habia
+            // guardado. El aviso se baja a una linea aparte.
+            const subtitle = linked
+              ? linked.name
+              : linkedId
+                ? t('health.linkMissing')
+                : blocked
+                  ? t('health.noAccess')
+                  : t('health.notLinked')
+            const subtitleIsWarning = Boolean(linkedId && !linked) || (!linkedId && blocked)
             return (
               <View key={metric} className="gap-1.5">
                 <Pressable
@@ -197,23 +241,24 @@ export function HealthSection() {
                     </Text>
                     <Text
                       className={
-                        blocked
+                        subtitleIsWarning
                           ? 'text-xs text-danger'
                           : 'text-xs text-text-muted dark:text-text-muted-dark'
                       }
                       numberOfLines={1}
                     >
-                      {blocked
-                        ? t('health.noAccess')
-                        : linked
-                          ? linked.name
-                          : t('health.notLinked')}
+                      {subtitle}
                     </Text>
+                    {linked && blocked ? (
+                      <Text className="text-[11px] text-danger" numberOfLines={1}>
+                        {t('health.linkedNoData')}
+                      </Text>
+                    ) : null}
                   </View>
-                  {blocked ? (
-                    <Lock size={16} color={colors.textSubtle} />
-                  ) : linked ? (
+                  {linked ? (
                     <Check size={16} color={colors.brand} />
+                  ) : blocked ? (
+                    <Lock size={16} color={colors.textSubtle} />
                   ) : null}
                 </Pressable>
 
@@ -281,7 +326,7 @@ export function HealthSection() {
                         variant="ghost"
                         size="sm"
                         fullWidth
-                        onPress={() => setForced((current) => [...current, metric])}
+                        onPress={() => forceLink(metric)}
                       />
                     )}
                   </View>

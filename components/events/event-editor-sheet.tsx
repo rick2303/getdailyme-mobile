@@ -1,4 +1,3 @@
-import DateTimePicker from '@react-native-community/datetimepicker'
 import { Check } from 'lucide-react-native'
 import { useState } from 'react'
 import { Pressable, Switch, Text, View } from 'react-native'
@@ -8,6 +7,7 @@ import { DateRangeCalendar } from '@/components/events/date-range-calendar'
 import { Button } from '@/components/ui/button'
 import { TextArea, TextInput } from '@/components/ui/field'
 import { Sheet } from '@/components/ui/sheet'
+import { TimePicker } from '@/components/ui/time-picker'
 import { useToast } from '@/components/ui/toast'
 import { useActivityHex, useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
@@ -37,7 +37,7 @@ export function EventEditorSheet({
   event: EventSummary | null
   onClose: () => void
 }) {
-  const { t, locale } = useI18n()
+  const { t } = useI18n()
   const { showToast } = useToast()
   const colors = useThemeColors()
   const userId = useCurrentUserId()
@@ -138,13 +138,10 @@ export function EventEditorSheet({
     return new Date(`2000-01-01T${endTime}:00`)
   }
 
-  const onPicked = (selected: Date | undefined) => {
-    const target = picker
-    setPicker(null)
-    if (!selected || !target) return
+  const onPicked = (selected: Date) => {
     const time = `${String(selected.getHours()).padStart(2, '0')}:${String(selected.getMinutes()).padStart(2, '0')}`
-    if (target === 'startTime') setStartTime(time)
-    if (target === 'endTime') setEndTime(time)
+    if (picker === 'startTime') setStartTime(time)
+    if (picker === 'endTime') setEndTime(time)
   }
 
   // Un toque marca el inicio; otro posterior, el fin; uno anterior o un tercer
@@ -287,11 +284,7 @@ export function EventEditorSheet({
         ) : null}
 
         {picker ? (
-          <DateTimePicker
-            value={pickerValue()}
-            mode="time"
-            onChange={(_event, selected) => onPicked(selected)}
-          />
+          <TimePicker value={pickerValue()} onChange={onPicked} onClose={() => setPicker(null)} />
         ) : null}
 
         <View className="gap-2">

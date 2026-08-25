@@ -1,7 +1,5 @@
-import DateTimePicker from '@react-native-community/datetimepicker'
 import { useQueryClient } from '@tanstack/react-query'
-import * as ImagePicker from 'expo-image-picker'
-import { Check, Flame, ImagePlus, Minus, Plus, Timer, Trash2, X } from 'lucide-react-native'
+import { Camera, Check, Flame, ImagePlus, Minus, Plus, Timer, Trash2, X } from 'lucide-react-native'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, Image, Platform, Pressable, RefreshControl, Text, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
@@ -31,6 +29,7 @@ import { MilestoneSheet, STREAK_MILESTONES } from '@/components/profile/mileston
 import { Button, IconButton } from '@/components/ui/button'
 import { TextArea } from '@/components/ui/field'
 import { Sheet } from '@/components/ui/sheet'
+import { TimePicker } from '@/components/ui/time-picker'
 import { useToast } from '@/components/ui/toast'
 import {
   ACTIVITY_HEX,
@@ -55,6 +54,7 @@ import { formatElapsed, useClearSession, useSessionFor, useStartSession, useTick
 import { forgetHealthLog } from '@/lib/health'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { haptic } from '@/lib/utils/haptics'
+import { pickImage, type PhotoSource } from '@/lib/utils/pick-image'
 import { formatTime, todayKey, shiftDateKey, zonedDateTimeToIso } from '@/lib/utils/dates'
 
 export default function TodayScreen() {
@@ -132,11 +132,22 @@ export default function TodayScreen() {
       setSawComplete(true)
       setCelebrating(true)
       haptic('success')
-      const timeout = setTimeout(() => setCelebrating(false), 2400)
-      return () => clearTimeout(timeout)
+      return
     }
     if (!dayComplete && sawComplete) setSawComplete(false)
   }, [dayComplete, sawComplete, list.length])
+
+  // El temporizador que apaga el confetti vive aparte, colgado de `celebrating`.
+  // Dentro del efecto de arriba no funcionaba: `setSawComplete(true)` cambiaba
+  // una de sus dependencias, React ejecutaba la limpieza antes de volver a
+  // correrlo y el clearTimeout mataba el temporizador en el mismo instante en
+  // que se creaba. El confetti se quedaba puesto con sus 26 vistas animadas y,
+  // como `celebrating` ya no volvia a false, no se disparaba nunca mas.
+  useEffect(() => {
+    if (!celebrating) return
+    const timeout = setTimeout(() => setCelebrating(false), 2400)
+    return () => clearTimeout(timeout)
+  }, [celebrating])
 
   // Hitos de racha: al cruzar 7/30/100/365 se celebra una sola vez.
   const { allDates, today: streakToday } = useHistorySummary()
@@ -234,15 +245,34 @@ export default function TodayScreen() {
             }}
           />
         )}
-        ListFooterComponent={
-          <View className="px-4 pt-2">
-            <Button
-              title={t('today.addActivity')}
-              variant="secondary"
-              fullWidth
-              onPress={() => setEditorOpen(true)}
-            />
+        ListEmptyComponent={
+          <View className="items-center gap-2 px-8 pb-4 pt-10">
+            <Text className="text-center text-lg font-bold text-text dark:text-text-dark">
+              {t('today.emptyTitle')}
+            </Text>
+            <Text className="text-center text-sm text-text-muted dark:text-text-muted-dark">
+              {t('today.emptyBody')}
+            </Text>
+            <View className="w-full pt-2">
+              <Button
+                title={t('today.createFirst')}
+                fullWidth
+                onPress={() => setEditorOpen(true)}
+              />
+            </View>
           </View>
+        }
+        ListFooterComponent={
+          list.length > 0 ? (
+            <View className="px-4 pt-2">
+              <Button
+                title={t('today.addActivity')}
+                variant="secondary"
+                fullWidth
+                onPress={() => setEditorOpen(true)}
+              />
+            </View>
+          ) : null
         }
       />
 
@@ -341,6 +371,16 @@ function ActivityTile({
 
   const [burst, setBurst] = useState<{ id: number; amount: number } | null>(null)
 
+  // El +N se borra con un efecto y no con un setTimeout suelto dentro del
+  // gesto: asi cada toque renueva su propio temporizador. Antes, dos toques
+  // seguidos creaban dos, y el del primero borraba el +N del segundo a los
+  // 900 ms de haber empezado el primero, no el segundo.
+  useEffect(() => {
+    if (!burst) return
+    const timeout = setTimeout(() => setBurst(null), 900)
+    return () => clearTimeout(timeout)
+  }, [burst])
+
   const amount = todayTotal?.amount ?? 0
   const target = activity.daily_target
   const isCheck = activity.input_mode === 'check'
@@ -363,7 +403,6 @@ function ActivityTile({
   const tap = () => {
     if (activity.input_mode === 'counter') {
       setBurst((current) => ({ id: (current?.id ?? 0) + 1, amount: activity.step }))
-      setTimeout(() => setBurst(null), 900)
     }
     onTap()
   }
@@ -373,8 +412,13 @@ function ActivityTile({
   // despues de registrar algo (o de sincronizar salud) el hilo esta ocupado
   // repintando la lista, el temporizador llega tarde y lo que se cuela es un
   // toque, o sea otro registro en vez de abrir el detalle.
+  // La ref se actualiza en un efecto, no en el cuerpo: escribir durante el
+  // render funciona hoy pero deja de estar garantizado en cuanto entra
+  // StrictMode o el render concurrente.
   const handlers = useRef({ tap, long: onLongPress })
-  handlers.current = { tap, long: onLongPress }
+  useEffect(() => {
+    handlers.current = { tap, long: onLongPress }
+  })
   const fireTap = useCallback(() => handlers.current.tap(), [])
   const fireLongPress = useCallback(() => handlers.current.long(), [])
 
@@ -586,34 +630,42 @@ function LogDetailSheet({
 
   const [amount, setAmount] = useState(1)
   const [dateKey, setDateKey] = useState(today)
-  const [time, setTime] = useState(() => {
-    const now = new Date()
-    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-  })
+  const [time, setTime] = useState(nowAsTimeOfDay)
   const [note, setNote] = useState('')
   const [showTimePicker, setShowTimePicker] = useState(false)
   const [photoUri, setPhotoUri] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
 
-  const [lastActivityId, setLastActivityId] = useState<string | null>(null)
-  if (activity && activity.id !== lastActivityId) {
-    setLastActivityId(activity.id)
-    setAmount(activity.step)
-    setDateKey(today)
-    setNote('')
-    setPhotoUri(null)
+  // Esta hoja no se desmonta nunca (vive en el arbol de la pantalla y solo
+  // devuelve null sin actividad), asi que todo lo del borrador anterior hay que
+  // limpiarlo a mano, y en cada apertura, no solo al cambiar de actividad. La
+  // hora entra aqui: si no, se queda la que se eligio en el registro anterior,
+  // o peor, la de cuando se abrio la app.
+  const session = activity?.id ?? 'closed'
+  const [lastSession, setLastSession] = useState(session)
+  if (session !== lastSession) {
+    setLastSession(session)
+    if (activity) {
+      setAmount(activity.step)
+      setDateKey(today)
+      setTime(nowAsTimeOfDay())
+      setShowTimePicker(false)
+      setNote('')
+      setPhotoUri(null)
+    }
   }
 
   if (!activity) return null
 
   const increment = stepperIncrement(activity.unit, activity.input_mode, activity.step)
 
-  const pickPhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: 'images',
-      quality: 1,
-    })
-    if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri)
+  const pickPhoto = async (source: PhotoSource) => {
+    const result = await pickImage(source)
+    if (result.status === 'denied') {
+      showToast(t('log.cameraDenied'), 'error')
+      return
+    }
+    if (result.status === 'picked') setPhotoUri(result.uri)
   }
 
   const save = async () => {
@@ -697,22 +749,17 @@ function LogDetailSheet({
               selected={dateKey === yesterday}
               onPress={() => setDateKey(yesterday)}
             />
-            <DayChip label={time} selected={false} onPress={() => setShowTimePicker(true)} />
+            <DayChip
+              label={time}
+              selected={showTimePicker}
+              onPress={() => setShowTimePicker((current) => !current)}
+            />
           </View>
           {showTimePicker ? (
-            <DateTimePicker
-              value={new Date(`2000-01-01T${time}:00`)}
-              mode="time"
-              onChange={(_event, selected) => {
-                setShowTimePicker(false)
-                if (selected) {
-                  setTime(
-                    `${String(selected.getHours()).padStart(2, '0')}:${String(
-                      selected.getMinutes(),
-                    ).padStart(2, '0')}`,
-                  )
-                }
-              }}
+            <TimePicker
+              value={timeOfDayToDate(time)}
+              onChange={(selected) => setTime(dateToTimeOfDay(selected))}
+              onClose={() => setShowTimePicker(false)}
             />
           ) : null}
         </View>
@@ -735,16 +782,18 @@ function LogDetailSheet({
               </View>
             </View>
           ) : (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void pickPhoto()}
-              className="h-12 flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-surface-sunken dark:border-border-dark dark:bg-surface-sunken-dark"
-            >
-              <ImagePlus size={18} color={colors.textMuted} />
-              <Text className="text-sm font-bold text-text-muted dark:text-text-muted-dark">
-                {t('log.addPhoto')}
-              </Text>
-            </Pressable>
+            <View className="flex-row gap-2">
+              <PhotoSourceButton
+                label={t('log.sourceCamera')}
+                icon={<Camera size={18} color={colors.textMuted} />}
+                onPress={() => void pickPhoto('camera')}
+              />
+              <PhotoSourceButton
+                label={t('log.sourceLibrary')}
+                icon={<ImagePlus size={18} color={colors.textMuted} />}
+                onPress={() => void pickPhoto('library')}
+              />
+            </View>
           )}
         </View>
 
@@ -807,6 +856,47 @@ function LogDetailSheet({
       </View>
     </Sheet>
   )
+}
+
+function PhotoSourceButton({
+  label,
+  icon,
+  onPress,
+}: {
+  label: string
+  icon: React.ReactNode
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-surface-sunken dark:border-border-dark dark:bg-surface-sunken-dark"
+    >
+      {icon}
+      <Text
+        className="text-sm font-bold text-text-muted dark:text-text-muted-dark"
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
+
+// La hora del registro se guarda como "HH:mm" en la zona del perfil; el picker
+// trabaja con Date, asi que se envuelve en un dia cualquiera para ir y volver.
+function nowAsTimeOfDay(): string {
+  return dateToTimeOfDay(new Date())
+}
+
+function dateToTimeOfDay(date: Date): string {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+function timeOfDayToDate(time: string): Date {
+  const [hours, minutes] = time.split(':').map(Number)
+  return new Date(2000, 0, 1, Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0)
 }
 
 function DayChip({

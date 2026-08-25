@@ -1,5 +1,5 @@
 import { Dumbbell, Flag, Flame, Hand, Heart, Laugh, type LucideIcon } from 'lucide-react-native'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Image } from 'react-native'
 import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -43,7 +43,10 @@ export default function FeedScreen() {
   const { t } = useI18n()
   const colors = useThemeColors()
   const feed = useFeed()
-  useFeedRealtime()
+  // El contador en tiempo real ya existia pero nadie lo pintaba: se sumaban
+  // novedades para siempre y el feed solo se enteraba al tirar para refrescar.
+  const { pendingCount, consumePending } = useFeedRealtime()
+  const listRef = useRef<FlatList<FeedGroup>>(null)
 
   const [tab, setTab] = useState<FeedTab>('activity')
   const [profileUserId, setProfileUserId] = useState<string | null>(null)
@@ -79,6 +82,7 @@ export default function FeedScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark" edges={['top']}>
       <FlatList
+        ref={listRef}
         data={groups}
         keyExtractor={(item) => item.entry.id}
         contentContainerClassName="gap-3 px-4 pb-8"
@@ -123,6 +127,26 @@ export default function FeedScreen() {
           />
         )}
       />
+
+      {pendingCount > 0 ? (
+        <View className="absolute inset-x-0 top-0 items-center pt-2" pointerEvents="box-none">
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              haptic('tap')
+              consumePending()
+              listRef.current?.scrollToOffset({ offset: 0, animated: true })
+            }}
+            style={SHADOW_TILE}
+            className="flex-row items-center gap-2 rounded-full bg-brand px-4 py-2.5"
+          >
+            <Flame size={14} color="#fff" strokeWidth={2.5} />
+            <Text className="text-xs font-bold text-white">
+              {t('feed.newEntries', { count: pendingCount })}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <ProfileCardSheet
         userId={profileUserId}

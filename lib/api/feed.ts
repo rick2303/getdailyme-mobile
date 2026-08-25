@@ -11,7 +11,7 @@ const FEED_SELECT = `
   author:profiles!activity_logs_user_id_fkey ( username, display_name, avatar_url ),
   activity:activities!inner ( id, name, icon, color, unit ),
   reactions ( id, type, user_id ),
-  comments ( id )
+  comments ( count )
 `;
 
 type RawFeedRow = {
@@ -24,7 +24,11 @@ type RawFeedRow = {
   author: { username: string; display_name: string; avatar_url: string | null } | null;
   activity: { id: string; name: string; icon: string; color: string; unit: string } | null;
   reactions: { id: string; type: string; user_id: string }[] | null;
-  comments: { id: string }[] | null;
+  // `comments ( count )` no trae las filas, trae una sola con el total. Antes se
+  // pedia `comments ( id )` y se contaba en el cliente: un registro con
+  // doscientos comentarios viajaba entero, y multiplicado por las veinte
+  // entradas de cada pagina, solo para pintar un numero.
+  comments: { count: number }[] | null;
 };
 
 function mapFeedRow(row: RawFeedRow): FeedEntry | null {
@@ -50,7 +54,7 @@ function mapFeedRow(row: RawFeedRow): FeedEntry | null {
       type: reaction.type as ReactionType,
       user_id: reaction.user_id,
     })),
-    comment_count: (row.comments ?? []).length,
+    comment_count: row.comments?.[0]?.count ?? 0,
   };
 }
 
@@ -96,6 +100,12 @@ function mapComment(row: RawComment): FeedComment | null {
   };
 }
 
+// Un hilo se traia entero, sin tope. Se acota por arriba, pero pidiendo los mas
+// recientes y dandoles la vuelta despues: con `ascending` y un limite lo que se
+// perderia son los ultimos comentarios, que es justo lo que la gente viene a
+// leer.
+export const COMMENTS_PAGE_SIZE = 200;
+
 export async function fetchComments(
   client: TypedSupabaseClient,
   logId: string,
@@ -104,11 +114,13 @@ export async function fetchComments(
     .from("comments")
     .select(COMMENT_SELECT)
     .eq("log_id", logId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false })
+    .limit(COMMENTS_PAGE_SIZE);
 
   if (error) throw error;
 
   return ((data ?? []) as unknown as RawComment[])
+    .reverse()
     .map(mapComment)
     .filter((comment): comment is FeedComment => comment !== null);
 }

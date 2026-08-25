@@ -1,9 +1,10 @@
 import '../global.css'
 
+import { useQueryClient } from '@tanstack/react-query'
 import * as QuickActions from 'expo-quick-actions'
 import { useQuickActionRouting } from 'expo-quick-actions/router'
 import { Stack, useRouter, useSegments } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AppState, Platform, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
@@ -19,6 +20,7 @@ import { computeStreak } from '@/lib/activities/streaks'
 import { useActiveActivities } from '@/lib/hooks/use-activities'
 import { useHistorySummary, useTodayTotals } from '@/lib/hooks/use-logs'
 import { isHealthConnected, syncHealthToLogs } from '@/lib/health'
+import { claimParkedInvite } from '@/lib/invite-handoff'
 import { initOneSignal, loginOneSignal, logoutOneSignal } from '@/lib/onesignal'
 import { QueryProvider } from '@/lib/query/provider'
 import { ThemeProvider } from '@/lib/theme-context'
@@ -149,15 +151,25 @@ function WidgetBinder() {
 // Sincroniza salud al abrir la app y al volver del fondo, si esta conectada.
 function HealthBinder() {
   const { user, profile } = useAuth()
+  const queryClient = useQueryClient()
+
+  const userId = user?.id ?? null
+  const timeZone = profile?.timezone ?? null
 
   useEffect(() => {
-    if (!user || !profile) return
+    if (!userId || !timeZone) return
     let cancelled = false
 
     const sync = async () => {
       if (cancelled) return
       if (!(await isHealthConnected())) return
-      await syncHealthToLogs(user.id, profile.timezone)
+      const { changes } = await syncHealthToLogs(userId, timeZone)
+      // Sin esto la salud escribia en la base y la pantalla seguia enseñando lo
+      // de antes: los registros no aparecian hasta tirar para refrescar.
+      if (changes > 0 && !cancelled) {
+        await queryClient.invalidateQueries({ queryKey: ['logs'] })
+        await queryClient.invalidateQueries({ queryKey: ['feed'] })
+      }
     }
 
     void sync()
@@ -169,23 +181,54 @@ function HealthBinder() {
       cancelled = true
       subscription.remove()
     }
-  }, [user, profile])
+  }, [userId, timeZone, queryClient])
 
   return null
 }
 
 function PushBinder() {
-  const { user } = useAuth()
+  const { user, isLoadingSession } = useAuth()
+  // Con `user` (el objeto) como dependencia, cada TOKEN_REFRESHED traia un User
+  // nuevo y volvia a llamar a login() aunque fuera la misma persona. Con el id
+  // solo se reacciona a un cambio de verdad.
+  const userId = user?.id ?? null
 
   useEffect(() => {
     const appId = process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID
     if (appId) initOneSignal(appId)
   }, [])
 
+  // Mientras la sesion se lee de AsyncStorage, `user` es null, que no es lo
+  // mismo que "no hay nadie". Sin esperar, cada arranque en frio hacia
+  // logout() antes del login(): OneSignal suelta el external_id, mueve la
+  // suscripcion a un usuario anonimo y la vuelve a atar un instante despues.
+  // Ese vaiven deja aparatos con external_id pero sin suscripcion, y a esos
+  // el envio por alias no les llega.
   useEffect(() => {
-    if (user) loginOneSignal(user.id)
+    if (isLoadingSession) return
+    if (userId) loginOneSignal(userId)
     else logoutOneSignal()
-  }, [user])
+  }, [userId, isLoadingSession])
+
+  return null
+}
+
+// Recoge la invitacion aparcada cuando el enlace se abrio sin sesion. Espera a
+// que el onboarding este hecho: mientras haga falta, el guardia manda a la
+// bienvenida y navegar ahora seria pelearse con el.
+function PendingInviteBinder() {
+  const { user, needsOnboarding, isLoadingProfile } = useAuth()
+  const router = useRouter()
+  const claimed = useRef(false)
+
+  useEffect(() => {
+    if (!user || isLoadingProfile || needsOnboarding || claimed.current) return
+    claimed.current = true
+
+    void claimParkedInvite().then((token) => {
+      if (token) router.push(`/invite/${token}`)
+    })
+  }, [user, needsOnboarding, isLoadingProfile, router])
 
   return null
 }
@@ -206,6 +249,7 @@ export default function RootLayout() {
                   <QuickActionsBinder />
                   <WidgetBinder />
                   <HealthBinder />
+                  <PendingInviteBinder />
                   <Gate>
                     <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
                   </Gate>

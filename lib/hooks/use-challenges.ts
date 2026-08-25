@@ -12,17 +12,15 @@ import {
   type NewChallenge,
 } from "@/lib/api/challenges";
 import { useCurrentUserId } from "@/lib/auth/provider";
+import { queryKeys } from "@/lib/query/keys";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-
-const challengesKey = (userId: string) => ["challenges", userId] as const;
-const standingsKey = (challengeId: string) => ["challenge-standings", challengeId] as const;
 
 export function useChallenges() {
   const userId = useCurrentUserId();
 
   const query = useQuery({
-    queryKey: challengesKey(userId ?? "anonymous"),
+    queryKey: queryKeys.challenges(userId ?? "anonymous"),
     enabled: isSupabaseConfigured() && Boolean(userId),
     queryFn: () => fetchChallenges(getSupabaseBrowserClient(), userId!),
   });
@@ -38,7 +36,7 @@ export function useChallenges() {
 
 export function useChallengeStandings(challengeId: string | null) {
   return useQuery({
-    queryKey: standingsKey(challengeId ?? "none"),
+    queryKey: queryKeys.challengeStandings(challengeId ?? "none"),
     enabled: isSupabaseConfigured() && Boolean(challengeId),
     queryFn: () => fetchChallengeStandings(getSupabaseBrowserClient(), challengeId!),
   });
@@ -49,7 +47,7 @@ function useInvalidateChallenges() {
   const userId = useCurrentUserId();
 
   return () => {
-    queryClient.invalidateQueries({ queryKey: challengesKey(userId ?? "anonymous") });
+    queryClient.invalidateQueries({ queryKey: queryKeys.challenges(userId ?? "anonymous") });
     queryClient.invalidateQueries({ queryKey: ["challenge-standings"] });
   };
 }

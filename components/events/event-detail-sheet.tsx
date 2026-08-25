@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import * as ImagePicker from 'expo-image-picker'
-import { ImagePlus, Pencil, Trash2 } from 'lucide-react-native'
+import { Camera, ImagePlus, Pencil, Trash2 } from 'lucide-react-native'
 import { useState } from 'react'
 import { Image, Pressable, Text, View } from 'react-native'
 
@@ -27,9 +26,11 @@ import {
   useRespondToInvite,
   useUploadEventPhoto,
 } from '@/lib/hooks/use-events'
+import { queryKeys } from '@/lib/query/keys'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { formatDateRange } from '@/lib/utils/dates'
 import { haptic } from '@/lib/utils/haptics'
+import { pickImage, type PhotoSource } from '@/lib/utils/pick-image'
 
 // La ficha de evento de la web: fecha y cuenta atras, quien viene con su
 // estado, responder a la invitacion, fotos compartidas, y editar/borrar para
@@ -64,13 +65,17 @@ export function EventDetailSheet({
   const myMembership = event?.members.find((member) => member.user_id === userId)
   const going = event?.members.filter((member) => member.status === 'going') ?? []
 
-  const pickPhoto = async () => {
+  const pickPhoto = async (source: PhotoSource) => {
     if (!event || !userId) return
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 1 })
-    if (result.canceled || !result.assets[0]) return
+    const picked = await pickImage(source)
+    if (picked.status === 'denied') {
+      showToast(t('log.cameraDenied'), 'error')
+      return
+    }
+    if (picked.status !== 'picked') return
     haptic('tap')
     uploadPhoto.mutate(
-      { eventId: event.id, uri: result.assets[0].uri },
+      { eventId: event.id, uri: picked.uri },
       { onError: () => showToast(t('common.genericError'), 'error') },
     )
   }
@@ -78,7 +83,13 @@ export function EventDetailSheet({
   const answer = (status: 'going' | 'declined') => {
     if (!event || !userId) return
     haptic('success')
-    respond.mutate({ eventId: event.id, userId, status })
+    // El toast de exito sale ya, que es lo que hace que la respuesta se sienta
+    // inmediata, pero si la mutacion falla hay que decirlo: antes se quedaba en
+    // un "guardado" que no habia guardado nada.
+    respond.mutate(
+      { eventId: event.id, userId, status },
+      { onError: () => showToast(t('common.genericError'), 'error') },
+    )
     showToast(t('events.respondSaved'), 'success')
   }
 
@@ -185,15 +196,38 @@ export function EventDetailSheet({
               {t('events.photosTitle')}
             </Text>
             <EventPhotoGrid photos={photos ?? []} />
-            <Button
-              title={uploadPhoto.isPending ? t('events.photoUploading') : t('events.addPhoto')}
-              variant="secondary"
-              size="sm"
-              fullWidth
-              loading={uploadPhoto.isPending}
-              icon={uploadPhoto.isPending ? undefined : <ImagePlus size={16} color={colors.text} />}
-              onPress={() => void pickPhoto()}
-            />
+            {uploadPhoto.isPending ? (
+              <Button
+                title={t('events.photoUploading')}
+                variant="secondary"
+                size="sm"
+                fullWidth
+                loading
+              />
+            ) : (
+              <View className="flex-row gap-2">
+                <View className="flex-1">
+                  <Button
+                    title={t('log.sourceCamera')}
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
+                    icon={<Camera size={16} color={colors.text} />}
+                    onPress={() => void pickPhoto('camera')}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Button
+                    title={t('log.sourceLibrary')}
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
+                    icon={<ImagePlus size={16} color={colors.text} />}
+                    onPress={() => void pickPhoto('library')}
+                  />
+                </View>
+              </View>
+            )}
           </View>
 
           <View className="flex-row justify-center gap-2 pt-1">
@@ -236,11 +270,12 @@ export function EventDetailSheet({
             onConfirm={() => {
               if (!userId) return
               haptic('warning')
+              const onError = () => showToast(t('common.genericError'), 'error')
               if (confirming === 'delete') {
-                remove.mutate({ eventId: event.id, userId })
+                remove.mutate({ eventId: event.id, userId }, { onError })
                 showToast(t('events.deleted'), 'success')
               } else {
-                leave.mutate({ eventId: event.id, userId })
+                leave.mutate({ eventId: event.id, userId }, { onError })
                 showToast(t('events.left'), 'success')
               }
               setConfirming(null)
@@ -291,7 +326,7 @@ function EventPhotoThumb({
   onOpen: (src: string) => void
 }) {
   const { data: url } = useQuery({
-    queryKey: ['event-photo-url', photo.photo_url],
+    queryKey: queryKeys.eventPhotoUrl(photo.photo_url),
     staleTime: 50 * 60 * 1000,
     queryFn: () => resolveEventPhotoUrl(getSupabaseBrowserClient(), photo.photo_url),
   })

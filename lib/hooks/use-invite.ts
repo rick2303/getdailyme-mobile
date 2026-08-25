@@ -36,7 +36,7 @@ export function useRedeemInvite(token: string | null) {
   const queryClient = useQueryClient();
 
   return useQuery({
-    queryKey: ["invite-redeem", token],
+    queryKey: queryKeys.inviteRedeem(token ?? "none"),
     enabled: isSupabaseConfigured() && Boolean(token) && Boolean(userId),
     retry: false,
     staleTime: Infinity,

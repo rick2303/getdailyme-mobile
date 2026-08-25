@@ -53,11 +53,19 @@ function updateAndroidWidget(payload: WidgetPayload) {
   }
 }
 
+// Red de seguridad: redibujar el widget cuesta (en iOS despierta la extension)
+// y quien llama puede repetir el mismo estado. Si nada cambio, no se toca.
+let lastPayload: string | null = null
+
 export function updateWidget(payload: WidgetPayload) {
+  const serialized = JSON.stringify(payload)
+  if (serialized === lastPayload) return
+  lastPayload = serialized
+
   if (Platform.OS === 'ios') {
     if (!ensureIosBridge()) return
     try {
-      storage!.set('widgetData', JSON.stringify(payload))
+      storage!.set('widgetData', serialized)
       reload!()
     } catch {
       // El widget es decorativo: si el puente falla, la app sigue como si nada.
@@ -66,7 +74,7 @@ export function updateWidget(payload: WidgetPayload) {
   }
 
   if (Platform.OS === 'android') {
-    void AsyncStorage.setItem('widgetData', JSON.stringify(payload)).catch(() => undefined)
+    void AsyncStorage.setItem('widgetData', serialized).catch(() => undefined)
     updateAndroidWidget(payload)
   }
 }

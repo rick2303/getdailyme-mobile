@@ -1,4 +1,3 @@
-import DateTimePicker from '@react-native-community/datetimepicker'
 import { Bell, BellOff, BellRing } from 'lucide-react-native'
 import { useEffect, useState } from 'react'
 import { Pressable, Switch, Text, View } from 'react-native'
@@ -6,6 +5,7 @@ import { Pressable, Switch, Text, View } from 'react-native'
 import { requestPush } from '@/lib/push/client'
 
 import { Button } from '@/components/ui/button'
+import { TimePicker } from '@/components/ui/time-picker'
 import { useToast } from '@/components/ui/toast'
 import { SHADOW_TILE, useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
@@ -35,7 +35,7 @@ function reminderToDate(value: string | null): Date {
 }
 
 export function NotificationsSection({ embedded = false }: { embedded?: boolean }) {
-  const { t, locale } = useI18n()
+  const { t } = useI18n()
   const { showToast } = useToast()
   const colors = useThemeColors()
 
@@ -44,6 +44,9 @@ export function NotificationsSection({ embedded = false }: { embedded?: boolean 
 
   const [enabled, setEnabled] = useState<boolean | null>(null)
   const [timePickerOpen, setTimePickerOpen] = useState(false)
+  // En iOS la rueda avisa en cada giro: si cada aviso guardara, un solo ajuste
+  // dispararia decenas de mutaciones. Se guarda al cerrar.
+  const [reminderDraft, setReminderDraft] = useState<string | null>(null)
   const [sendingTest, setSendingTest] = useState(false)
 
   useEffect(() => {
@@ -85,7 +88,8 @@ export function NotificationsSection({ embedded = false }: { embedded?: boolean 
   }
 
   const reminderEnabled = Boolean(preferences?.daily_reminder_at)
-  const reminderLabel = preferences?.daily_reminder_at?.slice(0, 5) ?? DEFAULT_REMINDER
+  const reminderLabel =
+    (reminderDraft ?? preferences?.daily_reminder_at)?.slice(0, 5) ?? DEFAULT_REMINDER
 
   return (
     <View className="gap-2">
@@ -158,17 +162,19 @@ export function NotificationsSection({ embedded = false }: { embedded?: boolean 
               ) : null}
 
               {timePickerOpen ? (
-                <DateTimePicker
-                  value={reminderToDate(preferences?.daily_reminder_at ?? null)}
-                  mode="time"
-                  locale={locale}
-                  onChange={(_event, selected) => {
+                <TimePicker
+                  value={reminderToDate(reminderDraft ?? preferences?.daily_reminder_at ?? null)}
+                  onChange={(selected) => {
+                    const hours = String(selected.getHours()).padStart(2, '0')
+                    const minutes = String(selected.getMinutes()).padStart(2, '0')
+                    setReminderDraft(`${hours}:${minutes}:00`)
+                  }}
+                  onClose={() => {
                     setTimePickerOpen(false)
-                    if (selected) {
-                      const hours = String(selected.getHours()).padStart(2, '0')
-                      const minutes = String(selected.getMinutes()).padStart(2, '0')
-                      updatePreferences.mutate({ daily_reminder_at: `${hours}:${minutes}:00` })
+                    if (reminderDraft && reminderDraft !== preferences?.daily_reminder_at) {
+                      updatePreferences.mutate({ daily_reminder_at: reminderDraft })
                     }
+                    setReminderDraft(null)
                   }}
                 />
               ) : null}

@@ -253,7 +253,19 @@ function ClubDetailSheet({ club, onClose }: { club: Club | null; onClose: () => 
 
   const isOwner = club.creator_id === userId
   const byUser = new Map(club.members.map((member) => [member.user_id, member]))
-  const rows = (ranking.data ?? []).filter((row) => byUser.has(row.user_id))
+  // El ranking se cruza con la lista de miembros en vez de sustituirla: si la
+  // consulta solo devuelve a quien registro algo esta semana, el resto seguia
+  // sin aparecer, y quien entra hoy al club no se veia en su propio club.
+  const counts = new Map((ranking.data ?? []).map((row) => [row.user_id, row.log_count]))
+  const rows = club.members
+    .map((member) => ({ user_id: member.user_id, log_count: counts.get(member.user_id) ?? 0 }))
+    .sort(
+      (a, b) =>
+        b.log_count - a.log_count ||
+        (byUser.get(a.user_id)?.profile.display_name ?? '').localeCompare(
+          byUser.get(b.user_id)?.profile.display_name ?? '',
+        ),
+    )
 
   const shareCode = async () => {
     haptic('tap')
@@ -324,7 +336,7 @@ function ClubDetailSheet({ club, onClose }: { club: Club | null; onClose: () => 
             <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text-muted dark:text-text-muted-dark">
               {t('clubs.rankingTitle')}
             </Text>
-            {(rows.length > 0 ? rows : club.members.map((member) => ({ user_id: member.user_id, log_count: 0 }))).map(
+            {rows.map(
               (row, index) => {
                 const member = byUser.get(row.user_id)
                 if (!member) return null
@@ -385,11 +397,12 @@ function ClubDetailSheet({ club, onClose }: { club: Club | null; onClose: () => 
           confirmLabel={confirming === 'delete' ? t('common.delete') : t('clubs.leave')}
           onConfirm={() => {
             haptic('warning')
+            const onError = () => showToast(t('common.genericError'), 'error')
             if (confirming === 'delete') {
-              remove.mutate(club.id)
+              remove.mutate(club.id, { onError })
               showToast(t('clubs.deleted'), 'success')
             } else if (userId) {
-              leave.mutate({ clubId: club.id, userId })
+              leave.mutate({ clubId: club.id, userId }, { onError })
               showToast(t('clubs.left'), 'success')
             }
             setConfirming(null)

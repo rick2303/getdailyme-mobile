@@ -1,9 +1,12 @@
+// Todas las claves viven aqui a proposito: una clave escrita a mano en el sitio
+// de una invalidacion no falla ni avisa, simplemente no refresca nada, y eso es
+// muy caro de encontrar. Las que solo usa una de las dos apps se quedan igual:
+// el fichero es compartido y es justo lo que hace que las dos hablen el mismo
+// idioma de cache.
 export const queryKeys = {
   profile: (userId: string) => ["profile", userId] as const,
   profileCard: (userId: string) => ["profile-card", userId] as const,
-  usernameAvailability: (username: string) => ["username-availability", username] as const,
   activities: (userId: string) => ["activities", userId] as const,
-  todayLogs: (userId: string, localDate: string) => ["logs", "today", userId, localDate] as const,
   activityHistory: (userId: string) => ["logs", "history", userId] as const,
   dailyTotals: (userId: string) => ["logs", "daily-totals", userId] as const,
   feed: () => ["feed"] as const,
@@ -12,8 +15,14 @@ export const queryKeys = {
   inbox: (userId: string) => ["inbox", userId] as const,
   yearTotals: (userId: string, year: number) => ["logs", "year-totals", userId, year] as const,
   friends: (userId: string) => ["friends", userId] as const,
-  friendRequests: (userId: string) => ["friend-requests", userId] as const,
+  friendActiveDates: (friendId: string) => ["friend-active-dates", friendId] as const,
   profileSearch: (query: string) => ["profile-search", query] as const,
+  challenges: (userId: string) => ["challenges", userId] as const,
+  challengeStandings: (challengeId: string) => ["challenge-standings", challengeId] as const,
+  clubs: (userId: string) => ["clubs", userId] as const,
+  clubRanking: (clubId: string) => ["clubs", "ranking", clubId] as const,
+  inviteRedeem: (token: string) => ["invite-redeem", token] as const,
+  activityPhotoUrl: (path: string) => ["activity-photo", path] as const,
   activityShares: (activityId: string) => ["activity-shares", activityId] as const,
   activeSessions: (userId: string) => ["active-sessions", userId] as const,
   passkeys: (userId: string) => ["passkeys", userId] as const,

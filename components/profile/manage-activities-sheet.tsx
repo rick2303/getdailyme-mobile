@@ -59,8 +59,11 @@ export function ManageActivitiesSheet({ open, onClose }: { open: boolean; onClos
   const confirmDelete = () => {
     if (!pendingDelete || !userId) return
     haptic('warning')
-    remove.mutate({ userId, activityId: pendingDelete.id })
-    showToast(t('common.delete'), 'success')
+    remove.mutate(
+      { userId, activityId: pendingDelete.id },
+      { onError: () => showToast(t('activity.deleteFailed'), 'error') },
+    )
+    showToast(t('activity.deleted'), 'success')
     setPendingDelete(null)
   }
 

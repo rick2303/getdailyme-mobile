@@ -45,11 +45,20 @@ export const en: Dictionary = {
   auth: {
     createAccountTitle: "Create your account",
     createAccountSubtitle: "One minute and you are in: your day, your friends and your wins in one place.",
-    termsPrefix: "I accept the ",
+    /* La edad va dentro de la misma casilla que los términos, no en una
+       aparte: es una declaración del usuario, no un consentimiento distinto,
+       y dos casillas seguidas se marcan sin leer ninguna. 16 es el mínimo
+       que fijan los términos publicados; si cambia allí, cambia aquí. */
+    termsPrefix: "I'm 16 or older and I accept the ",
     termsLink: "Terms & Conditions",
     termsMiddle: " and the ",
     privacyLink: "Privacy Policy",
-    termsRequired: "Accept the terms to continue.",
+    termsRequired: "Confirm your age and accept the terms to continue.",
+    /* Las rutas legales son distintas en cada idioma y viven en la landing.
+       Antes apuntaban a /terms y /privacy, que no existen en español: se
+       estaba pidiendo aceptar unos términos que devolvían un 404. */
+    termsUrl: "https://getdailyme.com/en/terms",
+    privacyUrl: "https://getdailyme.com/en/privacy",
     welcomeTitle: "Hey! Good to see you",
     welcomeSubtitle: "Your habits, your friends and your moments, all in one place.",
     heroTitle: "Log your day in one tap",
@@ -71,7 +80,10 @@ export const en: Dictionary = {
     invalidEmail: "Enter a valid email",
     failed: "We couldn't sign you in. Try again.",
     linkExpired: "That link expired or was already used. Request a new one.",
-    legal: "By continuing you agree that we store your activity to show it to you and your friends.",
+    /* Cubre la vía de OAuth y del enlace mágico, donde no se pinta la casilla
+       pero una cuenta nueva se crea igual. */
+    legal:
+      "By continuing you confirm you're 16 or older and agree that we store your activity to show it to you and your friends.",
     tabPassword: "Password",
     tabMagicLink: "Email link",
     passwordLabel: "Password",
@@ -200,6 +212,7 @@ export const en: Dictionary = {
     deleteTitle: "Delete {name}?",
     deleteBody: "All of its logs will be deleted too. This can't be undone.",
     deleteFailed: "We couldn't delete it. It's still there.",
+    deleted: "Activity deleted",
     reminderLabel: "Reminder",
     reminderHelp: "Optional. We only ping you if you haven't logged it that day.",
     reminderClear: "Clear reminder",
@@ -269,6 +282,11 @@ export const en: Dictionary = {
     noteCounter: "{count}/280",
     photoLabel: "Photo",
     addPhoto: "Add photo",
+    takePhoto: "Take a photo",
+    choosePhoto: "Choose from library",
+    sourceCamera: "Camera",
+    sourceLibrary: "Library",
+    cameraDenied: "No camera permission. Turn it on in your phone settings.",
     removePhoto: "Remove photo",
     photoUploading: "Uploading photo…",
     photoFailed: "We couldn't upload the photo. You can save without it.",
@@ -635,6 +653,9 @@ export const en: Dictionary = {
     granted: "Permission granted",
     stillBlocked: "Still no permission",
     linkAnyway: "Link anyway",
+    linkedNoData: "Linked, but Health isn't sharing this metric",
+    syncFailed: "We couldn't sync with Health",
+    linkMissing: "The linked activity no longer exists",
   },
   profile: {
     hubSettings: "Settings",
@@ -659,6 +680,7 @@ export const en: Dictionary = {
     exportDone: "File downloaded",
     avatarLabel: "Profile photo",
     changeAvatar: "Change photo",
+    poweredBy: "powered by",
     deleteAccount: "Delete my account",
     deleteAccountTitle: "Delete your account?",
     deleteAccountBody:

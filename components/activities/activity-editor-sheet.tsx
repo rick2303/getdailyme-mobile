@@ -1,4 +1,3 @@
-import DateTimePicker from '@react-native-community/datetimepicker'
 import { BellOff, Check, Lock, Trash2, UserRoundCheck, Users } from 'lucide-react-native'
 import { useState } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
@@ -10,6 +9,7 @@ import { Button, IconButton } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { TextInput } from '@/components/ui/field'
 import { Sheet } from '@/components/ui/sheet'
+import { TimePicker } from '@/components/ui/time-picker'
 import { useToast } from '@/components/ui/toast'
 import { useActivityHex, useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
@@ -82,7 +82,7 @@ export function ActivityEditorSheet({
   activity?: Activity | null
   onClose: () => void
 }) {
-  const { t, locale } = useI18n()
+  const { t } = useI18n()
   const userId = useCurrentUserId()
   const { showToast } = useToast()
   const colors = useThemeColors()
@@ -144,10 +144,14 @@ export function ActivityEditorSheet({
       return
     }
 
+    // Con quien se comparte va en su propia mutacion, asi que puede fallar por
+    // separado aunque la actividad se guarde bien. Sin este aviso el usuario se
+    // quedaba creyendo que habia cambiado la visibilidad.
+    const onSharesError = () => showToast(t('common.genericError'), 'error')
     if (cleanInput.visibility === 'custom') {
-      replaceShares.mutate({ activityId, friendIds: sharedWith })
+      replaceShares.mutate({ activityId, friendIds: sharedWith }, { onError: onSharesError })
     } else if (activity?.visibility === 'custom') {
-      replaceShares.mutate({ activityId, friendIds: [] })
+      replaceShares.mutate({ activityId, friendIds: [] }, { onError: onSharesError })
     }
 
     showToast(t('activity.saved'), 'success')
@@ -409,18 +413,14 @@ export function ActivityEditorSheet({
               ) : null}
             </View>
             {timePickerOpen ? (
-              <DateTimePicker
+              <TimePicker
                 value={reminderToDate(draft.reminder_at)}
-                mode="time"
-                locale={locale}
-                onChange={(_event, selected) => {
-                  setTimePickerOpen(false)
-                  if (selected) {
-                    const hours = String(selected.getHours()).padStart(2, '0')
-                    const minutes = String(selected.getMinutes()).padStart(2, '0')
-                    patch('reminder_at', `${hours}:${minutes}`)
-                  }
+                onChange={(selected) => {
+                  const hours = String(selected.getHours()).padStart(2, '0')
+                  const minutes = String(selected.getMinutes()).padStart(2, '0')
+                  patch('reminder_at', `${hours}:${minutes}`)
                 }}
+                onClose={() => setTimePickerOpen(false)}
               />
             ) : null}
           </View>

@@ -9,6 +9,7 @@ import {
   leaveClub,
 } from "@/lib/api/clubs";
 import { useCurrentUserId } from "@/lib/auth/provider";
+import { queryKeys } from "@/lib/query/keys";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -16,7 +17,7 @@ export function useClubs() {
   const userId = useCurrentUserId();
 
   return useQuery({
-    queryKey: ["clubs", userId ?? "anonymous"],
+    queryKey: queryKeys.clubs(userId ?? "anonymous"),
     enabled: isSupabaseConfigured() && Boolean(userId),
     queryFn: () => fetchClubs(getSupabaseBrowserClient()),
   });
@@ -24,7 +25,7 @@ export function useClubs() {
 
 export function useClubRanking(clubId: string | null) {
   return useQuery({
-    queryKey: ["clubs", "ranking", clubId ?? "none"],
+    queryKey: queryKeys.clubRanking(clubId ?? "none"),
     enabled: isSupabaseConfigured() && Boolean(clubId),
     staleTime: 60_000,
     queryFn: () => fetchClubRanking(getSupabaseBrowserClient(), clubId!),

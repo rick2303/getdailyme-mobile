@@ -24,7 +24,12 @@ export function HealthSyncButton({ activityId }: { activityId: string }) {
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      if (!(await isHealthConnected())) return
+      // Sin el else, una actividad sin vinculo heredaba el aviso de la anterior
+      // cuando la salud no estaba conectada.
+      if (!(await isHealthConnected())) {
+        if (!cancelled) setLinked(false)
+        return
+      }
       const links = await loadHealthLinks()
       if (!cancelled) setLinked(Object.values(links).includes(activityId))
     })()
@@ -36,8 +41,13 @@ export function HealthSyncButton({ activityId }: { activityId: string }) {
   if (!linked) return null
 
   const run = async () => {
-    const changes = await sync()
-    showToast(changes > 0 ? t('health.synced') : t('health.nothingToSync'), 'success')
+    const result = await sync()
+    if (!result) return
+    if (result.failed > 0) {
+      showToast(t('health.syncFailed'), 'error')
+      return
+    }
+    showToast(result.changes > 0 ? t('health.synced') : t('health.nothingToSync'), 'success')
   }
 
   const title =
@@ -47,7 +57,9 @@ export function HealthSyncButton({ activityId }: { activityId: string }) {
         ? t('health.synced')
         : status === 'empty'
           ? t('health.nothingToSync')
-          : t('health.syncActivity')
+          : status === 'error'
+            ? t('health.syncFailed')
+            : t('health.syncActivity')
 
   return (
     <View className="gap-2 rounded-2xl bg-brand-soft p-3 dark:bg-brand-soft-dark">

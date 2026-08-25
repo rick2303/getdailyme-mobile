@@ -1,6 +1,7 @@
 
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 import {
   fetchActivities,
@@ -31,13 +32,22 @@ export function useActivities() {
   });
 }
 
+// Con useMemo y no filtrando en el cuerpo: sin el, `data` era un array nuevo en
+// cada render y cualquier efecto que dependiera de el se disparaba sin parar
+// (el que redibuja el widget, por ejemplo, en cada render de la app).
 export function useActiveActivities() {
   const query = useActivities();
-  return {
-    ...query,
-    data: query.data?.filter((activity) => !activity.is_archived) ?? [],
-    archived: query.data?.filter((activity) => activity.is_archived) ?? [],
-  };
+  const { data } = query;
+
+  const split = useMemo(
+    () => ({
+      active: data?.filter((activity) => !activity.is_archived) ?? [],
+      archived: data?.filter((activity) => activity.is_archived) ?? [],
+    }),
+    [data],
+  );
+
+  return { ...query, data: split.active, archived: split.archived };
 }
 
 function useActivityCache() {

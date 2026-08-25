@@ -42,6 +42,7 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [busyGoogle, setBusyGoogle] = useState(false)
+  const [busyApple, setBusyApple] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [appleAvailable, setAppleAvailable] = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
@@ -77,6 +78,17 @@ export default function SignInScreen() {
         const { error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
+          /* Constancia de lo que se declaró y cuándo. Ojo: esto va a
+             `raw_user_meta_data`, que la propia cuenta puede reescribir con
+             `updateUser`, así que sirve de registro operativo pero NO es
+             prueba a prueba de manipulación. Si algún día hace falta que lo
+             sea, tiene que ser una columna que solo escriba el servidor. */
+          options: {
+            data: {
+              terms_accepted_at: new Date().toISOString(),
+              min_age_declared: 16,
+            },
+          },
         })
         if (signUpError) {
           const message = signUpError.message.toLowerCase()
@@ -102,6 +114,12 @@ export default function SignInScreen() {
   // Receta splitwo: URL con skipBrowserRedirect, navegador del sistema y canje
   // del codigo PKCE aqui mismo, recortando el fragmento fantasma de iOS.
   const signInWithGoogle = async () => {
+    /* Entrar con Google desde el modo «crear cuenta» también crea cuenta, así
+       que pasa por la misma casilla que la contraseña. En el modo «entrar» no
+       se exige: ahí la casilla ni se pinta y bloquearla dejaría fuera a quien
+       ya tiene cuenta. Para ese caso queda la línea de `auth.legal`. */
+    if (creatingAccount && !requireTerms()) return
+
     setBusyGoogle(true)
     setError(null)
     try {
@@ -154,6 +172,11 @@ export default function SignInScreen() {
   }
 
   const signInWithApple = async () => {
+    if (creatingAccount && !requireTerms()) return
+
+    // El unico de los tres accesos que no marcaba nada: el boton se quedaba
+    // vivo mientras Apple resolvia y se podia tocar dos veces.
+    setBusyApple(true)
     setError(null)
     try {
       const credential = await AppleAuthentication.signInAsync({
@@ -192,6 +215,8 @@ export default function SignInScreen() {
       if ((caught as { code?: string })?.code !== 'ERR_REQUEST_CANCELED') {
         setError(t('auth.failed'))
       }
+    } finally {
+      setBusyApple(false)
     }
   }
 
@@ -330,7 +355,8 @@ export default function SignInScreen() {
               fullWidth
               labelClassName={scheme === 'dark' ? 'text-[17px] text-black' : 'text-[17px] text-white'}
               className={scheme === 'dark' ? 'bg-white' : 'bg-black'}
-              icon={<AppleMark size={20} color={scheme === 'dark' ? '#000' : '#fff'} />}
+              loading={busyApple}
+              icon={busyApple ? undefined : <AppleMark size={20} color={scheme === 'dark' ? '#000' : '#fff'} />}
               onPress={() => void signInWithApple()}
             />
           ) : null}
@@ -358,14 +384,14 @@ export default function SignInScreen() {
               {t('auth.termsPrefix')}
               <Text
                 className="font-bold text-brand dark:text-brand-dark"
-                onPress={() => void WebBrowser.openBrowserAsync('https://getdailyme.com/terms')}
+                onPress={() => void WebBrowser.openBrowserAsync(t('auth.termsUrl'))}
               >
                 {t('auth.termsLink')}
               </Text>
               {t('auth.termsMiddle')}
               <Text
                 className="font-bold text-brand dark:text-brand-dark"
-                onPress={() => void WebBrowser.openBrowserAsync('https://getdailyme.com/privacy')}
+                onPress={() => void WebBrowser.openBrowserAsync(t('auth.privacyUrl'))}
               >
                 {t('auth.privacyLink')}
               </Text>

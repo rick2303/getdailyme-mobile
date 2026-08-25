@@ -45,25 +45,19 @@ export function ChallengesSection() {
     .sort((a, b) => b.ends_on.localeCompare(a.ends_on))
     .slice(0, 5)
 
-  if (running.length === 0 && invitations.length === 0) {
-    return (
-      <View className="gap-2">
-        <SectionHeader onCreate={() => setCreator({ open: true, prefill: null })} />
-        <Text className="px-1 text-sm text-text-muted dark:text-text-muted-dark">
-          {t('challenges.empty')}
-        </Text>
-        <CreateChallengeSheet
-        open={creator.open}
-        prefill={creator.prefill}
-        onClose={() => setCreator({ open: false, prefill: null })}
-      />
-      </View>
-    )
-  }
+  const isEmpty = running.length === 0 && invitations.length === 0
 
+  // El historico se pinta tambien cuando no queda ningun reto vivo: antes
+  // colgaba solo de la rama con retos activos, asi que al terminarse el ultimo
+  // desaparecian el historial y la revancha.
   return (
     <View className="gap-2">
       <SectionHeader onCreate={() => setCreator({ open: true, prefill: null })} />
+      {isEmpty ? (
+        <Text className="px-1 text-sm text-text-muted dark:text-text-muted-dark">
+          {t('challenges.empty')}
+        </Text>
+      ) : null}
       {invitations.map((challenge) => (
         <InvitationCard key={challenge.id} challenge={challenge} />
       ))}
@@ -493,15 +487,19 @@ export function CreateChallengeSheet({
   const [activityId, setActivityId] = useState<string | null>(null)
   const [invited, setInvited] = useState<string[]>([])
 
-  const [lastPrefill, setLastPrefill] = useState<ChallengePrefill | null | undefined>(null)
-  if (open && prefill !== lastPrefill) {
-    setLastPrefill(prefill)
-    if (prefill) {
-      setTitle(prefill.title)
-      setTarget(String(prefill.target))
-      setDays(Math.max(1, prefill.days))
-      setActivityId(prefill.activityId)
-      setInvited(prefill.friendIds)
+  // Cada apertura arranca de cero salvo que venga una revancha. Comparando solo
+  // el prefill, abrir "crear reto" despues de una revancha reabria la hoja con
+  // los datos de la revancha, porque sin prefill no se limpiaba nada.
+  const session = open ? (prefill ?? 'blank') : 'closed'
+  const [lastSession, setLastSession] = useState<typeof session>('closed')
+  if (session !== lastSession) {
+    setLastSession(session)
+    if (open) {
+      setTitle(prefill?.title ?? '')
+      setTarget(String(prefill?.target ?? 4))
+      setDays(Math.max(1, prefill?.days ?? 7))
+      setActivityId(prefill?.activityId ?? null)
+      setInvited(prefill?.friendIds ?? [])
     }
   }
 

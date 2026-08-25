@@ -43,11 +43,20 @@ export const es = {
   auth: {
     createAccountTitle: "Crea tu cuenta",
     createAccountSubtitle: "Un minuto y listo: tu día, tus amistades y tus logros en un solo lugar.",
-    termsPrefix: "Acepto los ",
+    /* La edad va dentro de la misma casilla que los términos, no en una
+       aparte: es una declaración del usuario, no un consentimiento distinto,
+       y dos casillas seguidas se marcan sin leer ninguna. 16 es el mínimo
+       que fijan los términos publicados; si cambia allí, cambia aquí. */
+    termsPrefix: "Tengo 16 años o más y acepto los ",
     termsLink: "Términos y Condiciones",
     termsMiddle: " y la ",
     privacyLink: "Política de Privacidad",
-    termsRequired: "Acepta los términos para continuar.",
+    termsRequired: "Confirma tu edad y acepta los términos para continuar.",
+    /* Las rutas legales son distintas en cada idioma y viven en la landing.
+       Antes apuntaban a /terms y /privacy, que no existen en español: se
+       estaba pidiendo aceptar unos términos que devolvían un 404. */
+    termsUrl: "https://getdailyme.com/terminos",
+    privacyUrl: "https://getdailyme.com/privacidad",
     welcomeTitle: "¡Hola! Qué bueno verte",
     welcomeSubtitle: "Tus hábitos, tus amistades y tus momentos, todo en un solo lugar.",
     heroTitle: "Registra tu día en un toque",
@@ -69,7 +78,10 @@ export const es = {
     invalidEmail: "Escribe un correo válido",
     failed: "No pudimos iniciar sesión. Inténtalo de nuevo.",
     linkExpired: "El enlace expiró o ya se usó. Pide uno nuevo.",
-    legal: "Al continuar aceptas que guardemos tu actividad para mostrártela a ti y a tus amigos.",
+    /* Cubre la vía de OAuth y del enlace mágico, donde no se pinta la casilla
+       pero una cuenta nueva se crea igual. */
+    legal:
+      "Al continuar declaras tener 16 años o más y aceptas que guardemos tu actividad para mostrártela a ti y a tus amigos.",
     tabPassword: "Contraseña",
     tabMagicLink: "Enlace por correo",
     passwordLabel: "Contraseña",
@@ -198,6 +210,7 @@ export const es = {
     deleteTitle: "¿Eliminar {name}?",
     deleteBody: "Se borrarán también todos sus registros. Esta acción no se puede deshacer.",
     deleteFailed: "No pudimos eliminarla. Sigue ahí.",
+    deleted: "Actividad eliminada",
     reminderLabel: "Recordatorio",
     reminderHelp: "Opcional. Solo te avisamos si ese día aún no la registraste.",
     reminderClear: "Quitar recordatorio",
@@ -267,6 +280,11 @@ export const es = {
     noteCounter: "{count}/280",
     photoLabel: "Foto",
     addPhoto: "Añadir foto",
+    takePhoto: "Tomar una foto",
+    choosePhoto: "Elegir de la galería",
+    sourceCamera: "Cámara",
+    sourceLibrary: "Galería",
+    cameraDenied: "Sin permiso de cámara. Actívalo en los ajustes del teléfono.",
     removePhoto: "Quitar foto",
     photoUploading: "Subiendo foto…",
     photoFailed: "No pudimos subir la foto. Puedes guardar sin ella.",
@@ -633,6 +651,9 @@ export const es = {
     granted: "Permiso concedido",
     stillBlocked: "Sigue sin permiso",
     linkAnyway: "Vincular igualmente",
+    linkedNoData: "Vinculada, pero Salud no está dando este dato",
+    syncFailed: "No pudimos sincronizar con Salud",
+    linkMissing: "La actividad vinculada ya no existe",
   },
   profile: {
     hubSettings: "Ajustes",
@@ -657,6 +678,7 @@ export const es = {
     exportDone: "Archivo descargado",
     avatarLabel: "Foto de perfil",
     changeAvatar: "Cambiar foto",
+    poweredBy: "powered by",
     deleteAccount: "Eliminar mi cuenta",
     deleteAccountTitle: "¿Eliminar tu cuenta?",
     deleteAccountBody:

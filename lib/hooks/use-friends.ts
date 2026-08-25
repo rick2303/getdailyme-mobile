@@ -224,7 +224,7 @@ export function useFriendActiveDates(friendId: string | null) {
   const since = shiftDateKey(todayKey(timeZone), -(SHARED_STREAK_WINDOW_DAYS - 1));
 
   return useQuery({
-    queryKey: ["friend-active-dates", friendId],
+    queryKey: queryKeys.friendActiveDates(friendId ?? "none"),
     enabled: isSupabaseConfigured() && Boolean(friendId),
     queryFn: () => fetchFriendActiveDates(getSupabaseBrowserClient(), friendId!, since),
   });

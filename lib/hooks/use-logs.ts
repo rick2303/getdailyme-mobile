@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { fetchDailyTotals, fetchLogsSince } from "@/lib/api/logs";
+import { fetchDailyTotals, fetchLogsSince, type DailyTotal } from "@/lib/api/logs";
 import type { Activity, ActivityLog } from "@/lib/api/types";
 import { useCurrentUserId, useTimeZone } from "@/lib/auth/provider";
 import { mutationKeys, queryKeys } from "@/lib/query/keys";
@@ -40,62 +40,96 @@ export function useDailyTotals() {
   });
 }
 
-export function useLogCountsByActivity() {
+type ByActivity = Map<string, Map<string, number>>;
+
+type LogAggregate = { counts: ByActivity; amounts: ByActivity };
+
+function bumpInto(target: ByActivity, activityId: string, day: string, value: number) {
+  const days = target.get(activityId) ?? new Map<string, number>();
+  days.set(day, (days.get(day) ?? 0) + value);
+  target.set(activityId, days);
+}
+
+function buildAggregate(
+  dailyTotals: DailyTotal[] | undefined,
+  logs: ActivityLog[] | undefined,
+  rawSince: string,
+): LogAggregate {
+  const counts: ByActivity = new Map();
+  const amounts: ByActivity = new Map();
+
+  for (const row of dailyTotals ?? []) {
+    if (row.day >= rawSince) continue;
+    bumpInto(counts, row.activity_id, row.day, row.log_count);
+    bumpInto(amounts, row.activity_id, row.day, row.total);
+  }
+
+  for (const log of logs ?? []) {
+    bumpInto(counts, log.activity_id, log.local_date, 1);
+    bumpInto(amounts, log.activity_id, log.local_date, log.amount);
+  }
+
+  return { counts, amounts };
+}
+
+// Los hooks de React no comparten memo entre componentes: la pantalla de hoy
+// monta cinco hooks que por debajo pedian este agregado, y cada uno recorria los
+// 180 dias de totales por su cuenta, cuatro veces en cada cambio de datos.
+// react-query mantiene la misma referencia mientras los datos no cambian, asi
+// que recordar el ultimo resultado por identidad de las entradas basta para que
+// el recorrido se haga una sola vez. Es memoizacion pura: mismas entradas,
+// mismo resultado.
+let aggregateCache: {
+  dailyTotals: DailyTotal[] | undefined;
+  logs: ActivityLog[] | undefined;
+  rawSince: string;
+  value: LogAggregate;
+} | null = null;
+
+function aggregateOf(
+  dailyTotals: DailyTotal[] | undefined,
+  logs: ActivityLog[] | undefined,
+  rawSince: string,
+): LogAggregate {
+  if (
+    aggregateCache &&
+    aggregateCache.dailyTotals === dailyTotals &&
+    aggregateCache.logs === logs &&
+    aggregateCache.rawSince === rawSince
+  ) {
+    return aggregateCache.value;
+  }
+
+  const value = buildAggregate(dailyTotals, logs, rawSince);
+  aggregateCache = { dailyTotals, logs, rawSince, value };
+  return value;
+}
+
+function useLogAggregate() {
   const timeZone = useTimeZone();
   const { data: dailyTotals, isLoading: isLoadingTotals } = useDailyTotals();
   const { data: logs, isLoading: isLoadingLogs } = useRecentLogs();
   const rawSince = shiftDateKey(todayKey(timeZone), -(RAW_LOG_DAYS - 1));
 
-  return useMemo(() => {
-    const byActivity = new Map<string, Map<string, number>>();
+  return useMemo(
+    () => ({
+      ...aggregateOf(dailyTotals, logs, rawSince),
+      isLoading: isLoadingTotals || isLoadingLogs,
+    }),
+    [dailyTotals, logs, rawSince, isLoadingTotals, isLoadingLogs],
+  );
+}
 
-    const bump = (activityId: string, day: string, amount: number) => {
-      const days = byActivity.get(activityId) ?? new Map<string, number>();
-      days.set(day, (days.get(day) ?? 0) + amount);
-      byActivity.set(activityId, days);
-    };
-
-    for (const row of dailyTotals ?? []) {
-      if (row.day >= rawSince) continue;
-      bump(row.activity_id, row.day, row.log_count);
-    }
-
-    for (const log of logs ?? []) {
-      bump(log.activity_id, log.local_date, 1);
-    }
-
-    return { byActivity, isLoading: isLoadingTotals || isLoadingLogs };
-  }, [dailyTotals, logs, rawSince, isLoadingTotals, isLoadingLogs]);
+export function useLogCountsByActivity() {
+  const { counts, isLoading } = useLogAggregate();
+  return useMemo(() => ({ byActivity: counts, isLoading }), [counts, isLoading]);
 }
 
 // Igual que useLogCountsByActivity pero sumando cantidades en vez de registros:
 // una meta semanal de "3 veces" y otra de "20 km" no se miden con lo mismo.
 export function useAmountsByActivity() {
-  const timeZone = useTimeZone();
-  const { data: dailyTotals, isLoading: isLoadingTotals } = useDailyTotals();
-  const { data: logs, isLoading: isLoadingLogs } = useRecentLogs();
-  const rawSince = shiftDateKey(todayKey(timeZone), -(RAW_LOG_DAYS - 1));
-
-  return useMemo(() => {
-    const byActivity = new Map<string, Map<string, number>>();
-
-    const bump = (activityId: string, day: string, amount: number) => {
-      const days = byActivity.get(activityId) ?? new Map<string, number>();
-      days.set(day, (days.get(day) ?? 0) + amount);
-      byActivity.set(activityId, days);
-    };
-
-    for (const row of dailyTotals ?? []) {
-      if (row.day >= rawSince) continue;
-      bump(row.activity_id, row.day, row.total);
-    }
-
-    for (const log of logs ?? []) {
-      bump(log.activity_id, log.local_date, log.amount);
-    }
-
-    return { byActivity, isLoading: isLoadingTotals || isLoadingLogs };
-  }, [dailyTotals, logs, rawSince, isLoadingTotals, isLoadingLogs]);
+  const { amounts, isLoading } = useLogAggregate();
+  return useMemo(() => ({ byActivity: amounts, isLoading }), [amounts, isLoading]);
 }
 
 // Cantidad y numero de registros juntos por dia y actividad. Es lo que necesita

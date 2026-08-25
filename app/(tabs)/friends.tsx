@@ -28,6 +28,7 @@ import {
 } from '@/lib/hooks/use-friends'
 import { useQueryClient } from '@tanstack/react-query'
 
+import { inviteUrl } from '@/lib/api/invites'
 import { useInviteToken } from '@/lib/hooks/use-invite'
 import { useFriendActiveDates } from '@/lib/hooks/use-friends'
 import { useHistorySummary } from '@/lib/hooks/use-logs'
@@ -37,8 +38,14 @@ import { Sheet } from '@/components/ui/sheet'
 import { useCurrentUserId } from '@/lib/auth/provider'
 import { haptic } from '@/lib/utils/haptics'
 
+// El dominio que atienden a la vez la PWA y los enlaces universales de la app:
+// es el mismo que declaran los intentFilters de Android y los associatedDomains
+// de iOS en app.json.
+const APP_ORIGIN = 'https://app.getdailyme.com'
+
 export default function FriendsScreen() {
   const { t } = useI18n()
+  const { showToast } = useToast()
   const colors = useThemeColors()
   const queryClient = useQueryClient()
   const { friends, incoming, blocked, isLoading } = useFriends()
@@ -48,21 +55,32 @@ export default function FriendsScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [tab, setTab] = useState<'friends' | 'challenges' | 'clubs'>('friends')
 
+  // Las tres pestañas viven bajo el mismo scroll, asi que tirar para refrescar
+  // tiene que recargar las tres. Faltaban clubes y las clasificaciones: en esas
+  // pestañas el gesto no hacia nada.
   const refresh = async () => {
     setRefreshing(true)
-    await queryClient.invalidateQueries({ queryKey: ['friends'] })
-    await queryClient.invalidateQueries({ queryKey: ['challenges'] })
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['friends'] }),
+      queryClient.invalidateQueries({ queryKey: ['challenges'] }),
+      queryClient.invalidateQueries({ queryKey: ['challenge-standings'] }),
+      queryClient.invalidateQueries({ queryKey: ['clubs'] }),
+    ])
     setRefreshing(false)
   }
 
-  // El enlace de invitacion de la web: lo comparte el share nativo y quien lo
-  // abra queda como amistad al canjearlo (la ruta vive en la PWA).
+  // El enlace se arma con el mismo helper que la web para que las dos generen
+  // exactamente la misma URL; quien la abra la canjea en /invite, que ahora
+  // tambien existe aqui.
   const shareInvite = async () => {
-    if (!inviteToken) return
+    if (!inviteToken) {
+      showToast(t('common.genericError'), 'error')
+      return
+    }
     haptic('tap')
     try {
       await Share.share({
-        message: t('friends.inviteMessage') + String.fromCharCode(10) + 'https://app.getdailyme.com/invite/' + inviteToken,
+        message: `${t('friends.inviteMessage')}\n${inviteUrl(APP_ORIGIN, inviteToken)}`,
       })
     } catch {
       // Cancelar el menu del sistema no es un error.

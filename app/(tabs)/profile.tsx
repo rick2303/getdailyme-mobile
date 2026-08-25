@@ -1,6 +1,7 @@
-import * as ImagePicker from 'expo-image-picker'
+import Constants from 'expo-constants'
 import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
+import * as WebBrowser from 'expo-web-browser'
 import {
   Bell,
   CalendarDays,
@@ -21,7 +22,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native'
 import { useMemo, useState } from 'react'
-import { ScrollView, Share, Text, View } from 'react-native'
+import { Image, ScrollView, Share, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ActivityIcon } from '@/components/activities/activity-icon'
@@ -36,6 +37,7 @@ import { SecuritySection } from '@/components/profile/security-section'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
 import { TextInput } from '@/components/ui/field'
+import { PhotoSourceSheet } from '@/components/ui/photo-source-sheet'
 import { Segmented, type SegmentedOption } from '@/components/ui/segmented'
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/components/ui/toast'
@@ -57,6 +59,7 @@ import { uploadAvatar } from '@/lib/api/storage'
 import { ACCENTS, ACCENT_HEX, THEME_MODES, type ThemeMode } from '@/lib/theme'
 import { useThemeSettings } from '@/lib/theme-context'
 import { getBrowserTimeZone } from '@/lib/utils/dates'
+import { pickImage, type PhotoSource } from '@/lib/utils/pick-image'
 import { Pressable } from 'react-native'
 import { USERNAME_COOLDOWN_DAYS, daysUntilUsernameChange, isUsernameCooldownError } from '@/lib/api/username-cooldown'
 import { useAuth } from '@/lib/auth/provider'
@@ -75,20 +78,21 @@ export default function ProfileScreen() {
   const [editing, setEditing] = useState(false)
   const [managing, setManaging] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [choosingAvatarSource, setChoosingAvatarSource] = useState(false)
 
   if (!profile) return null
 
-  const pickAvatar = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: 'images',
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    })
-    if (result.canceled || !result.assets[0]) return
+  const pickAvatar = async (source: PhotoSource) => {
+    setChoosingAvatarSource(false)
+    const picked = await pickImage(source, { square: true })
+    if (picked.status === 'denied') {
+      showToast(t('log.cameraDenied'), 'error')
+      return
+    }
+    if (picked.status !== 'picked') return
     setUploadingAvatar(true)
     try {
-      const url = await uploadAvatar(getSupabaseBrowserClient(), profile.id, result.assets[0].uri)
+      const url = await uploadAvatar(getSupabaseBrowserClient(), profile.id, picked.uri)
       await updateProfile(getSupabaseBrowserClient(), profile.id, { avatar_url: url })
       await queryClient.invalidateQueries({ queryKey: queryKeys.profile(profile.id) })
       showToast(t('profile.saved'), 'success')
@@ -110,7 +114,7 @@ export default function ProfileScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('profile.changeAvatar')}
-            onPress={() => void pickAvatar()}
+            onPress={() => setChoosingAvatarSource(true)}
             disabled={uploadingAvatar}
           >
             <Avatar name={profile.display_name} src={profile.avatar_url} size="lg" />
@@ -140,10 +144,49 @@ export default function ProfileScreen() {
 
         <SettingsHub onManage={() => setManaging(true)} onSignOut={() => void signOut()} />
 
+        <PoweredByQalit />
+
         <ProfileEditorSheet open={editing} onClose={() => setEditing(false)} />
         <ManageActivitiesSheet open={managing} onClose={() => setManaging(false)} />
+        <PhotoSourceSheet
+          open={choosingAvatarSource}
+          onClose={() => setChoosingAvatarSource(false)}
+          onPick={(source) => void pickAvatar(source)}
+        />
       </ScrollView>
     </SafeAreaView>
+  )
+}
+
+// El pie de quien hace la app, igual que en splitwo: el logo ya trae la Q, asi
+// que el texto solo pone lo que falta.
+function PoweredByQalit() {
+  const { t } = useI18n()
+  const version = Constants.expoConfig?.version ?? '1.0.0'
+
+  return (
+    <View className="items-center gap-1.5 pb-6 pt-2">
+      <View className="h-[1.5px] w-10 rounded-full bg-border dark:bg-border-dark" />
+      <Text className="text-[11px] uppercase tracking-[1px] text-text-subtle dark:text-text-subtle-dark">
+        {t('profile.poweredBy')}
+      </Text>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel="QALI-T"
+        onPress={() => void WebBrowser.openBrowserAsync('https://qali-t.com')}
+        className="flex-row items-center gap-0.5"
+      >
+        <Image
+          source={require('@/assets/qali-t-logo.png')}
+          style={{ width: 22, height: 22 }}
+          resizeMode="contain"
+        />
+        <Text className="text-base font-extrabold tracking-[1.5px] text-text-muted dark:text-text-muted-dark">
+          ALI-T
+        </Text>
+      </Pressable>
+      <Text className="text-[11px] text-text-subtle dark:text-text-subtle-dark">v{version}</Text>
+    </View>
   )
 }
 

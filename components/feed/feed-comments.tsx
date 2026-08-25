@@ -124,6 +124,10 @@ export function FeedComments({
                   }
                   onReply={(to) => {
                     haptic('tap')
+                    // Salir de una edicion tiene que llevarse su texto: si no,
+                    // el cuerpo del comentario que se estaba editando se enviaba
+                    // como respuesta.
+                    if (editing) setDraft('')
                     setEditing(null)
                     setReplyTo({ rootId: thread.root.id, to })
                     setExpanded((current) =>
