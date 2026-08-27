@@ -142,6 +142,12 @@ export function NotificationsSection({ embedded = false }: { embedded?: boolean 
                 onChange={(checked) => savePreference({ notify_comments: checked })}
               />
               <PreferenceToggle
+                label={t('notifications.typeFriendLogs')}
+                hint={t('notifications.typeFriendLogsHelp')}
+                checked={preferences?.notify_friend_logs ?? true}
+                onChange={(checked) => savePreference({ notify_friend_logs: checked })}
+              />
+              <PreferenceToggle
                 label={t('notifications.typeReminder')}
                 checked={reminderEnabled}
                 onChange={(checked) =>
@@ -227,10 +233,12 @@ export function NotificationsSection({ embedded = false }: { embedded?: boolean 
 
 function PreferenceToggle({
   label,
+  hint,
   checked,
   onChange,
 }: {
   label: string
+  hint?: string
   checked: boolean
   onChange: (checked: boolean) => void
 }) {
@@ -238,9 +246,15 @@ function PreferenceToggle({
 
   return (
     <View className="flex-row items-center justify-between gap-3 rounded-2xl bg-surface-sunken px-3.5 py-2.5 dark:bg-surface-sunken-dark">
-      <Text className="min-w-0 flex-1 text-sm font-medium text-text dark:text-text-dark">
-        {label}
-      </Text>
+      <View className="min-w-0 flex-1">
+        <Text className="text-sm font-medium text-text dark:text-text-dark">{label}</Text>
+        {/* La aclaracion importa en el de amistades: sin ella el interruptor
+            suena a "avisame de todo lo que hagan", que es justo lo que la gente
+            no quiere y lo que no hace. */}
+        {hint ? (
+          <Text className="mt-0.5 text-xs text-text-muted dark:text-text-muted-dark">{hint}</Text>
+        ) : null}
+      </View>
       <Switch value={checked} onValueChange={onChange} trackColor={{ true: colors.brand }} />
     </View>
   )

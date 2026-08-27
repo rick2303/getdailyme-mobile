@@ -764,6 +764,8 @@ export const en: Dictionary = {
     typeNudges: "When someone nudges me",
     typeReactions: "When someone reacts to my logs",
     typeComments: "When someone comments on my logs",
+    typeFriendLogs: "When a friend starts their day",
+    typeFriendLogsHelp: "Only their first log of the day.",
     typeReminder: "Daily reminder",
     reminderAt: "At",
     unsupported: "This browser doesn't support alerts.",

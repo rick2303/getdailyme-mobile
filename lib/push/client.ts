@@ -9,6 +9,7 @@ export type NotifySource =
   | { type: 'comment'; commentId: string }
   | { type: 'friend_request'; addresseeId: string }
   | { type: 'friend_accept'; friendshipId: string }
+  | { type: 'friend_log'; logId: string }
 
 export async function requestPush(source: NotifySource): Promise<void> {
   const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL

@@ -765,6 +765,7 @@ export type Database = {
           id: string
           locale: string
           notify_comments: boolean
+          notify_friend_logs: boolean
           notify_nudges: boolean
           notify_reactions: boolean
           onboarded_at: string | null
@@ -781,6 +782,7 @@ export type Database = {
           id: string
           locale?: string
           notify_comments?: boolean
+          notify_friend_logs?: boolean
           notify_nudges?: boolean
           notify_reactions?: boolean
           onboarded_at?: string | null
@@ -797,6 +799,7 @@ export type Database = {
           id?: string
           locale?: string
           notify_comments?: boolean
+          notify_friend_logs?: boolean
           notify_nudges?: boolean
           notify_reactions?: boolean
           onboarded_at?: string | null
@@ -1013,6 +1016,19 @@ export type Database = {
         }[]
       }
       current_invite: { Args: never; Returns: string }
+      friend_log_audience: {
+        Args: { p_log_id: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
+      log_headline: {
+        Args: { p_log_id: string }
+        Returns: {
+          author_name: string
+          activity_name: string
+        }[]
+      }
       daily_totals: {
         Args: { p_days?: number }
         Returns: {

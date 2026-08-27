@@ -762,6 +762,8 @@ export const es = {
     typeNudges: "Cuando me dan un toque",
     typeReactions: "Cuando reaccionan a mis registros",
     typeComments: "Cuando comentan mis registros",
+    typeFriendLogs: "Cuando alguien de mis amistades empieza su día",
+    typeFriendLogsHelp: "Solo el primer registro del día de cada persona.",
     typeReminder: "Recordatorio diario",
     reminderAt: "A las",
     unsupported: "Este navegador no admite avisos.",

@@ -136,8 +136,17 @@ export function registerOfflineMutations(queryClient: QueryClient) {
   };
 
   queryClient.setMutationDefaults(mutationKeys.createLog, {
-    mutationFn: async (variables: CreateLogVariables) =>
-      createLog(getSupabaseBrowserClient(), variables),
+    mutationFn: async (variables: CreateLogVariables) => {
+      const created = await createLog(getSupabaseBrowserClient(), variables);
+
+      // Quien decide si esto merece aviso es el servidor: solo el primer
+      // registro del dia de esta persona, solo a sus amistades, y solo a quien
+      // pueda ver la actividad. Aqui basta con contarle que hubo registro.
+      // Va suelto a proposito: el aviso no puede retrasar el guardado.
+      if (created) void notifyQuietly({ type: "friend_log", logId: variables.id });
+
+      return created;
+    },
     onSettled: (_data, _error, variables) => {
       invalidateLogs();
       if (variables) invalidateActivities(variables.user_id);
