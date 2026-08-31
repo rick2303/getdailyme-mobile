@@ -21,6 +21,10 @@ import { initCrashReporting, setCrashUser, wrapRoot } from '@/lib/crash'
 import { useActiveActivities } from '@/lib/hooks/use-activities'
 import { useHistorySummary, useTodayTotals } from '@/lib/hooks/use-logs'
 import { isHealthConnected, syncHealthToLogs } from '@/lib/health'
+import { buildFriendsWidgetPayload } from '@/lib/widget-friends'
+import { updateFriendsWidget } from '@/lib/widget'
+import { useActivityLabels } from '@/lib/activities/labels'
+import { useRelativeTime } from '@/lib/hooks/use-relative-time'
 import { claimParkedInvite } from '@/lib/invite-handoff'
 import { initOneSignal, loginOneSignal, logoutOneSignal } from '@/lib/onesignal'
 import { QueryProvider } from '@/lib/query/provider'
@@ -153,6 +157,53 @@ function WidgetBinder() {
   return null
 }
 
+// El widget de amistades: lo ultimo del muro, con una foto.
+//
+// Va aparte del WidgetBinder porque su fuente es otra —el feed, no las
+// actividades propias— y porque cuesta mas: descarga una foto y la reduce. Se
+// refresca al abrir y al volver del fondo, no en cada cambio local.
+function FriendsWidgetBinder() {
+  const { user } = useAuth()
+  const colors = useThemeColors()
+  const { activityName, amountWithUnit } = useActivityLabels()
+  const relativeTime = useRelativeTime()
+
+  const userId = user?.id ?? null
+
+  useEffect(() => {
+    if (!userId) return
+    let cancelled = false
+
+    const refresh = async () => {
+      try {
+        const payload = await buildFriendsWidgetPayload({
+          brand: colors.brand,
+          currentUserId: userId,
+          activityName,
+          amountWithUnit,
+          relativeTime,
+        })
+        if (payload && !cancelled) updateFriendsWidget(payload)
+      } catch {
+        // El widget es decorativo: si el muro no responde, se queda con lo
+        // ultimo que tenia en vez de vaciarse.
+      }
+    }
+
+    void refresh()
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refresh()
+    })
+
+    return () => {
+      cancelled = true
+      subscription.remove()
+    }
+  }, [userId, colors.brand, activityName, amountWithUnit, relativeTime])
+
+  return null
+}
+
 // Sincroniza salud al abrir la app y al volver del fondo, si esta conectada.
 function HealthBinder() {
   const { user, profile } = useAuth()
@@ -256,6 +307,7 @@ function RootLayout() {
                   <PushBinder />
                   <QuickActionsBinder />
                   <WidgetBinder />
+                  <FriendsWidgetBinder />
                   <HealthBinder />
                   <PendingInviteBinder />
                   <Gate>

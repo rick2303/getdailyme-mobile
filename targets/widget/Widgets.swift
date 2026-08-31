@@ -366,6 +366,214 @@ struct GetdailymeWidget: Widget {
 struct GetdailymeWidgets: WidgetBundle {
   var body: some Widget {
     GetdailymeWidget()
+    FriendsWidget()
     TimerLiveActivity()
+  }
+}
+
+// MARK: - Amistades
+//
+// El segundo widget: lo ultimo que han registrado tus amistades, con la foto de
+// la entrada mas reciente que tenga una.
+//
+// La foto llega en base64 dentro del propio payload y no como URL. WidgetKit
+// dibuja de forma sincrona: no hay donde esperar una descarga. La app la reduce
+// antes de escribirla en el App Group.
+
+struct WidgetFriendEntry: Codable, Identifiable {
+  var id: String { author + when }
+  let author: String
+  let activity: String
+  let detail: String
+  let when: String
+}
+
+struct FriendsData: Codable {
+  let brand: String
+  let entries: [WidgetFriendEntry]
+  let photo: String?
+  let photoAuthor: String?
+}
+
+let placeholderFriends = FriendsData(
+  brand: "#007EB6",
+  entries: [
+    WidgetFriendEntry(author: "Sofía", activity: "Agua", detail: "3 vasos", when: "hace 10 min"),
+    WidgetFriendEntry(author: "Daniel", activity: "Ejercicio", detail: "30 minutos", when: "hace 1 h"),
+  ],
+  photo: nil,
+  photoAuthor: nil
+)
+
+func loadFriendsData() -> FriendsData {
+  guard
+    let defaults = UserDefaults(suiteName: "group.com.getdailyme.app"),
+    let raw = defaults.string(forKey: "widgetFriends"),
+    let data = raw.data(using: .utf8),
+    let parsed = try? JSONDecoder().decode(FriendsData.self, from: data)
+  else {
+    return placeholderFriends
+  }
+  return parsed
+}
+
+struct FriendsEntry: TimelineEntry {
+  let date: Date
+  let data: FriendsData
+}
+
+struct FriendsProvider: TimelineProvider {
+  func placeholder(in context: Context) -> FriendsEntry {
+    FriendsEntry(date: Date(), data: placeholderFriends)
+  }
+
+  func getSnapshot(in context: Context, completion: @escaping (FriendsEntry) -> Void) {
+    completion(FriendsEntry(date: Date(), data: loadFriendsData()))
+  }
+
+  func getTimeline(in context: Context, completion: @escaping (Timeline<FriendsEntry>) -> Void) {
+    let entry = FriendsEntry(date: Date(), data: loadFriendsData())
+    let refresh = Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date()
+    completion(Timeline(entries: [entry], policy: .after(refresh)))
+  }
+}
+
+struct FriendsRow: View {
+  let entry: WidgetFriendEntry
+  let compact: Bool
+
+  var body: some View {
+    HStack(spacing: 6) {
+      Text(entry.author)
+        .font(.system(size: compact ? 12 : 13, weight: .semibold))
+        .lineLimit(1)
+      Text("·").font(.system(size: compact ? 12 : 13)).foregroundStyle(.secondary)
+      Text(entry.activity)
+        .font(.system(size: compact ? 12 : 13))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+      Spacer(minLength: 4)
+      Text(entry.when)
+        .font(.system(size: 11))
+        .foregroundStyle(.tertiary)
+        .lineLimit(1)
+    }
+  }
+}
+
+struct FriendsEmptyView: View {
+  var body: some View {
+    VStack(spacing: 4) {
+      Text("Sin novedades").font(.system(size: 14, weight: .semibold))
+      Text("Aquí verás lo último de tus amistades")
+        .font(.system(size: 11))
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+    }
+    .padding()
+  }
+}
+
+struct FriendsLargeView: View {
+  let data: FriendsData
+  let brand: Color
+
+  // El base64 se decodifica en cada dibujado. Es barato para una imagen de
+  // ~400px y evita guardar un fichero aparte que habria que limpiar.
+  private var image: UIImage? {
+    guard let photo = data.photo, let bytes = Data(base64Encoded: photo) else { return nil }
+    return UIImage(data: bytes)
+  }
+
+  var body: some View {
+    if data.entries.isEmpty {
+      FriendsEmptyView()
+    } else {
+      VStack(alignment: .leading, spacing: 8) {
+        HStack {
+          Text("Amistades")
+            .font(.system(size: 12, weight: .heavy))
+            .foregroundStyle(brand)
+          Spacer()
+          if let first = data.entries.first {
+            Text(first.when).font(.system(size: 11)).foregroundStyle(.tertiary)
+          }
+        }
+
+        if let image {
+          Image(uiImage: image)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(maxWidth: .infinity, maxHeight: 118)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+
+        if let first = data.entries.first {
+          VStack(alignment: .leading, spacing: 1) {
+            Text("\(first.author) · \(first.activity)")
+              .font(.system(size: 15, weight: .bold))
+              .lineLimit(1)
+            Text(first.detail).font(.system(size: 12)).foregroundStyle(.secondary)
+          }
+        }
+
+        ForEach(data.entries.dropFirst()) { entry in
+          FriendsRow(entry: entry, compact: true)
+        }
+
+        Spacer(minLength: 0)
+      }
+      .padding(14)
+    }
+  }
+}
+
+struct FriendsMediumView: View {
+  let data: FriendsData
+  let brand: Color
+
+  var body: some View {
+    if data.entries.isEmpty {
+      FriendsEmptyView()
+    } else {
+      VStack(alignment: .leading, spacing: 6) {
+        Text("Amistades")
+          .font(.system(size: 12, weight: .heavy))
+          .foregroundStyle(brand)
+        ForEach(data.entries.prefix(3)) { entry in
+          FriendsRow(entry: entry, compact: false)
+        }
+        Spacer(minLength: 0)
+      }
+      .padding(14)
+    }
+  }
+}
+
+struct FriendsWidgetView: View {
+  @Environment(\.widgetFamily) var family
+  let entry: FriendsEntry
+
+  var body: some View {
+    let brand = Color(hex: entry.data.brand)
+    switch family {
+    case .systemLarge:
+      FriendsLargeView(data: entry.data, brand: brand)
+        .containerBackground(for: .widget) { WidgetBackground(brand: brand) }
+    default:
+      FriendsMediumView(data: entry.data, brand: brand)
+        .containerBackground(for: .widget) { WidgetBackground(brand: brand) }
+    }
+  }
+}
+
+struct FriendsWidget: Widget {
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: "FriendsWidget", provider: FriendsProvider()) { entry in
+      FriendsWidgetView(entry: entry)
+    }
+    .configurationDisplayName("Amistades")
+    .description("Lo último que han registrado, con foto.")
+    .supportedFamilies([.systemMedium, .systemLarge])
   }
 }

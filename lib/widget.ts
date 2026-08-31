@@ -14,6 +14,31 @@ export type WidgetPayload = {
   activities: { name: string; color: string; progress: number }[]
 }
 
+// El segundo widget: lo ultimo que han registrado tus amistades.
+//
+// La foto viaja como base64 dentro del payload y no como URL. No es pereza: los
+// widgets no pueden descargar nada. En iOS las vistas de WidgetKit son
+// sincronas, y en Android el widget se dibuja fuera del proceso de la app. Lo
+// que no este ya en el aparato cuando toca pintar, no se pinta.
+//
+// Por eso la app la reduce antes: a 400px y calidad 70 son ~30 KB, ~40 KB ya en
+// base64. A resolucion completa esto no se puede hacer — el payload va por
+// UserDefaults y se reescribe en cada cambio.
+export type WidgetFriendEntry = {
+  author: string
+  activity: string
+  detail: string
+  when: string
+}
+
+export type FriendsWidgetPayload = {
+  brand: string
+  entries: WidgetFriendEntry[]
+  // Sin prefijo `data:`: cada plataforma lo pone como lo necesita.
+  photo: string | null
+  photoAuthor: string | null
+}
+
 let storage: { set: (key: string, value: string) => void } | null = null
 let reload: (() => void) | null = null
 
@@ -76,5 +101,49 @@ export function updateWidget(payload: WidgetPayload) {
   if (Platform.OS === 'android') {
     void AsyncStorage.setItem('widgetData', serialized).catch(() => undefined)
     updateAndroidWidget(payload)
+  }
+}
+
+function updateAndroidFriendsWidget(payload: FriendsWidgetPayload) {
+  try {
+    const { requestWidgetUpdate } = require('react-native-android-widget') as {
+      requestWidgetUpdate: (options: {
+        widgetName: string
+        renderWidget: () => React.ReactElement
+      }) => Promise<void>
+    }
+    const { FriendsWidget } = require('../widgets/friends-widget') as {
+      FriendsWidget: (props: { data: FriendsWidgetPayload }) => React.ReactElement
+    }
+    void requestWidgetUpdate({
+      widgetName: 'FriendsWidget',
+      renderWidget: () => createElement(FriendsWidget, { data: payload }),
+    })
+  } catch {
+    // Sin el modulo nativo (Expo Go, web) el widget simplemente no se refresca.
+  }
+}
+
+let lastFriends: string | null = null
+
+export function updateFriendsWidget(payload: FriendsWidgetPayload) {
+  const serialized = JSON.stringify(payload)
+  if (serialized === lastFriends) return
+  lastFriends = serialized
+
+  if (Platform.OS === 'ios') {
+    if (!ensureIosBridge()) return
+    try {
+      storage!.set('widgetFriends', serialized)
+      reload!()
+    } catch {
+      // El widget es decorativo: si el puente falla, la app sigue como si nada.
+    }
+    return
+  }
+
+  if (Platform.OS === 'android') {
+    void AsyncStorage.setItem('widgetFriends', serialized).catch(() => undefined)
+    updateAndroidFriendsWidget(payload)
   }
 }
