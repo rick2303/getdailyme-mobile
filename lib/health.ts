@@ -431,9 +431,37 @@ async function dropDeadLinks(
   return next
 }
 
+// Una sincronizacion a la vez, sea quien sea quien la pida.
+//
+// Hay dos disparadores que no se conocen entre si: HealthBinder en _layout, que
+// corre al abrir la app y en cada AppState 'active', y el boton de la pantalla
+// de salud. El boton tenia su propio cerrojo, pero era un ref de su instancia
+// del hook, asi que no frenaba al binder.
+//
+// Solapadas duplican registros: las dos leen el estado guardado antes de que
+// ninguna lo escriba, las dos ven que hoy no hay nada, y las dos crean un
+// registro con un id distinto. El usuario acaba con los pasos contados dos
+// veces, y el segundo guardado pisa la referencia del primero, asi que ese
+// registro queda huerfano y ya no se actualiza ni se limpia nunca.
+//
+// Devolver la promesa en vuelo, y no simplemente salir, importa: quien llega
+// segundo espera el mismo resultado en vez de creerse que no habia nada.
+let inFlight: Promise<HealthSyncResult> | null = null
+
+export function syncHealthToLogs(
+  userId: string,
+  timeZone: string,
+): Promise<HealthSyncResult> {
+  if (inFlight) return inFlight
+  inFlight = runHealthSync(userId, timeZone).finally(() => {
+    inFlight = null
+  })
+  return inFlight
+}
+
 // Registra los valores de hoy en las actividades vinculadas: un solo registro
 // por dia y por metrica que se actualiza si el valor crece.
-export async function syncHealthToLogs(
+async function runHealthSync(
   userId: string,
   timeZone: string,
 ): Promise<HealthSyncResult> {
