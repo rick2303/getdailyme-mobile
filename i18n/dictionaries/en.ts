@@ -742,6 +742,10 @@ export const en: Dictionary = {
     goToFeed: "See the feed",
     goToToday: "Go to Today",
     goToFriends: "Go to Friends",
+    previewTitle: "{name} invited you to getdailyme",
+    previewBody: "Create your account and you'll see each other's logs. Takes under a minute.",
+    previewCta: "Create account or sign in",
+    previewHasApp: "Already have the app? Open it and the link will take you there.",
   },
   notifications: {
     sectionTitle: "Install and alerts",

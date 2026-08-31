@@ -740,6 +740,10 @@ export const es = {
     goToFeed: "Ver el feed",
     goToToday: "Ir a Hoy",
     goToFriends: "Ir a Amigos",
+    previewTitle: "{name} te ha invitado a getdailyme",
+    previewBody: "Crea tu cuenta y os veréis los registros. Tarda menos de un minuto.",
+    previewCta: "Crear cuenta o entrar",
+    previewHasApp: "¿Ya tienes la app? Ábrela y el enlace te llevará solo.",
   },
   notifications: {
     sectionTitle: "Instalación y avisos",
