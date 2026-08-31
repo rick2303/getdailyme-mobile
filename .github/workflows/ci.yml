@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run typecheck
+      - run: npm test
+
+      # Los limites de caracteres de las fichas. Play y App Store Connect
+      # truncan sin avisar, y el corte se descubre con la ficha ya publicada.
+      - run: npm run store:check
+
+      # Las medidas de los assets de tienda. El icono con canal alfa es rechazo
+      # directo de Apple y ya paso una vez.
+      #
+      # Las capturas estan en el .gitignore de store/screenshots (pesan y se
+      # rehacen), asi que en el runner no hay ninguna y ese tramo no comprueba
+      # nada. Se queda escrito para el dia que se decidan versionar.
+      - name: Assets de tienda a la medida
+        run: |
+          node -e "
+          const s = require('sharp');
+          const fs = require('fs');
+          const fallos = [];
+          const revisar = async (archivo, ancho, alto, alfa) => {
+            const m = await s(archivo).metadata();
+            if (m.width !== ancho || m.height !== alto)
+              fallos.push(archivo + ': ' + m.width + 'x' + m.height + ', se esperaba ' + ancho + 'x' + alto);
+            if (alfa === false && m.hasAlpha) fallos.push(archivo + ': lleva canal alfa');
+          };
+          (async () => {
+            // Apple rechaza el icono con alfa; Play pide 512 y 1024x500 exactos.
+            await revisar('assets/icon.png', 1024, 1024, false);
+            await revisar('store/play-icon-512.png', 512, 512, false);
+            for (const f of ['es', 'en']) await revisar('store/feature-graphic-' + f + '.png', 1024, 500, false);
+            // Play: 9:16 como mucho 2:1, y el lado largo no puede pasar del doble
+            // del corto. 1080x2160 es el limite exacto.
+            for (const idioma of ['en', 'es']) {
+              const dir = 'store/screenshots/android/' + idioma;
+              if (!fs.existsSync(dir)) continue;
+              for (const f of fs.readdirSync(dir).filter((f) => f.endsWith('.png')))
+                await revisar(dir + '/' + f, 1080, 2160, false);
+            }
+            if (fallos.length) { console.error(fallos.join('\n')); process.exit(1); }
+            console.log('Assets de tienda: medidas correctas.');
+          })();
+          "
+
+      # `npm run drift` no va aqui: compara contra una copia local del repo web
+      # (GDM_WEB_DIR), que en un runner no existe. Es de escritorio.
