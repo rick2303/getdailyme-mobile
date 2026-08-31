@@ -10,6 +10,7 @@ import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/components/ui/toast'
 import { useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
+import { useActivityLabels } from '@/lib/activities/labels'
 import type { Activity } from '@/lib/api/types'
 import { useCurrentUserId } from '@/lib/auth/provider'
 import {
@@ -25,6 +26,9 @@ import { haptic } from '@/lib/utils/haptics'
 // hoja el drag pelea con el scroll).
 export function ManageActivitiesSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useI18n()
+  // Las cinco de serie viven en la base con su nombre en espanol: sin traducir
+  // aqui, la lista sale en espanol con la interfaz en ingles.
+  const { activityName } = useActivityLabels()
   const { showToast } = useToast()
   const colors = useThemeColors()
   const userId = useCurrentUserId()
@@ -91,7 +95,7 @@ export function ManageActivitiesSheet({ open, onClose }: { open: boolean; onClos
                 className="min-w-0 flex-1 text-sm font-bold text-text dark:text-text-dark"
                 numberOfLines={1}
               >
-                {activity.name}
+                {activityName(activity.name)}
               </Text>
               <IconButton
                 label={t('activity.moveUp')}
@@ -138,7 +142,7 @@ export function ManageActivitiesSheet({ open, onClose }: { open: boolean; onClos
                     className="min-w-0 flex-1 text-sm font-bold text-text dark:text-text-dark"
                     numberOfLines={1}
                   >
-                    {activity.name}
+                    {activityName(activity.name)}
                   </Text>
                   <IconButton
                     label={t('activity.unarchive')}
@@ -169,7 +173,7 @@ export function ManageActivitiesSheet({ open, onClose }: { open: boolean; onClos
 
       <ConfirmDialog
         open={pendingDelete !== null}
-        title={t('activity.deleteTitle', { name: pendingDelete?.name ?? '' })}
+        title={t('activity.deleteTitle', { name: pendingDelete ? activityName(pendingDelete.name) : '' })}
         body={t('activity.deleteBody')}
         confirmLabel={t('common.delete')}
         onConfirm={confirmDelete}

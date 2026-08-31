@@ -38,6 +38,7 @@ import {
   SHADOW_TILE,
   useActivityHex,
   useActivityInk,
+  useActivityTintSolid,
   useThemeColors,
   withTint,
   withTintStrong,
@@ -61,6 +62,9 @@ import { formatTime, todayKey, shiftDateKey, zonedDateTimeToIso } from '@/lib/ut
 
 export default function TodayScreen() {
   const { t } = useI18n()
+  // El toast ensena el nombre de la actividad: sin traducir sale "Logged · Agua"
+  // con la interfaz en ingles.
+  const { activityName } = useActivityLabels()
   const queryClient = useQueryClient()
   const brandColors = useThemeColors()
   const { profile } = useAuth()
@@ -168,7 +172,7 @@ export default function TodayScreen() {
   const logWithUndo = (activity: Activity, options?: { amount?: number; note?: string | null; photoUrl?: string | null; loggedAt?: Date }) => {
     const logId = createLog.logActivity(activity, options)
     showToast(
-      `${t('today.logged')} · ${activity.name}`,
+      `${t('today.logged')} · ${activityName(activity.name)}`,
       'success',
       logId && userId
         ? {
@@ -378,6 +382,7 @@ function ActivityTile({
   const { activityName, unitLabel } = useActivityLabels()
   const hex = useActivityHex(activity.color)
   const ink = useActivityInk(activity.color)
+  const tintSolid = useActivityTintSolid(activity.color)
 
   const session = useSessionFor(activity.id)
   const running = Boolean(session)
@@ -509,7 +514,7 @@ function ActivityTile({
       collapsable={false}
       accessible
       accessibilityRole="button"
-      accessibilityLabel={activity.name}
+      accessibilityLabel={activityName(activity.name)}
       accessibilityActions={ACCESSIBILITY_ACTIONS}
       onAccessibilityTap={fireTap}
       onAccessibilityAction={(event) => {
@@ -521,7 +526,10 @@ function ActivityTile({
     <View
       style={[
         SHADOW_TILE,
-        goalReached ? { backgroundColor: withTint(hex), borderColor: 'transparent' } : null,
+        // Tinte opaco, no `withTint`: esta vista lleva la sombra de SHADOW_TILE
+        // y en Android un fondo translucido la deja transparentarse, lavando la
+        // tarjeta de gris. Solo pasaba en las que llegan a la meta.
+        goalReached ? { backgroundColor: tintSolid, borderColor: 'transparent' } : null,
         running ? { borderColor: hex } : null,
       ]}
       className="relative mb-0 flex-1 gap-2 overflow-hidden rounded-3xl border border-border bg-surface p-3.5 dark:border-border-dark dark:bg-surface-dark"
@@ -646,7 +654,7 @@ function LogDetailSheet({
   ) => void
 }) {
   const { t, locale } = useI18n()
-  const { unitLabel } = useActivityLabels()
+  const { activityName, unitLabel } = useActivityLabels()
   const { showToast } = useToast()
   const colors = useThemeColors()
   const userId = useCurrentUserId()
@@ -721,7 +729,7 @@ function LogDetailSheet({
     <Sheet
       open={activity !== null}
       onClose={onClose}
-      title={activity.name}
+      title={activityName(activity.name)}
       description={unitLabel(activity.unit, 2)}
       closeLabel={t('common.close')}
       footer={
