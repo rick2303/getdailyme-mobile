@@ -148,6 +148,16 @@ export function NotificationsSection({ embedded = false }: { embedded?: boolean 
                 onChange={(checked) => savePreference({ notify_friend_logs: checked })}
               />
               <PreferenceToggle
+                label={t('notifications.typeFriendRequests')}
+                checked={preferences?.notify_friend_requests ?? true}
+                onChange={(checked) => savePreference({ notify_friend_requests: checked })}
+              />
+              <PreferenceToggle
+                label={t('notifications.typeEventInvites')}
+                checked={preferences?.notify_event_invites ?? true}
+                onChange={(checked) => savePreference({ notify_event_invites: checked })}
+              />
+              <PreferenceToggle
                 label={t('notifications.typeReminder')}
                 checked={reminderEnabled}
                 onChange={(checked) =>

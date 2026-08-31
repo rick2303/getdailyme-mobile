@@ -657,6 +657,7 @@ export type Database = {
           actor_id: string
           comment_id: string | null
           created_at: string
+          event_id: string | null
           id: string
           log_id: string | null
           read_at: string | null
@@ -667,6 +668,7 @@ export type Database = {
           actor_id: string
           comment_id?: string | null
           created_at?: string
+          event_id?: string | null
           id?: string
           log_id?: string | null
           read_at?: string | null
@@ -677,6 +679,7 @@ export type Database = {
           actor_id?: string
           comment_id?: string | null
           created_at?: string
+          event_id?: string | null
           id?: string
           log_id?: string | null
           read_at?: string | null
@@ -766,6 +769,8 @@ export type Database = {
           locale: string
           notify_comments: boolean
           notify_friend_logs: boolean
+          notify_event_invites: boolean
+          notify_friend_requests: boolean
           notify_nudges: boolean
           notify_reactions: boolean
           onboarded_at: string | null
@@ -783,6 +788,8 @@ export type Database = {
           locale?: string
           notify_comments?: boolean
           notify_friend_logs?: boolean
+          notify_event_invites?: boolean
+          notify_friend_requests?: boolean
           notify_nudges?: boolean
           notify_reactions?: boolean
           onboarded_at?: string | null
@@ -800,6 +807,8 @@ export type Database = {
           locale?: string
           notify_comments?: boolean
           notify_friend_logs?: boolean
+          notify_event_invites?: boolean
+          notify_friend_requests?: boolean
           notify_nudges?: boolean
           notify_reactions?: boolean
           onboarded_at?: string | null
@@ -1156,7 +1165,13 @@ export type Database = {
       challenge_member_status: "invited" | "joined" | "declined"
       event_member_status: "invited" | "going" | "declined"
       friendship_status: "pending" | "accepted" | "declined" | "blocked"
-      notification_type: "comment" | "reply" | "reaction"
+      notification_type:
+        | "comment"
+        | "reply"
+        | "reaction"
+        | "friend_request"
+        | "friend_accept"
+        | "event_invite"
       reaction_type: "fire" | "clap" | "heart" | "laugh" | "muscle"
       report_reason: "spam" | "harassment" | "inappropriate" | "other"
       report_target: "log" | "comment" | "profile"
@@ -1310,7 +1325,14 @@ export const Constants = {
       challenge_member_status: ["invited", "joined", "declined"],
       event_member_status: ["invited", "going", "declined"],
       friendship_status: ["pending", "accepted", "declined", "blocked"],
-      notification_type: ["comment", "reply", "reaction"],
+      notification_type: [
+        "comment",
+        "reply",
+        "reaction",
+        "friend_request",
+        "friend_accept",
+        "event_invite",
+      ],
       reaction_type: ["fire", "clap", "heart", "laugh", "muscle"],
       report_reason: ["spam", "harassment", "inappropriate", "other"],
       report_target: ["log", "comment", "profile"],

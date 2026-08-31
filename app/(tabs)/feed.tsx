@@ -5,7 +5,7 @@ import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { FeedComments } from '@/components/feed/feed-comments'
-import { Inbox } from '@/components/feed/inbox'
+import { InboxBell } from '@/components/feed/inbox'
 import { EventsTab } from '@/components/events/events-tab'
 import { Segmented } from '@/components/ui/segmented'
 import { ScrollView } from 'react-native'
@@ -95,9 +95,12 @@ export default function FeedScreen() {
         onEndReachedThreshold={0.4}
         ListHeaderComponent={
           <View className="gap-3 pt-4">
-            <Text className="px-1 text-2xl font-extrabold text-text dark:text-text-dark">
-              {t('feed.title')}
-            </Text>
+            <View className="min-h-11 flex-row items-center justify-between gap-3">
+              <Text className="px-1 text-2xl font-extrabold text-text dark:text-text-dark">
+                {t('feed.title')}
+              </Text>
+              <InboxBell />
+            </View>
             <Segmented
               value={tab}
               options={[
@@ -106,7 +109,6 @@ export default function FeedScreen() {
               ]}
               onChange={setTab}
             />
-            <Inbox />
           </View>
         }
         ListEmptyComponent={

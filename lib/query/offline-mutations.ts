@@ -288,14 +288,25 @@ export function registerOfflineMutations(queryClient: QueryClient) {
   });
 
   queryClient.setMutationDefaults(mutationKeys.createEvent, {
-    mutationFn: async (variables: CreateEventVariables) =>
-      createEvent(
+    mutationFn: async (variables: CreateEventVariables) => {
+      const created = await createEvent(
         getSupabaseBrowserClient(),
         variables.userId,
         variables.input,
         variables.invitees,
         variables.id,
-      ),
+      );
+
+      // Quien monta el evento no cuenta: su fila entra como 'going', no como
+      // invitacion. Va suelto a proposito, igual que el resto de avisos: que
+      // falle el push no puede tumbar la creacion del evento.
+      const invitados = variables.invitees.filter((id) => id !== variables.userId);
+      if (invitados.length > 0) {
+        void notifyQuietly({ type: "event_invite", eventId: variables.id, userIds: invitados });
+      }
+
+      return created;
+    },
     onSettled: (_data, _error, variables) => {
       if (variables) invalidateEvents(variables.userId, variables.id);
     },
@@ -314,6 +325,12 @@ export function registerOfflineMutations(queryClient: QueryClient) {
         );
         await inviteMembers(client, variables.eventId, added);
         await removeMembers(client, variables.eventId, removed);
+
+        // Solo a los que entran ahora. Avisar a toda la lista cada vez que se
+        // edita el evento manda un push repetido a quien ya estaba invitado.
+        if (added.length > 0) {
+          void notifyQuietly({ type: "event_invite", eventId: variables.eventId, userIds: added });
+        }
       }
 
       return updateEvent(client, variables.eventId, variables.patch);

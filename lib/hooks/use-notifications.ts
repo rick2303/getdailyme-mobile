@@ -11,6 +11,8 @@ export type NotificationPreferences = {
   notify_reactions: boolean;
   notify_comments: boolean;
   notify_friend_logs: boolean;
+  notify_friend_requests: boolean;
+  notify_event_invites: boolean;
   daily_reminder_at: string | null;
 };
 
@@ -23,7 +25,9 @@ export function useNotificationPreferences() {
     queryFn: async (): Promise<NotificationPreferences> => {
       const { data, error } = await getSupabaseBrowserClient()
         .from("profiles")
-        .select("notify_nudges, notify_reactions, notify_comments, notify_friend_logs, daily_reminder_at")
+        .select(
+          "notify_nudges, notify_reactions, notify_comments, notify_friend_logs, notify_friend_requests, notify_event_invites, daily_reminder_at",
+        )
         .eq("id", userId!)
         .single();
 
