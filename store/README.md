@@ -24,7 +24,7 @@ npm run shots          # capturas de Play a 1080x2160 desde adb
 | `demo-photos/` | Ilustraciones que sube la siembra a los registros | ✅ generadas |
 | `well-known/apple-app-site-association` | Universal links de iOS | ✅ desplegado y verificado |
 | `well-known/assetlinks.json` | App Links de Android | ⛔ 404 y sin huella SHA-256 |
-| `crash-reporting.md` | Sentry: qué ya hace la app y qué falta configurar | ⚠️ falta el DSN |
+| `crash-reporting.md` | Sentry: qué ya hace la app y qué falta configurar | ⚠️ DSN puesto, falta el token de source maps |
 | `privacidad-subencargados.md` | OneSignal y Sentry sin declarar en la política | ⚠️ falta publicar |
 
 ## Lo que bloquea el envío ahora mismo

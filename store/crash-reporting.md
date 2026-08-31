@@ -27,6 +27,10 @@ Decisiones que van de serie:
   cree privado.
 - **Del usuario solo va el id.** Ni correo, ni nombre, ni username.
 
+> **Hecho el 2026-08-31.** El DSN ya esta en `eas.json` (`preview` y
+> `production`) y en `.env.example`. Lo que sigue queda como referencia de
+> donde salio y de que falta: el token de subida de source maps.
+
 ## 1. Crear el proyecto y coger el DSN
 
 En [sentry.io](https://sentry.io) → nuevo proyecto → plataforma **React Native**.
@@ -60,7 +64,7 @@ en `eas.json` junto al resto, no en EAS secrets. Anadelo a `preview` y a
     "EXPO_PUBLIC_SUPABASE_URL": "...",
     "EXPO_PUBLIC_SUPABASE_ANON_KEY": "...",
     "EXPO_PUBLIC_ONESIGNAL_APP_ID": "...",
-    "EXPO_PUBLIC_SENTRY_DSN": "https://<CLAVE>@o4511344801677313.ingest.us.sentry.io/4511989590261760"
+    "EXPO_PUBLIC_SENTRY_DSN": "https://f9ba3cdf96138152dfb84b31d238bb48@o4511344801677313.ingest.us.sentry.io/4511989590261760"
   }
 }
 ```
