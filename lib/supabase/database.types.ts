@@ -1031,6 +1031,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      invite_preview: {
+        Args: { p_token: string }
+        Returns: {
+          username: string
+          display_name: string
+          avatar_url: string
+        }[]
+      }
       log_headline: {
         Args: { p_log_id: string }
         Returns: {

@@ -53,6 +53,32 @@ export async function redeemInvite(
   };
 }
 
+export type InvitePreview = {
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+};
+
+// Quien invita, sin necesidad de sesion. `redeem_invite` tambien responde a
+// anonimos, pero devuelve outcome 'unauthenticated' y el invitador en null: dice
+// que no has entrado, no de quien es el enlace.
+export async function fetchInvitePreview(
+  client: TypedSupabaseClient,
+  token: string,
+): Promise<InvitePreview | null> {
+  const { data, error } = await client.rpc("invite_preview", { p_token: token });
+  if (error) throw error;
+
+  const row = (data ?? [])[0];
+  if (!row) return null;
+
+  return {
+    username: row.username ?? "",
+    displayName: row.display_name ?? "",
+    avatarUrl: row.avatar_url,
+  };
+}
+
 export function inviteUrl(origin: string, token: string): string {
   return `${origin}/invite/${token}`;
 }
