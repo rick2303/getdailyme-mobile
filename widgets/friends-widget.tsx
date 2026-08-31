@@ -1,25 +1,55 @@
 import { FlexWidget, ImageWidget, TextWidget } from 'react-native-android-widget'
 
-import type { FriendsWidgetPayload } from '@/lib/widget'
+import type { FriendsWidgetPayload, WidgetFriendEntry } from '@/lib/widget'
 
-// Lo ultimo de tus amistades, en grande. La foto de la entrada mas reciente
-// manda, y debajo van dos lineas mas de texto.
-//
-// Una sola foto y no tres a proposito: cada una viaja como base64 dentro del
-// payload —los widgets no pueden descargar nada— asi que tres triplicarian el
-// peso para ganar poco. La foto grande es el gancho; el resto se lee.
+// Lo ultimo de tus amistades, una fila por persona: foto de perfil redonda a la
+// izquierda, quien y que a la derecha, y la hora al final. La forma es la de una
+// lista de chats a proposito — se lee de un vistazo y no hace falta explicarla.
 type Hex = `#${string}`
 
 const SURFACE: Hex = '#1E1E28'
-const SURFACE_SOFT: Hex = '#2A2A36'
 const TEXT: Hex = '#F2F2F5'
 const MUTED: Hex = '#A8A8B3'
+const AVATAR_BG: Hex = '#2A2A36'
+
+const AVATAR = 40
+
+function Avatar({ entry, brand }: { entry: WidgetFriendEntry; brand: Hex }) {
+  if (entry.avatar) {
+    return (
+      <ImageWidget
+        image={`data:image/jpeg;base64,${entry.avatar}`}
+        imageWidth={AVATAR}
+        imageHeight={AVATAR}
+        radius={AVATAR / 2}
+      />
+    )
+  }
+
+  // Sin foto, las iniciales sobre un disco: lo mismo que hace la app.
+  return (
+    <FlexWidget
+      style={{
+        width: AVATAR,
+        height: AVATAR,
+        borderRadius: AVATAR / 2,
+        backgroundColor: AVATAR_BG,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <TextWidget
+        text={entry.initials}
+        style={{ fontSize: 14, fontWeight: '700', color: brand }}
+      />
+    </FlexWidget>
+  )
+}
 
 export function FriendsWidget({ data }: { data: FriendsWidgetPayload }) {
   const brand = data.brand as Hex
-  const [first, ...rest] = data.entries
 
-  if (!first) {
+  if (data.entries.length === 0) {
     return (
       <FlexWidget
         clickAction="OPEN_APP"
@@ -34,10 +64,7 @@ export function FriendsWidget({ data }: { data: FriendsWidgetPayload }) {
           alignItems: 'center',
         }}
       >
-        <TextWidget
-          text="Sin novedades"
-          style={{ fontSize: 14, fontWeight: '700', color: TEXT }}
-        />
+        <TextWidget text="Sin novedades" style={{ fontSize: 14, fontWeight: '700', color: TEXT }} />
         <TextWidget
           text="Aquí verás lo último de tus amistades"
           style={{ fontSize: 11, color: MUTED }}
@@ -58,53 +85,32 @@ export function FriendsWidget({ data }: { data: FriendsWidgetPayload }) {
         flexDirection: 'column',
       }}
     >
-      <FlexWidget
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          width: 'match_parent',
-          marginBottom: 8,
-        }}
-      >
-        <TextWidget text="Amistades" style={{ fontSize: 12, fontWeight: '900', color: brand }} />
-        <TextWidget text={first.when} style={{ fontSize: 11, color: MUTED }} />
-      </FlexWidget>
-
-      {data.photo ? (
-        <ImageWidget
-          image={`data:image/jpeg;base64,${data.photo}`}
-          imageWidth={320}
-          imageHeight={150}
-          radius={16}
-          style={{ width: 'match_parent', marginBottom: 8 }}
-        />
-      ) : null}
-
       <TextWidget
-        text={`${first.author} · ${first.activity}`}
-        style={{ fontSize: 14, fontWeight: '700', color: TEXT }}
+        text="Amistades"
+        style={{ fontSize: 12, fontWeight: '900', color: brand, marginBottom: 8 }}
       />
-      <TextWidget text={first.detail} style={{ fontSize: 12, color: MUTED, marginBottom: 6 }} />
 
-      {rest.map((entry) => (
+      {data.entries.map((entry) => (
         <FlexWidget
           key={`${entry.author}-${entry.when}`}
           style={{
             flexDirection: 'row',
             alignItems: 'center',
             width: 'match_parent',
-            backgroundColor: SURFACE_SOFT,
-            borderRadius: 12,
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-            marginTop: 4,
+            marginBottom: 10,
           }}
         >
-          <TextWidget
-            text={`${entry.author} · ${entry.activity}`}
-            style={{ fontSize: 11, fontWeight: '600', color: TEXT }}
-          />
+          <Avatar entry={entry} brand={brand} />
+          <FlexWidget style={{ flexDirection: 'column', marginLeft: 10, flexGap: 1 }}>
+            <TextWidget
+              text={entry.author}
+              style={{ fontSize: 13, fontWeight: '700', color: TEXT }}
+            />
+            <TextWidget
+              text={`${entry.activity} · ${entry.detail}`}
+              style={{ fontSize: 11, color: MUTED }}
+            />
+          </FlexWidget>
         </FlexWidget>
       ))}
     </FlexWidget>

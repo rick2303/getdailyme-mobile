@@ -16,27 +16,27 @@ export type WidgetPayload = {
 
 // El segundo widget: lo ultimo que han registrado tus amistades.
 //
-// La foto viaja como base64 dentro del payload y no como URL. No es pereza: los
-// widgets no pueden descargar nada. En iOS las vistas de WidgetKit son
-// sincronas, y en Android el widget se dibuja fuera del proceso de la app. Lo
-// que no este ya en el aparato cuando toca pintar, no se pinta.
+// Las fotos de perfil viajan como base64 dentro del payload y no como URL. No
+// es pereza: los widgets no pueden descargar nada. En iOS las vistas de
+// WidgetKit son sincronas, y en Android el widget se dibuja fuera del proceso
+// de la app. Lo que no este ya en el aparato cuando toca pintar, no se pinta.
 //
-// Por eso la app la reduce antes: a 400px y calidad 70 son ~30 KB, ~40 KB ya en
-// base64. A resolucion completa esto no se puede hacer — el payload va por
-// UserDefaults y se reescribe en cada cambio.
+// Con avatares sale barato —a 72px son un par de KB— y por eso caben cuatro. El
+// payload se reescribe en cada actualizacion, asi que el peso importa.
 export type WidgetFriendEntry = {
   author: string
+  initials: string
   activity: string
   detail: string
   when: string
+  // Base64 sin el prefijo `data:`: cada plataforma lo pone como lo necesita.
+  // Null cuando esa persona no tiene foto; entonces se pintan las iniciales.
+  avatar: string | null
 }
 
 export type FriendsWidgetPayload = {
   brand: string
   entries: WidgetFriendEntry[]
-  // Sin prefijo `data:`: cada plataforma lo pone como lo necesita.
-  photo: string | null
-  photoAuthor: string | null
 }
 
 let storage: { set: (key: string, value: string) => void } | null = null

@@ -19,8 +19,6 @@ const FALLBACK: WidgetPayload = {
 const FRIENDS_FALLBACK: FriendsWidgetPayload = {
   brand: '#007EB6',
   entries: [],
-  photo: null,
-  photoAuthor: null,
 }
 
 async function read<T>(key: string, fallback: T): Promise<T> {

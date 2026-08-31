@@ -373,36 +373,41 @@ struct GetdailymeWidgets: WidgetBundle {
 
 // MARK: - Amistades
 //
-// El segundo widget: lo ultimo que han registrado tus amistades, con la foto de
-// la entrada mas reciente que tenga una.
+// Lo ultimo que han registrado tus amistades, una fila por persona: foto de
+// perfil redonda y al lado quien y que. La forma es la de una lista de chats a
+// proposito — se lee de un vistazo y no hace falta explicarla.
 //
-// La foto llega en base64 dentro del propio payload y no como URL. WidgetKit
-// dibuja de forma sincrona: no hay donde esperar una descarga. La app la reduce
-// antes de escribirla en el App Group.
+// Las fotos llegan en base64 dentro del payload y no como URL. WidgetKit dibuja
+// de forma sincrona: no hay donde esperar una descarga. La app las reduce a
+// 72px antes de escribirlas en el App Group, asi que son un par de KB cada una.
 
 struct WidgetFriendEntry: Codable, Identifiable {
   var id: String { author + when }
   let author: String
+  let initials: String
   let activity: String
   let detail: String
   let when: String
+  let avatar: String?
 }
 
 struct FriendsData: Codable {
   let brand: String
   let entries: [WidgetFriendEntry]
-  let photo: String?
-  let photoAuthor: String?
 }
 
 let placeholderFriends = FriendsData(
   brand: "#007EB6",
   entries: [
-    WidgetFriendEntry(author: "Sofía", activity: "Agua", detail: "3 vasos", when: "hace 10 min"),
-    WidgetFriendEntry(author: "Daniel", activity: "Ejercicio", detail: "30 minutos", when: "hace 1 h"),
-  ],
-  photo: nil,
-  photoAuthor: nil
+    WidgetFriendEntry(
+      author: "Sofía Márquez", initials: "SM", activity: "Agua",
+      detail: "3 vasos", when: "hace 10 min", avatar: nil
+    ),
+    WidgetFriendEntry(
+      author: "Daniel Okafor", initials: "DO", activity: "Ejercicio",
+      detail: "30 minutos", when: "hace 1 h", avatar: nil
+    ),
+  ]
 )
 
 func loadFriendsData() -> FriendsData {
@@ -438,114 +443,58 @@ struct FriendsProvider: TimelineProvider {
   }
 }
 
-struct FriendsRow: View {
+struct FriendAvatar: View {
   let entry: WidgetFriendEntry
-  let compact: Bool
-
-  var body: some View {
-    HStack(spacing: 6) {
-      Text(entry.author)
-        .font(.system(size: compact ? 12 : 13, weight: .semibold))
-        .lineLimit(1)
-      Text("·").font(.system(size: compact ? 12 : 13)).foregroundStyle(.secondary)
-      Text(entry.activity)
-        .font(.system(size: compact ? 12 : 13))
-        .foregroundStyle(.secondary)
-        .lineLimit(1)
-      Spacer(minLength: 4)
-      Text(entry.when)
-        .font(.system(size: 11))
-        .foregroundStyle(.tertiary)
-        .lineLimit(1)
-    }
-  }
-}
-
-struct FriendsEmptyView: View {
-  var body: some View {
-    VStack(spacing: 4) {
-      Text("Sin novedades").font(.system(size: 14, weight: .semibold))
-      Text("Aquí verás lo último de tus amistades")
-        .font(.system(size: 11))
-        .foregroundStyle(.secondary)
-        .multilineTextAlignment(.center)
-    }
-    .padding()
-  }
-}
-
-struct FriendsLargeView: View {
-  let data: FriendsData
   let brand: Color
+  let size: CGFloat
 
-  // El base64 se decodifica en cada dibujado. Es barato para una imagen de
-  // ~400px y evita guardar un fichero aparte que habria que limpiar.
   private var image: UIImage? {
-    guard let photo = data.photo, let bytes = Data(base64Encoded: photo) else { return nil }
+    guard let avatar = entry.avatar, let bytes = Data(base64Encoded: avatar) else { return nil }
     return UIImage(data: bytes)
   }
 
   var body: some View {
-    if data.entries.isEmpty {
-      FriendsEmptyView()
-    } else {
-      VStack(alignment: .leading, spacing: 8) {
-        HStack {
-          Text("Amistades")
-            .font(.system(size: 12, weight: .heavy))
+    Group {
+      if let image {
+        Image(uiImage: image)
+          .resizable()
+          .aspectRatio(contentMode: .fill)
+      } else {
+        // Sin foto, las iniciales sobre un disco: lo mismo que hace la app.
+        ZStack {
+          brand.opacity(0.18)
+          Text(entry.initials)
+            .font(.system(size: size * 0.36, weight: .bold))
             .foregroundStyle(brand)
-          Spacer()
-          if let first = data.entries.first {
-            Text(first.when).font(.system(size: 11)).foregroundStyle(.tertiary)
-          }
         }
-
-        if let image {
-          Image(uiImage: image)
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-            .frame(maxWidth: .infinity, maxHeight: 118)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        }
-
-        if let first = data.entries.first {
-          VStack(alignment: .leading, spacing: 1) {
-            Text("\(first.author) · \(first.activity)")
-              .font(.system(size: 15, weight: .bold))
-              .lineLimit(1)
-            Text(first.detail).font(.system(size: 12)).foregroundStyle(.secondary)
-          }
-        }
-
-        ForEach(data.entries.dropFirst()) { entry in
-          FriendsRow(entry: entry, compact: true)
-        }
-
-        Spacer(minLength: 0)
       }
-      .padding(14)
     }
+    .frame(width: size, height: size)
+    .clipShape(Circle())
   }
 }
 
-struct FriendsMediumView: View {
-  let data: FriendsData
+struct FriendsRow: View {
+  let entry: WidgetFriendEntry
   let brand: Color
 
   var body: some View {
-    if data.entries.isEmpty {
-      FriendsEmptyView()
-    } else {
-      VStack(alignment: .leading, spacing: 6) {
-        Text("Amistades")
-          .font(.system(size: 12, weight: .heavy))
-          .foregroundStyle(brand)
-        ForEach(data.entries.prefix(3)) { entry in
-          FriendsRow(entry: entry, compact: false)
-        }
-        Spacer(minLength: 0)
+    HStack(spacing: 10) {
+      FriendAvatar(entry: entry, brand: brand, size: 38)
+      VStack(alignment: .leading, spacing: 1) {
+        Text(entry.author)
+          .font(.system(size: 13, weight: .bold))
+          .lineLimit(1)
+        Text("\(entry.activity) · \(entry.detail)")
+          .font(.system(size: 11))
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
       }
-      .padding(14)
+      Spacer(minLength: 4)
+      Text(entry.when)
+        .font(.system(size: 10))
+        .foregroundStyle(.tertiary)
+        .lineLimit(1)
     }
   }
 }
@@ -556,14 +505,31 @@ struct FriendsWidgetView: View {
 
   var body: some View {
     let brand = Color(hex: entry.data.brand)
-    switch family {
-    case .systemLarge:
-      FriendsLargeView(data: entry.data, brand: brand)
-        .containerBackground(for: .widget) { WidgetBackground(brand: brand) }
-    default:
-      FriendsMediumView(data: entry.data, brand: brand)
-        .containerBackground(for: .widget) { WidgetBackground(brand: brand) }
+    let limit = family == .systemLarge ? 4 : 2
+
+    Group {
+      if entry.data.entries.isEmpty {
+        VStack(spacing: 4) {
+          Text("Sin novedades").font(.system(size: 14, weight: .semibold))
+          Text("Aquí verás lo último de tus amistades")
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+        }
+      } else {
+        VStack(alignment: .leading, spacing: 10) {
+          Text("Amistades")
+            .font(.system(size: 12, weight: .heavy))
+            .foregroundStyle(brand)
+          ForEach(entry.data.entries.prefix(limit)) { item in
+            FriendsRow(entry: item, brand: brand)
+          }
+          Spacer(minLength: 0)
+        }
+        .padding(14)
+      }
     }
+    .containerBackground(for: .widget) { WidgetBackground(brand: brand) }
   }
 }
 
@@ -573,7 +539,7 @@ struct FriendsWidget: Widget {
       FriendsWidgetView(entry: entry)
     }
     .configurationDisplayName("Amistades")
-    .description("Lo último que han registrado, con foto.")
+    .description("Lo último que han registrado tus amistades.")
     .supportedFamilies([.systemMedium, .systemLarge])
   }
 }
