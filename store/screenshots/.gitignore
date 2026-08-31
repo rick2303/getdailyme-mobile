@@ -1,0 +1,7 @@
+# Las capturas se rehacen en cada cambio visual grande y pesan de mas.
+# La especificacion (README.md) si va al repo.
+ios-6.9/
+android/
+*.png
+*.jpg
+*.jpeg

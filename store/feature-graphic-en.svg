@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 500" width="1024" height="500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#007EB6"/>
+      <stop offset="100%" stop-color="#00648F"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="500" fill="url(#bg)"/>
+  <g transform="translate(212 250) scale(0.6042) translate(-256 -256)">
+  <path d="M 423.42 226.48 A 170 170 0 1 1 341.00 108.78" fill="none" stroke="#FFFFFF" stroke-width="44" stroke-linecap="round"/>
+  <path d="M 176 259.5 L 229.5 321.5 L 339 195.5" fill="none" stroke="#FFFFFF" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <text x="384" y="190" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="60" font-weight="700" fill="#FFFFFF" opacity="1" xml:space="preserve">Log your day</text>
+  <text x="384" y="258" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="60" font-weight="700" fill="#FFFFFF" opacity="1" xml:space="preserve">in one tap</text>
+  <text x="384" y="319" font-family="Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="30" font-weight="400" fill="#FFFFFF" opacity="0.92" xml:space="preserve">Share it only with the people you pick</text>
+</svg>

@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.getdailyme.app",
+      "sha256_cert_fingerprints": [
+        "REEMPLAZAR_CON_LA_HUELLA_DE_PLAY_APP_SIGNING",
+        "REEMPLAZAR_CON_LA_HUELLA_DE_LA_CLAVE_DE_SUBIDA_EAS"
+      ]
+    }
+  }
+]

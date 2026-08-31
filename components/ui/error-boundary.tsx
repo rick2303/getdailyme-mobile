@@ -1,6 +1,8 @@
 import { Component, type ReactNode } from 'react'
 import { ScrollView, Text } from 'react-native'
 
+import { captureError } from '@/lib/crash'
+
 // En release no existe la pantalla roja: un error sin capturar cierra la app
 // sin decir nada, que es imposible de diagnosticar desde TestFlight. Esto lo
 // convierte en texto legible que se puede fotografiar y traer.
@@ -12,6 +14,12 @@ export class ErrorBoundary extends Component<
 
   static getDerivedStateFromError(error: Error) {
     return { error }
+  }
+
+  // La pantalla de arriba la ve quien sufre el crash; esto lo trae de vuelta
+  // para poder arreglarlo.
+  componentDidCatch(error: Error, info: { componentStack?: string | null }) {
+    captureError(error, { componentStack: info.componentStack })
   }
 
   render() {

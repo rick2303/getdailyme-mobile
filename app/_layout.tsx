@@ -17,6 +17,7 @@ import { I18nProvider, useT } from '@/i18n/provider'
 import { AuthProvider, useAuth } from '@/lib/auth/provider'
 import { ACTIVITY_HEX, useThemeColors } from '@/constants/colors'
 import { computeStreak } from '@/lib/activities/streaks'
+import { initCrashReporting, setCrashUser, wrapRoot } from '@/lib/crash'
 import { useActiveActivities } from '@/lib/hooks/use-activities'
 import { useHistorySummary, useTodayTotals } from '@/lib/hooks/use-logs'
 import { isHealthConnected, syncHealthToLogs } from '@/lib/health'
@@ -25,6 +26,10 @@ import { initOneSignal, loginOneSignal, logoutOneSignal } from '@/lib/onesignal'
 import { QueryProvider } from '@/lib/query/provider'
 import { ThemeProvider } from '@/lib/theme-context'
 import { updateWidget } from '@/lib/widget'
+
+// Arranca antes que cualquier componente: un crash durante el primer render
+// tambien tiene que llegar. Sin DSN no hace nada.
+initCrashReporting()
 
 // El guardia de rutas: sin sesion -> acceso; con sesion sin onboarding ->
 // bienvenida; el resto -> tabs. Es el equivalente movil del proxy de la web.
@@ -208,6 +213,9 @@ function PushBinder() {
     if (isLoadingSession) return
     if (userId) loginOneSignal(userId)
     else logoutOneSignal()
+    // Mismo criterio para los crashes: solo el id, y solo cuando ya se sabe
+    // si hay sesion o no.
+    setCrashUser(userId)
   }, [userId, isLoadingSession])
 
   return null
@@ -233,7 +241,7 @@ function PendingInviteBinder() {
   return null
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [splashDone, setSplashDone] = useState(false)
 
   return (
@@ -264,3 +272,5 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   )
 }
+
+export default wrapRoot(RootLayout)

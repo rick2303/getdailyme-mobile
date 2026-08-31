@@ -78,6 +78,28 @@ function mixChannel(a: number, b: number, amount: number): number {
   return Math.round(a * amount + b * (1 - amount))
 }
 
+// El mismo 12% que withTint, pero ya compuesto sobre la superficie y opaco.
+//
+// Hace falta alla donde la vista lleva `elevation`: en Android la sombra se
+// dibuja por debajo del fondo, asi que con un fondo translucido se transparenta
+// y lava la tarjeta de gris, ademas de romperle el recorte redondeado. Con un
+// color opaco la sombra queda detras, que es lo que se espera.
+export function tintOverSurface(hex: string, scheme: 'light' | 'dark'): string {
+  const surface = scheme === 'dark' ? DARK.surface : LIGHT.surface
+  const amount = 0x1f / 0xff
+  const channel = (at: number) =>
+    mixChannel(parseInt(hex.slice(at, at + 2), 16), parseInt(surface.slice(at, at + 2), 16), amount)
+      .toString(16)
+      .padStart(2, '0')
+  return `#${channel(1)}${channel(3)}${channel(5)}`
+}
+
+export function useActivityTintSolid(color: string): string {
+  const { colorScheme: scheme } = useColorScheme()
+  const hex = useActivityHex(color)
+  return tintOverSurface(hex, scheme === 'dark' ? 'dark' : 'light')
+}
+
 // El color de tinta de la web (activity-ink): la tonalidad de la actividad
 // mezclada hacia negro en claro y hacia blanco en oscuro para que lea bien
 // sobre su propio tinte.

@@ -1,0 +1,18 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["9B9BZ24M35.com.getdailyme.app"],
+        "components": [
+          {
+            "/": "/invite/*",
+            "comment": "Invitaciones de amistad: las atiende app/invite/[token].tsx"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["9B9BZ24M35.com.getdailyme.app"]
+  }
+}

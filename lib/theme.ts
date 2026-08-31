@@ -9,8 +9,12 @@ export type ThemeMode = 'light' | 'dark' | 'system'
 
 export const THEME_MODES: ThemeMode[] = ['light', 'dark', 'system']
 
+// El centinela para "sigue al sistema" es la cadena 'unspecified', no null: el
+// modulo nativo de Android declara setColorScheme(style: String) y un null lo
+// revienta con NullPointerException antes del primer render. Saltaba en toda
+// instalacion nueva, porque sin nada guardado loadThemeMode devuelve 'system'.
 export function applyThemeMode(mode: ThemeMode) {
-  Appearance.setColorScheme((mode === 'system' ? null : mode) as import('react-native').ColorSchemeName)
+  Appearance.setColorScheme(mode === 'system' ? 'unspecified' : mode)
 }
 
 export async function loadThemeMode(): Promise<ThemeMode> {

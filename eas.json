@@ -42,6 +42,11 @@
         "ascApiKeyId": "RDRG6TYQ85",
         "ascApiKeyIssuerId": "6e250b4b-b55e-40f9-989e-69b1813b9a5e",
         "ascAppId": "6798912717"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./play-service-account.json",
+        "track": "internal",
+        "releaseStatus": "draft"
       }
     }
   }

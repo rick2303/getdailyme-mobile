@@ -41,7 +41,7 @@
     "android": {
       "package": "com.getdailyme.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#007EB6"
       },
       "predictiveBackGestureEnabled": true,
@@ -83,7 +83,11 @@
       [
         "onesignal-expo-plugin",
         {
-          "mode": "production"
+          "mode": "production",
+          "smallIcons": [
+            "./assets/notification-icon.png"
+          ],
+          "smallIconAccentColor": "#007EB6"
         }
       ],
       "@react-native-community/datetimepicker",
@@ -132,7 +136,15 @@
           }
         }
       ],
-      "./plugins/with-android-lint"
+      "./plugins/with-android-lint",
+      [
+        "@sentry/react-native",
+        {
+          "organization": "qali-t",
+          "project": "getdailyme",
+          "url": "https://sentry.io/"
+        }
+      ]
     ],
     "extra": {
       "router": {},
@@ -170,10 +182,6 @@
     "locales": {
       "en": "./locales/en.json",
       "es": "./locales/es.json"
-    },
-    "notification": {
-      "icon": "./assets/notification-icon.png",
-      "color": "#007EB6"
     }
   }
 }

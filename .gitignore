@@ -57,6 +57,8 @@ public/.well-known/README.md
 # local handoff (secrets, do not commit)
 _handoff/
 AuthKey*.p8
+play-service-account.json
 
 # Entorno local (el ejemplo si va al repo)
 .env
+.env.cloud-backup
