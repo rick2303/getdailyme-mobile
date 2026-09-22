@@ -6,9 +6,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 // recoge y devuelve a la pantalla de canje.
 const PENDING_INVITE_KEY = 'gdm_pending_invite'
 
-export async function parkInvite(token: string) {
+export function inviteHref(parked: string): string {
+  return parked.startsWith('/') ? parked : `/invite/${parked}`
+}
+
+export async function parkInvite(token: string, asCouple = false) {
   try {
-    await AsyncStorage.setItem(PENDING_INVITE_KEY, token)
+    await AsyncStorage.setItem(
+      PENDING_INVITE_KEY,
+      asCouple ? `/invite/${token}?pareja=1` : `/invite/${token}`,
+    )
   } catch {
     // sin almacenamiento la invitacion se pierde, como antes de esto
   }

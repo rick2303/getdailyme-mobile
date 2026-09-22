@@ -8,7 +8,9 @@ export type NotificationType =
   | "reaction"
   | "friend_request"
   | "friend_accept"
-  | "event_invite";
+  | "couple_answer"
+  | "event_invite"
+  | "story_reaction";
 
 export type InboxNotification = {
   id: string;
@@ -16,12 +18,13 @@ export type InboxNotification = {
   log_id: string | null;
   comment_id: string | null;
   event_id: string | null;
+  story_id: string | null;
   created_at: string;
   actor: CommentAuthor;
 };
 
 const NOTIFICATION_SELECT = `
-  id, type, log_id, comment_id, event_id, created_at,
+  id, type, log_id, comment_id, event_id, story_id, created_at,
   actor:profiles!notifications_actor_id_fkey ( id, username, display_name, avatar_url )
 `;
 

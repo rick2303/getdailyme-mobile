@@ -85,6 +85,17 @@ export function formatMonthYear(date: Date, locale: string): string {
   return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(date);
 }
 
+// Fecha larga en UTC: las claves de dia (2026-09-19) no llevan hora, asi que
+// interpretarlas en la zona de quien mira las correria un dia hacia atras.
+export function formatLongDate(date: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: "UTC",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
 export function formatDayMonth(date: Date, locale: string, timeZone: string): string {
   return new Intl.DateTimeFormat(locale, { timeZone, day: "numeric", month: "short" }).format(date);
 }

@@ -1,8 +1,11 @@
-
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { fetchInviteToken, redeemInvite, rotateInviteToken } from "@/lib/api/invites";
+import {
+  fetchInvitePreview,
+  fetchInviteToken,
+  redeemInvite,
+  rotateInviteToken,
+} from "@/lib/api/invites";
 import { useCurrentUserId } from "@/lib/auth/provider";
 import { queryKeys } from "@/lib/query/keys";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -28,6 +31,18 @@ export function useRotateInvite() {
     onSuccess: (token) => {
       queryClient.setQueryData(queryKeys.invite(userId ?? "anonymous"), token);
     },
+  });
+}
+
+// El espejo de useRedeemInvite: uno se activa con sesion y el otro sin ella, asi
+// que la pagina siempre tiene algo que ensenar en vez de un spinner eterno.
+export function useInvitePreview(token: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: [...queryKeys.inviteRedeem(token ?? "none"), "preview"],
+    enabled: isSupabaseConfigured() && Boolean(token) && enabled,
+    retry: false,
+    staleTime: Infinity,
+    queryFn: () => fetchInvitePreview(getSupabaseBrowserClient(), token!),
   });
 }
 

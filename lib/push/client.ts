@@ -11,6 +11,7 @@ export type NotifySource =
   | { type: 'friend_accept'; friendshipId: string }
   | { type: 'friend_log'; logId: string }
   | { type: 'event_invite'; eventId: string; userIds: string[] }
+  | { type: 'couple_answer'; coupleId: string }
 
 export async function requestPush(source: NotifySource): Promise<void> {
   const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL

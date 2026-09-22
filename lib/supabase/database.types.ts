@@ -303,6 +303,216 @@ export type Database = {
           },
         ]
       }
+      stories: {
+        Row: {
+          author_id: string
+          caption: string | null
+          couple_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          lat: number | null
+          lon: number | null
+          media_kind: Database['public']['Enums']['story_media']
+          media_path: string
+          place_label: string | null
+        }
+        Insert: {
+          author_id: string
+          caption?: string | null
+          couple_id?: string | null
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lon?: number | null
+          media_kind?: Database['public']['Enums']['story_media']
+          media_path: string
+          place_label?: string | null
+        }
+        Update: {
+          caption?: string | null
+          couple_id?: string | null
+          lat?: number | null
+          lon?: number | null
+          media_kind?: Database['public']['Enums']['story_media']
+          media_path?: string
+          place_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'stories_author_id_fkey'
+            columns: ['author_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'stories_couple_id_fkey'
+            columns: ['couple_id']
+            isOneToOne: false
+            referencedRelation: 'couples'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      story_views: {
+        Row: { seen_at: string; story_id: string; viewer_id: string }
+        Insert: { seen_at?: string; story_id: string; viewer_id: string }
+        Update: { seen_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: 'story_views_story_id_fkey'
+            columns: ['story_id']
+            isOneToOne: false
+            referencedRelation: 'stories'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      story_reactions: {
+        Row: {
+          created_at: string
+          kind: Database['public']['Enums']['reaction_type']
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          kind: Database['public']['Enums']['reaction_type']
+          story_id: string
+          user_id: string
+        }
+        Update: { kind?: Database['public']['Enums']['reaction_type'] }
+        Relationships: [
+          {
+            foreignKeyName: 'story_reactions_story_id_fkey'
+            columns: ['story_id']
+            isOneToOne: false
+            referencedRelation: 'stories'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      couple_streak_saves: {
+        Row: {
+          couple_id: string
+          created_at: string
+          id: string
+          saved_by: string
+          saved_month: string
+          saved_on: string
+        }
+        Insert: {
+          couple_id: string
+          created_at?: string
+          id?: string
+          saved_by: string
+          saved_month?: string
+          saved_on: string
+        }
+        Update: { saved_on?: string }
+        Relationships: [
+          {
+            foreignKeyName: 'couple_streak_saves_couple_id_fkey'
+            columns: ['couple_id']
+            isOneToOne: false
+            referencedRelation: 'couples'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      couple_answers: {
+        Row: {
+          answer_text: string
+          answered_on: string
+          couple_id: string
+          created_at: string
+          guess_text: string | null
+          id: string
+          prompt_key: string
+          user_id: string
+        }
+        Insert: {
+          answer_text: string
+          answered_on?: string
+          couple_id: string
+          created_at?: string
+          guess_text?: string | null
+          id?: string
+          prompt_key: string
+          user_id: string
+        }
+        Update: {
+          answer_text?: string
+          answered_on?: string
+          couple_id?: string
+          created_at?: string
+          guess_text?: string | null
+          id?: string
+          prompt_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'couple_answers_couple_id_fkey'
+            columns: ['couple_id']
+            isOneToOne: false
+            referencedRelation: 'couples'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'couple_answers_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      couples: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          started_on: string
+          status: Database['public']['Enums']['couple_status']
+          user_a: string | null
+          user_b: string | null
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          started_on?: string
+          status?: Database['public']['Enums']['couple_status']
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          started_on?: string
+          status?: Database['public']['Enums']['couple_status']
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'couples_requester_id_fkey'
+            columns: ['requester_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'couples_addressee_id_fkey'
+            columns: ['addressee_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       challenges: {
         Row: {
           club_id: string | null
@@ -658,6 +868,7 @@ export type Database = {
           comment_id: string | null
           created_at: string
           event_id: string | null
+          story_id: string | null
           id: string
           log_id: string | null
           read_at: string | null
@@ -669,6 +880,7 @@ export type Database = {
           comment_id?: string | null
           created_at?: string
           event_id?: string | null
+          story_id?: string | null
           id?: string
           log_id?: string | null
           read_at?: string | null
@@ -680,6 +892,7 @@ export type Database = {
           comment_id?: string | null
           created_at?: string
           event_id?: string | null
+          story_id?: string | null
           id?: string
           log_id?: string | null
           read_at?: string | null
@@ -1024,7 +1237,39 @@ export type Database = {
           user_id: string
         }[]
       }
+      save_couple_day: {
+        Args: { p_on: string }
+        Returns: string
+      }
+      couple_partner_answered: {
+        Args: { p_couple: string; p_on: string }
+        Returns: boolean
+      }
       current_invite: { Args: never; Returns: string }
+      story_activity: {
+        Args: { p_story_id: string }
+        Returns: {
+          user_id: string
+          username: string
+          display_name: string
+          avatar_url: string | null
+          seen_at: string
+          kind: Database["public"]["Enums"]["reaction_type"] | null
+        }[]
+      }
+      story_ring: {
+        Args: never
+        Returns: {
+          author_id: string
+          username: string
+          display_name: string
+          avatar_url: string | null
+          is_couple: boolean
+          total: number
+          unseen: number
+          latest_at: string
+        }[]
+      }
       friend_log_audience: {
         Args: { p_log_id: string }
         Returns: {
@@ -1128,6 +1373,16 @@ export type Database = {
           username: string
         }[]
       }
+      redeem_couple_invite: {
+        Args: { p_token: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          inviter_id: string
+          outcome: string
+          username: string
+        }[]
+      }
       redeem_invite: {
         Args: { p_token: string }
         Returns: {
@@ -1154,6 +1409,7 @@ export type Database = {
       username_available: { Args: { p_username: string }; Returns: boolean }
     }
     Enums: {
+      couple_status: 'pending' | 'active'
       activity_color:
         | "blue"
         | "cyan"
@@ -1180,7 +1436,10 @@ export type Database = {
         | "friend_request"
         | "friend_accept"
         | "event_invite"
+        | "couple_answer"
+        | "story_reaction"
       reaction_type: "fire" | "clap" | "heart" | "laugh" | "muscle"
+      story_media: "photo" | "video"
       report_reason: "spam" | "harassment" | "inappropriate" | "other"
       report_target: "log" | "comment" | "profile"
     }
@@ -1340,8 +1599,11 @@ export const Constants = {
         "friend_request",
         "friend_accept",
         "event_invite",
+        "couple_answer",
+        "story_reaction",
       ],
       reaction_type: ["fire", "clap", "heart", "laugh", "muscle"],
+      story_media: ["photo", "video"],
       report_reason: ["spam", "harassment", "inappropriate", "other"],
       report_target: ["log", "comment", "profile"],
     },

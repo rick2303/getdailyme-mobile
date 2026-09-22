@@ -18,6 +18,7 @@ export const LIGHT = {
   brandSoft: '#D9F3FF',
   danger: '#D93A3A',
   success: '#2E9E5B',
+  streak: '#F97316',
 }
 
 export const DARK: Record<keyof typeof LIGHT, string> = {
@@ -32,6 +33,7 @@ export const DARK: Record<keyof typeof LIGHT, string> = {
   brandSoft: '#073248',
   danger: '#E66A6A',
   success: '#4FBF7E',
+  streak: '#FB923C',
 }
 
 // Colores de actividad (claro/oscuro), espejo de data-activity-color de la web.

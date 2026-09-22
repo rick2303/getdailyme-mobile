@@ -36,6 +36,14 @@ export const queryKeys = {
   event: (eventId: string) => ["events", "detail", eventId] as const,
   eventPhotos: (eventId: string) => ["event-photos", eventId] as const,
   eventPhotoUrl: (path: string) => ["event-photo-url", path] as const,
+  couple: (userId: string) => ["couple", userId] as const,
+  coupleRitual: (coupleId: string, dateKey: string) =>
+    ["couple-ritual", coupleId, dateKey] as const,
+  coupleStreak: (coupleId: string) => ["couple-streak", coupleId] as const,
+  storyRing: () => ["story-ring"] as const,
+  stories: (authorId: string) => ["stories", authorId] as const,
+  storyArchive: (authorId: string) => ["story-archive", authorId] as const,
+  storyActivity: (storyId: string) => ["story-activity", storyId] as const,
 } as const;
 
 export const mutationKeys = {

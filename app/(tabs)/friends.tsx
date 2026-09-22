@@ -1,4 +1,4 @@
-import { Check, Flame, Hand, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native'
+import { Check, Flame, Hand, Heart, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native'
 import { useState } from 'react'
 import { Share } from 'react-native'
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
@@ -28,6 +28,8 @@ import {
 } from '@/lib/hooks/use-friends'
 import { useQueryClient } from '@tanstack/react-query'
 
+import { CoupleCard } from '@/components/couple/couple-card'
+import { coupleInviteUrl } from '@/lib/api/couple'
 import { inviteUrl } from '@/lib/api/invites'
 import { useInviteToken } from '@/lib/hooks/use-invite'
 import { useFriendActiveDates } from '@/lib/hooks/use-friends'
@@ -54,6 +56,7 @@ export default function FriendsScreen() {
   const [query, setQuery] = useState('')
   const [refreshing, setRefreshing] = useState(false)
   const [tab, setTab] = useState<'friends' | 'challenges' | 'clubs'>('friends')
+  const [sharing, setSharing] = useState(false)
 
   // Las tres pestañas viven bajo el mismo scroll, asi que tirar para refrescar
   // tiene que recargar las tres. Faltaban clubes y las clasificaciones: en esas
@@ -65,6 +68,7 @@ export default function FriendsScreen() {
       queryClient.invalidateQueries({ queryKey: ['challenges'] }),
       queryClient.invalidateQueries({ queryKey: ['challenge-standings'] }),
       queryClient.invalidateQueries({ queryKey: ['clubs'] }),
+      queryClient.invalidateQueries({ queryKey: ['couple'] }),
     ])
     setRefreshing(false)
   }
@@ -72,19 +76,22 @@ export default function FriendsScreen() {
   // El enlace se arma con el mismo helper que la web para que las dos generen
   // exactamente la misma URL; quien la abra la canjea en /invite, que ahora
   // tambien existe aqui.
-  const shareInvite = async () => {
+  const share = async (as: 'friend' | 'couple') => {
     if (!inviteToken) {
+      setSharing(false)
       showToast(t('common.genericError'), 'error')
       return
     }
     haptic('tap')
+    const url =
+      as === 'couple' ? coupleInviteUrl(APP_ORIGIN, inviteToken) : inviteUrl(APP_ORIGIN, inviteToken)
+    const message = as === 'couple' ? t('couple.proposeMessage') : t('friends.inviteMessage')
     try {
-      await Share.share({
-        message: `${t('friends.inviteMessage')}\n${inviteUrl(APP_ORIGIN, inviteToken)}`,
-      })
+      await Share.share({ message: `${message}\n${url}` })
     } catch {
       // Cancelar el menu del sistema no es un error.
     }
+    setSharing(false)
   }
 
   return (
@@ -110,10 +117,15 @@ export default function FriendsScreen() {
               size="sm"
               variant="secondary"
               icon={<Share2 size={16} color={colors.text} />}
-              onPress={() => void shareInvite()}
+              onPress={() => {
+                haptic('tap')
+                setSharing(true)
+              }}
             />
           }
         />
+
+        <CoupleCard />
 
         <View className="px-4 pb-1">
           <Segmented
@@ -164,7 +176,51 @@ export default function FriendsScreen() {
           <ClubsSection />
         )}
       </ScrollView>
+
+      <Sheet
+        open={sharing}
+        onClose={() => setSharing(false)}
+        title={t('friends.shareInvite')}
+        closeLabel={t('common.close')}
+      >
+        <View className="gap-2 pb-2 pt-1">
+          <ShareOption
+            icon={<Share2 size={18} color={colors.brand} />}
+            label={t('friends.shareInvite')}
+            onPress={() => void share('friend')}
+          />
+          <ShareOption
+            icon={<Heart size={18} color={colors.brand} />}
+            label={t('couple.propose')}
+            onPress={() => void share('couple')}
+          />
+        </View>
+      </Sheet>
     </SafeAreaView>
+  )
+}
+
+function ShareOption({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: React.ReactNode
+  label: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      className="min-h-14 flex-row items-center gap-3 rounded-2xl bg-surface-sunken px-4 py-3 active:opacity-70 dark:bg-surface-sunken-dark"
+    >
+      <View className="h-9 w-9 items-center justify-center rounded-xl bg-brand-soft dark:bg-brand-soft-dark">
+        {icon}
+      </View>
+      <Text className="flex-1 text-[15px] font-bold text-text dark:text-text-dark">{label}</Text>
+    </Pressable>
   )
 }
 
@@ -500,12 +556,20 @@ function SharedStreakCard({ friendId }: { friendId: string }) {
         <Text className="text-sm font-bold text-text dark:text-text-dark">
           {t('friends.sharedStreakTitle')}
         </Text>
-        <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-          {streak > 0
-            ? t('friends.sharedStreakCount', { count: streak })
-            : t('friends.sharedStreakEmpty')}
-        </Text>
+        {streak > 0 ? null : (
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+            {t('friends.sharedStreakEmpty')}
+          </Text>
+        )}
       </View>
+      {streak > 0 ? (
+        <Text
+          className="text-3xl font-extrabold text-text dark:text-text-dark"
+          style={{ fontVariant: ['tabular-nums'] }}
+        >
+          {streak}
+        </Text>
+      ) : null}
     </View>
   )
 }

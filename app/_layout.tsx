@@ -3,7 +3,7 @@ import '../global.css'
 import { useQueryClient } from '@tanstack/react-query'
 import * as QuickActions from 'expo-quick-actions'
 import { useQuickActionRouting } from 'expo-quick-actions/router'
-import { Stack, useRouter, useSegments } from 'expo-router'
+import { Stack, useRouter, useSegments, type Href } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AppState, Platform, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
@@ -25,7 +25,7 @@ import { buildFriendsWidgetPayload } from '@/lib/widget-friends'
 import { updateFriendsWidget } from '@/lib/widget'
 import { useActivityLabels } from '@/lib/activities/labels'
 import { useRelativeTime } from '@/lib/hooks/use-relative-time'
-import { claimParkedInvite } from '@/lib/invite-handoff'
+import { claimParkedInvite, inviteHref } from '@/lib/invite-handoff'
 import { initOneSignal, loginOneSignal, logoutOneSignal } from '@/lib/onesignal'
 import { QueryProvider } from '@/lib/query/provider'
 import { ThemeProvider } from '@/lib/theme-context'
@@ -284,8 +284,8 @@ function PendingInviteBinder() {
     if (!user || isLoadingProfile || needsOnboarding || claimed.current) return
     claimed.current = true
 
-    void claimParkedInvite().then((token) => {
-      if (token) router.push(`/invite/${token}`)
+    void claimParkedInvite().then((parked) => {
+      if (parked) router.push(inviteHref(parked) as Href)
     })
   }, [user, needsOnboarding, isLoadingProfile, router])
 

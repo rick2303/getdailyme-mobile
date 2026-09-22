@@ -3,11 +3,13 @@ import {
   CalendarPlus,
   Heart,
   MessageCircle,
+  MessageCircleHeart,
   Reply,
   UserCheck,
   UserPlus,
   type LucideIcon,
 } from 'lucide-react-native'
+import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 
@@ -29,6 +31,8 @@ const TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   friend_request: UserPlus,
   friend_accept: UserCheck,
   event_invite: CalendarPlus,
+  couple_answer: MessageCircleHeart,
+  story_reaction: Heart,
 }
 
 // La bandeja vivia abierta en la cabecera del feed. Con dos avisos pasaba
@@ -45,6 +49,7 @@ export function InboxBell() {
   const relativeTime = useRelativeTime()
   const { data } = useInbox()
   const markRead = useMarkInboxRead()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
 
   const items = data ?? []
@@ -104,6 +109,10 @@ export function InboxBell() {
                   // La ultima que queda cierra la hoja: si no, se queda una hoja
                   // vacia abierta sobre el feed.
                   if (items.length === 1) close()
+                  if (item.type === 'couple_answer') {
+                    close()
+                    router.push('/couple')
+                  }
                 }}
                 className="min-h-12 flex-row items-center gap-3 py-2 active:opacity-70"
               >

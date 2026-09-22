@@ -9,6 +9,9 @@ export const ICON_STROKE = {
   tiny: 3,
   // Estados activos y acentos que deben destacar sobre su fila.
   emphasis: 2.5,
+  // El otro extremo: un glifo grande de ilustracion (estado vacio, pantalla de
+  // entrada) pide menos trazo, no mas, o se ve tosco.
+  airy: 1.5,
 } as const;
 
 // Tamanos con nombre para no repetir la escala a ojo. Los tres primeros cubren

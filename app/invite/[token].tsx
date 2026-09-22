@@ -1,9 +1,11 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Check, Link2Off, UserCheck, Users } from 'lucide-react-native'
 import { useEffect } from 'react'
-import { Text, View } from 'react-native'
+import { View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { COUPLE_PARAM, CoupleInvite } from '@/components/couple/couple-invite'
+import { InviteOutcome } from '@/components/invite/outcome'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/feedback'
@@ -23,8 +25,10 @@ export default function InviteScreen() {
   const router = useRouter()
   const colors = useThemeColors()
   const userId = useCurrentUserId()
-  const { token: raw } = useLocalSearchParams<{ token?: string }>()
+  const params = useLocalSearchParams<{ token?: string; pareja?: string }>()
+  const raw = params.token
   const token = typeof raw === 'string' && raw.length > 0 ? raw : null
+  const asCouple = params[COUPLE_PARAM] === '1'
 
   // Sin sesion el guardia de rutas manda a la pantalla de acceso y el token se
   // volatiliza. Se guarda antes de que eso pase, y al volver con sesion el
@@ -32,10 +36,10 @@ export default function InviteScreen() {
   useEffect(() => {
     if (!token) return
     if (userId) void forgetParkedInvite()
-    else void parkInvite(token)
-  }, [token, userId])
+    else void parkInvite(token, asCouple)
+  }, [token, userId, asCouple])
 
-  const { data, isLoading, isError } = useRedeemInvite(token)
+  const { data, isLoading, isError } = useRedeemInvite(asCouple ? null : token)
 
   const goFriends = (
     <Button
@@ -49,24 +53,32 @@ export default function InviteScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark">
       <View className="flex-1 items-center justify-center gap-5 px-6">
-        {isLoading || !token ? (
+        {!token ? (
+          <Spinner />
+        ) : asCouple ? (
+          userId ? (
+            <CoupleInvite token={token} />
+          ) : (
+            <Spinner />
+          )
+        ) : isLoading ? (
           <Spinner />
         ) : isError || !data || data.outcome === 'invalid' ? (
-          <Outcome
+          <InviteOutcome
             icon={<Link2Off size={26} color={colors.brand} />}
             title={t('invite.invalidTitle')}
             body={t('invite.invalidBody')}
             action={goFriends}
           />
         ) : data.outcome === 'self' ? (
-          <Outcome
+          <InviteOutcome
             icon={<Users size={26} color={colors.brand} />}
             title={t('invite.selfTitle')}
             body={t('invite.selfBody')}
             action={goFriends}
           />
         ) : data.outcome === 'blocked' ? (
-          <Outcome
+          <InviteOutcome
             icon={<Link2Off size={26} color={colors.brand} />}
             title={t('invite.blockedTitle')}
             body={t('invite.blockedBody')}
@@ -77,7 +89,7 @@ export default function InviteScreen() {
             {data.inviter ? (
               <Avatar name={data.inviter.displayName} src={data.inviter.avatarUrl} size="lg" />
             ) : null}
-            <Outcome
+            <InviteOutcome
               icon={
                 data.outcome === 'accepted' ? (
                   <Check size={26} color={colors.brand} strokeWidth={3} />
@@ -113,34 +125,5 @@ export default function InviteScreen() {
         )}
       </View>
     </SafeAreaView>
-  )
-}
-
-function Outcome({
-  icon,
-  title,
-  body,
-  action,
-}: {
-  icon: React.ReactNode
-  title: string
-  body: string
-  action: React.ReactNode
-}) {
-  return (
-    <View className="w-full items-center gap-4">
-      <View className="h-14 w-14 items-center justify-center rounded-full bg-brand-soft dark:bg-brand-soft-dark">
-        {icon}
-      </View>
-      <View className="gap-1.5">
-        <Text className="text-center text-xl font-extrabold text-text dark:text-text-dark">
-          {title}
-        </Text>
-        <Text className="text-center text-sm text-text-muted dark:text-text-muted-dark">
-          {body}
-        </Text>
-      </View>
-      {action}
-    </View>
   )
 }
