@@ -6,19 +6,120 @@ import WidgetKit
 // la pantalla de bloqueo. La app deja los datos en el App Group al registrar.
 
 struct WidgetActivity: Codable, Identifiable {
-  var id: String { name }
+  var id: String { activityId ?? name }
+  let activityId: String?
   let name: String
   let color: String
-  let progress: Double
+  var progress: Double
+  let step: Int?
+  var amount: Int?
+  let target: Int?
+  let mode: String?
+
+  enum CodingKeys: String, CodingKey {
+    case activityId = "id"
+    case name, color, progress, step, amount, target, mode
+  }
+
+  init(name: String, color: String, progress: Double) {
+    self.activityId = nil
+    self.name = name
+    self.color = color
+    self.progress = progress
+    self.step = nil
+    self.amount = nil
+    self.target = nil
+    self.mode = nil
+  }
+
+  var reached: Bool {
+    let current = amount ?? 0
+    if mode == "check" { return current > 0 }
+    guard let target else { return progress >= 1 }
+    return current >= target
+  }
+
+  var canLog: Bool {
+    guard activityId != nil, (step ?? 0) > 0 else { return false }
+    return mode != "check" || (amount ?? 0) == 0
+  }
+
+  func bumped() -> WidgetActivity {
+    var next = self
+    let total = (amount ?? 0) + (step ?? 0)
+    next.amount = total
+    if mode == "check" {
+      next.progress = total > 0 ? 1 : 0
+    } else if let target, target > 0 {
+      next.progress = min(1, Double(total) / Double(target))
+    }
+    return next
+  }
 }
 
 struct WidgetData: Codable {
-  let done: Int
+  var done: Int
   let due: Int
   let streak: Int
   let brand: String
-  let complete: Bool
-  let activities: [WidgetActivity]
+  var complete: Bool
+  var day: String?
+  let timeZone: String?
+  let userId: String?
+  var activities: [WidgetActivity]
+
+  init(
+    done: Int, due: Int, streak: Int, brand: String, complete: Bool,
+    activities: [WidgetActivity]
+  ) {
+    self.done = done
+    self.due = due
+    self.streak = streak
+    self.brand = brand
+    self.complete = complete
+    self.day = nil
+    self.timeZone = nil
+    self.userId = nil
+    self.activities = activities
+  }
+
+  var zone: TimeZone {
+    timeZone.flatMap { TimeZone(identifier: $0) } ?? .current
+  }
+
+  var nextPending: WidgetActivity? {
+    activities.first { !$0.reached && $0.canLog }
+  }
+
+  func forDay(_ today: String) -> WidgetData {
+    guard let day, day != today else { return self }
+    var next = self
+    next.day = today
+    next.done = 0
+    next.complete = false
+    next.activities = activities.map { activity in
+      var reset = activity
+      reset.amount = 0
+      reset.progress = 0
+      return reset
+    }
+    return next
+  }
+
+  func bumped(activityId: String, today: String) -> WidgetData {
+    var next = forDay(today)
+    guard
+      let index = next.activities.firstIndex(where: { $0.activityId == activityId }),
+      next.activities[index].canLog
+    else { return next }
+    let before = next.activities[index]
+    let after = before.bumped()
+    next.activities[index] = after
+    if !before.reached && after.reached { next.done += 1 }
+    next.complete = next.due > 0 && next.done >= next.due
+    next.day = today
+    return next
+  }
 }
 
 let placeholderData = WidgetData(
@@ -34,16 +135,18 @@ let placeholderData = WidgetData(
   ]
 )
 
-func loadWidgetData() -> WidgetData {
+func storedWidgetData() -> WidgetData? {
   guard
-    let defaults = UserDefaults(suiteName: "group.com.getdailyme.app"),
+    let defaults = UserDefaults(suiteName: widgetAppGroup),
     let raw = defaults.string(forKey: "widgetData"),
-    let data = raw.data(using: .utf8),
-    let parsed = try? JSONDecoder().decode(WidgetData.self, from: data)
-  else {
-    return placeholderData
-  }
-  return parsed
+    let data = raw.data(using: .utf8)
+  else { return nil }
+  return try? JSONDecoder().decode(WidgetData.self, from: data)
+}
+
+func loadWidgetData() -> WidgetData {
+  guard let stored = storedWidgetData() else { return placeholderData }
+  return stored.forDay(dayKey(Date(), stored.zone))
 }
 
 extension Color {
@@ -73,9 +176,64 @@ struct Provider: TimelineProvider {
   }
 
   func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
-    let entry = Entry(date: Date(), data: loadWidgetData())
-    let refresh = Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date()
-    completion(Timeline(entries: [entry], policy: .after(refresh)))
+    let now = Date()
+    let refresh = Calendar.current.date(byAdding: .minute, value: 30, to: now) ?? now
+    guard let stored = storedWidgetData() else {
+      completion(Timeline(entries: [Entry(date: now, data: placeholderData)], policy: .after(refresh)))
+      return
+    }
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = stored.zone
+    var entries = [Entry(date: now, data: stored.forDay(dayKey(now, stored.zone)))]
+    if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) {
+      let midnight = calendar.startOfDay(for: tomorrow)
+      entries.append(Entry(date: midnight, data: stored.forDay(dayKey(midnight, stored.zone))))
+    }
+    completion(Timeline(entries: entries, policy: .after(refresh)))
+  }
+}
+
+struct LogButton: View {
+  let activity: WidgetActivity
+  let size: CGFloat
+
+  var body: some View {
+    if let activityId = activity.activityId, activity.canLog {
+      Button(intent: LogActivityIntent(activityId: activityId)) {
+        Image(systemName: activity.mode == "check" ? "checkmark" : "plus")
+          .font(.system(size: size * 0.5, weight: .heavy))
+          .foregroundStyle(.white)
+          .frame(width: size, height: size)
+          .background(Circle().fill(Color(hex: activity.color)))
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel("Registrar \(activity.name)")
+    }
+  }
+}
+
+struct SmallLogButton: View {
+  let activity: WidgetActivity
+
+  var body: some View {
+    if let activityId = activity.activityId {
+      Button(intent: LogActivityIntent(activityId: activityId)) {
+        HStack(spacing: 4) {
+          Image(systemName: activity.mode == "check" ? "checkmark" : "plus")
+            .font(.system(size: 11, weight: .heavy))
+          Text(activity.name)
+            .font(.system(size: 12, weight: .bold, design: .rounded))
+            .lineLimit(1)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .frame(maxWidth: .infinity)
+        .background(Capsule().fill(Color(hex: activity.color)))
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel("Registrar \(activity.name)")
+    }
   }
 }
 
@@ -155,6 +313,7 @@ struct ActivityRow: View {
           .font(.system(size: 9, weight: .heavy))
           .foregroundStyle(Color(hex: activity.color))
       }
+      LogButton(activity: activity, size: 22)
     }
   }
 }
@@ -178,8 +337,16 @@ struct SmallView: View {
 
   var body: some View {
     let brand = Color(hex: data.brand)
+    let pending = data.nextPending
     VStack(spacing: 0) {
-      BrandHeader(brand: brand)
+      if pending != nil {
+        HStack {
+          BrandHeader(brand: brand)
+          StreakBadge(streak: data.streak)
+        }
+      } else {
+        BrandHeader(brand: brand)
+      }
       Spacer(minLength: 4)
       ZStack {
         Ring(
@@ -195,9 +362,13 @@ struct SmallView: View {
             .foregroundStyle(.secondary)
         }
       }
-      .frame(width: 72, height: 72)
+      .frame(width: pending != nil ? 64 : 72, height: pending != nil ? 64 : 72)
       Spacer(minLength: 4)
-      StreakBadge(streak: data.streak)
+      if let pending {
+        SmallLogButton(activity: pending)
+      } else {
+        StreakBadge(streak: data.streak)
+      }
     }
     .widgetURL(URL(string: "getdailyme://"))
   }
@@ -266,13 +437,13 @@ struct LargeView: View {
           )
           VStack(spacing: 0) {
             Text("\(data.done)")
-              .font(.system(size: 34, weight: .heavy, design: .rounded))
+              .font(.system(size: 30, weight: .heavy, design: .rounded))
             Text("de \(data.due) metas")
               .font(.system(size: 11, weight: .bold, design: .rounded))
               .foregroundStyle(.secondary)
           }
         }
-        .frame(width: 118, height: 118)
+        .frame(width: 96, height: 96)
         Spacer()
       }
       if data.complete || data.activities.isEmpty {

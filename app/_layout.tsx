@@ -14,7 +14,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { Spinner } from '@/components/ui/feedback'
 import { ToastProvider } from '@/components/ui/toast'
 import { I18nProvider, useT } from '@/i18n/provider'
-import { AuthProvider, useAuth } from '@/lib/auth/provider'
+import { AuthProvider, useAuth, useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
 import { ACTIVITY_HEX, useThemeColors } from '@/constants/colors'
 import { computeStreak } from '@/lib/activities/streaks'
 import { initCrashReporting, setCrashUser, wrapRoot } from '@/lib/crash'
@@ -29,7 +29,8 @@ import { claimParkedInvite, inviteHref } from '@/lib/invite-handoff'
 import { initOneSignal, loginOneSignal, logoutOneSignal } from '@/lib/onesignal'
 import { QueryProvider } from '@/lib/query/provider'
 import { ThemeProvider } from '@/lib/theme-context'
-import { updateWidget } from '@/lib/widget'
+import { updateWidget, type WidgetActivityPayload } from '@/lib/widget'
+import { WidgetQueueBinder, WidgetSessionBinder } from '@/lib/widget-sync'
 
 // Arranca antes que cualquier componente: un crash durante el primer render
 // tambien tiene que llegar. Sin DSN no hace nada.
@@ -108,6 +109,8 @@ function WidgetBinder() {
   const { totals } = useTodayTotals()
   const { allDates, today } = useHistorySummary()
   const colors = useThemeColors()
+  const userId = useCurrentUserId()
+  const timeZone = useTimeZone()
 
   const streak = useMemo(() => computeStreak(allDates, today).current, [allDates, today])
 
@@ -137,10 +140,17 @@ function WidgetBinder() {
           activity.input_mode === 'check'
             ? 0
             : Math.min(1, (entry?.amount ?? 0) / (activity.daily_target ?? 1))
+        const mode: WidgetActivityPayload['mode'] =
+          activity.input_mode === 'check' ? 'check' : 'amount'
         return {
+          id: activity.id,
           name: activity.name,
           color: ACTIVITY_HEX[activity.color]?.light ?? '#007EB6',
           progress,
+          step: activity.step,
+          amount: entry?.amount ?? 0,
+          target: mode === 'check' ? null : activity.daily_target,
+          mode,
         }
       })
 
@@ -150,9 +160,12 @@ function WidgetBinder() {
       streak,
       brand: colors.brand,
       complete: due > 0 && done === due,
+      day: today,
+      timeZone,
+      userId: userId ?? undefined,
       activities: pending,
     })
-  }, [activities, totals, streak, colors.brand])
+  }, [activities, totals, streak, colors.brand, today, timeZone, userId])
 
   return null
 }
@@ -307,6 +320,8 @@ function RootLayout() {
                   <PushBinder />
                   <QuickActionsBinder />
                   <WidgetBinder />
+                  <WidgetSessionBinder />
+                  <WidgetQueueBinder />
                   <FriendsWidgetBinder />
                   <HealthBinder />
                   <PendingInviteBinder />

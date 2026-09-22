@@ -5,13 +5,27 @@ import { Platform } from 'react-native'
 // El puente hacia los widgets: en iOS la app escribe el estado del dia en el
 // App Group y pide redibujar; en Android lo deja en AsyncStorage y avisa al
 // task handler de react-native-android-widget.
+export type WidgetActivityPayload = {
+  id: string
+  name: string
+  color: string
+  progress: number
+  step: number
+  amount: number
+  target: number | null
+  mode: 'check' | 'amount'
+}
+
 export type WidgetPayload = {
   done: number
   due: number
   streak: number
   brand: string
   complete: boolean
-  activities: { name: string; color: string; progress: number }[]
+  day?: string
+  timeZone?: string
+  userId?: string
+  activities: WidgetActivityPayload[]
 }
 
 // El segundo widget: lo ultimo que han registrado tus amistades.
