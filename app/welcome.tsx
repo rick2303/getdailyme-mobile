@@ -4,6 +4,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ActivityIcon } from '@/components/activities/activity-icon'
+import { InviteStep } from '@/components/invite/invite-step'
 import { Button } from '@/components/ui/button'
 import { TextInput } from '@/components/ui/field'
 import { Segmented } from '@/components/ui/segmented'
@@ -19,6 +20,8 @@ import { useAuth } from '@/lib/auth/provider'
 import { useActivities } from '@/lib/hooks/use-activities'
 import { queryKeys } from '@/lib/query/keys'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+import { hasParkedInvite } from '@/lib/invite-handoff'
+import { holdWelcome } from '@/lib/welcome-hold'
 import { getBrowserTimeZone } from '@/lib/utils/dates'
 import { newId } from '@/lib/utils/ids'
 import { useQueryClient } from '@tanstack/react-query'
@@ -38,6 +41,10 @@ export default function WelcomeScreen() {
   const [displayNameInput, setDisplayNameInput] = useState<string | null>(null)
   const [available, setAvailable] = useState<boolean | null>(null)
   const [saving, setSaving] = useState(false)
+  const [step, setStep] = useState<'profile' | 'invite'>('profile')
+  const [leaving, setLeaving] = useState(false)
+
+  useEffect(() => () => holdWelcome(false), [])
 
   const [removedSeeds, setRemovedSeeds] = useState<string[]>([])
   const [addedSuggestions, setAddedSuggestions] = useState<string[]>([])
@@ -109,13 +116,29 @@ export default function WelcomeScreen() {
         onboarded_at: new Date().toISOString(),
       })
 
+      const byInvite = await hasParkedInvite()
+      if (!byInvite) holdWelcome(true)
+
       await queryClient.invalidateQueries({ queryKey: queryKeys.profile(user.id) })
       await queryClient.invalidateQueries({ queryKey: queryKeys.activities(user.id) })
+
+      if (!byInvite) {
+        setSaving(false)
+        setStep('invite')
+      }
     } catch {
+      holdWelcome(false)
       showToast(t('common.genericError'), 'error')
       setSaving(false)
     }
   }
+
+  const leave = () => {
+    setLeaving(true)
+    holdWelcome(false)
+  }
+
+  if (step === 'invite') return <InviteStep onDone={leave} leaving={leaving} />
 
   return (
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark">

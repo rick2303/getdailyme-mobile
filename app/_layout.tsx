@@ -31,6 +31,7 @@ import { QueryProvider } from '@/lib/query/provider'
 import { ThemeProvider } from '@/lib/theme-context'
 import { updateWidget, type WidgetActivityPayload } from '@/lib/widget'
 import { WidgetQueueBinder, WidgetSessionBinder } from '@/lib/widget-sync'
+import { useWelcomeHeld } from '@/lib/welcome-hold'
 
 // Arranca antes que cualquier componente: un crash durante el primer render
 // tambien tiene que llegar. Sin DSN no hace nada.
@@ -42,6 +43,7 @@ function Gate({ children }: { children: React.ReactNode }) {
   const { user, needsOnboarding, isLoadingSession, isLoadingProfile } = useAuth()
   const segments = useSegments()
   const router = useRouter()
+  const welcomeHeld = useWelcomeHeld()
 
   const ready = !isLoadingSession && (!user || !isLoadingProfile)
 
@@ -54,10 +56,10 @@ function Gate({ children }: { children: React.ReactNode }) {
       router.replace('/sign-in')
     } else if (user && needsOnboarding && !inWelcome) {
       router.replace('/welcome')
-    } else if (user && !needsOnboarding && (inAuth || inWelcome)) {
+    } else if (user && !needsOnboarding && (inAuth || (inWelcome && !welcomeHeld))) {
       router.replace('/')
     }
-  }, [ready, user, needsOnboarding, segments, router])
+  }, [ready, user, needsOnboarding, segments, router, welcomeHeld])
 
   if (!ready) {
     return (

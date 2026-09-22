@@ -1018,6 +1018,7 @@ export type Database = {
           created_at: string
           daily_reminder_at: string | null
           display_name: string
+          first_logged_at: string | null
           id: string
           locale: string
           notify_challenges: boolean
@@ -1039,6 +1040,7 @@ export type Database = {
           created_at?: string
           daily_reminder_at?: string | null
           display_name: string
+          first_logged_at?: string | null
           id: string
           locale?: string
           notify_challenges?: boolean
@@ -1060,6 +1062,7 @@ export type Database = {
           created_at?: string
           daily_reminder_at?: string | null
           display_name?: string
+          first_logged_at?: string | null
           id?: string
           locale?: string
           notify_challenges?: boolean
@@ -1402,6 +1405,16 @@ export type Database = {
           locale: string
           others: number
           streak_days: number
+          user_id: string
+        }[]
+      }
+      due_onboarding_reminders: {
+        Args: { p_window_minutes?: number }
+        Returns: {
+          account_day: number
+          first_log_time: string
+          locale: string
+          logged_yesterday: boolean
           user_id: string
         }[]
       }

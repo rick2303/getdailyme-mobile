@@ -110,6 +110,7 @@ export const es = {
     passkeyFailed: "No pudimos usar tu passkey. Prueba con otro método.",
     passkeyUnsupported: "Este dispositivo no admite passkeys",
     passkeyCancelled: "Cancelaste el acceso con passkey",
+    otherWays: "Otras formas de entrar",
   },
   onboarding: {
     title: "Elige tu nombre de usuario",
@@ -130,6 +131,21 @@ export const es = {
     activitiesLabel: "Tus actividades",
     activitiesHelp: "Empieza con las que de verdad vayas a registrar. Toca para quitar o añadir.",
     activitiesNone: "Deja al menos una actividad para empezar.",
+    inviteTitle: "¿Con quién quieres hacerlo?",
+    inviteBody:
+      "Cuesta menos cuando alguien lo lleva contigo. Mándale tu enlace y os veréis el día en el muro.",
+    inviteCta: "Invitar a alguien",
+    inviteLater: "Ahora no",
+    inviteContinue: "Seguir",
+    inviteLaterHint: "Puedes invitar cuando quieras desde Amigos.",
+    inviteSent: "Hecho. En cuanto entre, os veréis en el muro.",
+  },
+  firstDay: {
+    dayLabel: "Día",
+    title: "Tu racha ha empezado",
+    body: "Mañana es el día 2. Si vuelves a la misma hora, empieza a ser costumbre.",
+    invite: "Invitar a alguien",
+    done: "Seguir",
   },
   milestones: {
     title: "¡Racha de {count} días!",
@@ -1028,6 +1044,15 @@ export const es = {
     leave: "Salir del reto",
     pickActivityTitle: "¿Con qué actividad?",
     pickActivityBody: "Elige la tuya. Solo se comparte cuánto llevas, no lo que registras.",
+    templatesHeader: "Empieza con una idea",
+    templatesFooter: "Rellena el reto con tu actividad. Solo te queda elegir a quién retas.",
+    templateSummary: "{amount} en {days} días",
+    templates: {
+      water: "7 días de agua",
+      exercise: "Una semana entrenando",
+      reading: "30 días leyendo",
+      meditate: "Dos semanas meditando",
+    },
   },
   weekly: {
     title: "Tu semana",

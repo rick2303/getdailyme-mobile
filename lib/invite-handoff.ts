@@ -21,6 +21,14 @@ export async function parkInvite(token: string, asCouple = false) {
   }
 }
 
+export async function hasParkedInvite(): Promise<boolean> {
+  try {
+    return Boolean(await AsyncStorage.getItem(PENDING_INVITE_KEY))
+  } catch {
+    return false
+  }
+}
+
 export async function claimParkedInvite(): Promise<string | null> {
   try {
     const token = await AsyncStorage.getItem(PENDING_INVITE_KEY)

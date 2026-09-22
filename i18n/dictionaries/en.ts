@@ -112,6 +112,7 @@ export const en: Dictionary = {
     passkeyFailed: "We couldn't use your passkey. Try another method.",
     passkeyUnsupported: "This device doesn't support passkeys",
     passkeyCancelled: "You cancelled the passkey sign-in",
+    otherWays: "Other ways to sign in",
   },
   onboarding: {
     title: "Pick your username",
@@ -132,6 +133,21 @@ export const en: Dictionary = {
     activitiesLabel: "Your activities",
     activitiesHelp: "Start with the ones you'll actually log. Tap to remove or add.",
     activitiesNone: "Keep at least one activity to get started.",
+    inviteTitle: "Who do you want to do this with?",
+    inviteBody:
+      "It's easier when someone's in it with you. Send them your link and you'll see each other's day on the feed.",
+    inviteCta: "Invite someone",
+    inviteLater: "Not now",
+    inviteContinue: "Continue",
+    inviteLaterHint: "You can invite people anytime from Friends.",
+    inviteSent: "Done. As soon as they join, you'll see each other on the feed.",
+  },
+  firstDay: {
+    dayLabel: "Day",
+    title: "Your streak has started",
+    body: "Tomorrow is day 2. Come back around the same time and it starts to become a habit.",
+    invite: "Invite someone",
+    done: "Keep going",
   },
   milestones: {
     title: "{count}-day streak!",
@@ -1030,6 +1046,15 @@ export const en: Dictionary = {
     leave: "Leave the challenge",
     pickActivityTitle: "With which activity?",
     pickActivityBody: "Pick yours. Only your total is shared, not what you log.",
+    templatesHeader: "Start from an idea",
+    templatesFooter: "Fills in the challenge with your activity. All that's left is choosing who to challenge.",
+    templateSummary: "{amount} in {days} days",
+    templates: {
+      water: "7 days of water",
+      exercise: "A week of workouts",
+      reading: "30 days of reading",
+      meditate: "Two weeks of meditation",
+    },
   },
   weekly: {
     title: "Your week",

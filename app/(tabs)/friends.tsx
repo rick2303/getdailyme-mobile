@@ -1,7 +1,6 @@
 import { Check, Flame, Hand, Heart, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { Share } from 'react-native'
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -30,9 +29,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 
 import { CoupleCard } from '@/components/couple/couple-card'
-import { coupleInviteUrl } from '@/lib/api/couple'
-import { inviteUrl } from '@/lib/api/invites'
-import { useInviteToken } from '@/lib/hooks/use-invite'
+import { useShareInvite, type InviteKind } from '@/components/invite/use-share-invite'
 import { useFriendActiveDates } from '@/lib/hooks/use-friends'
 import { useHistorySummary } from '@/lib/hooks/use-logs'
 import { computeSharedStreak } from '@/lib/activities/streaks'
@@ -40,11 +37,6 @@ import { Segmented } from '@/components/ui/segmented'
 import { Sheet } from '@/components/ui/sheet'
 import { useCurrentUserId } from '@/lib/auth/provider'
 import { haptic } from '@/lib/utils/haptics'
-
-// El dominio que atienden a la vez la PWA y los enlaces universales de la app:
-// es el mismo que declaran los intentFilters de Android y los associatedDomains
-// de iOS en app.json.
-const APP_ORIGIN = 'https://app.getdailyme.com'
 
 type FriendsTab = 'friends' | 'challenges' | 'clubs'
 
@@ -58,7 +50,7 @@ export default function FriendsScreen() {
   const colors = useThemeColors()
   const queryClient = useQueryClient()
   const { friends, incoming, blocked, isLoading } = useFriends()
-  const { data: inviteToken } = useInviteToken()
+  const { share: shareInvite } = useShareInvite()
 
   const [query, setQuery] = useState('')
   const [refreshing, setRefreshing] = useState(false)
@@ -89,24 +81,9 @@ export default function FriendsScreen() {
     setRefreshing(false)
   }
 
-  // El enlace se arma con el mismo helper que la web para que las dos generen
-  // exactamente la misma URL; quien la abra la canjea en /invite, que ahora
-  // tambien existe aqui.
-  const share = async (as: 'friend' | 'couple') => {
-    if (!inviteToken) {
-      setSharing(false)
-      showToast(t('common.genericError'), 'error')
-      return
-    }
+  const share = async (as: InviteKind) => {
     haptic('tap')
-    const url =
-      as === 'couple' ? coupleInviteUrl(APP_ORIGIN, inviteToken) : inviteUrl(APP_ORIGIN, inviteToken)
-    const message = as === 'couple' ? t('couple.proposeMessage') : t('friends.inviteMessage')
-    try {
-      await Share.share({ message: `${message}\n${url}` })
-    } catch {
-      // Cancelar el menu del sistema no es un error.
-    }
+    await shareInvite(as)
     setSharing(false)
   }
 

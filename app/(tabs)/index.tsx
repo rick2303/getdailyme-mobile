@@ -24,6 +24,7 @@ import { useLocalSearchParams } from 'expo-router'
 import { ActivityGlyph } from '@/components/activities/activity-icon'
 import { HealthSyncButton } from '@/components/activities/health-sync-button'
 import { ActivityEditorSheet } from '@/components/activities/activity-editor-sheet'
+import { FirstDayCelebration } from '@/components/activities/first-day-celebration'
 import { QuickLogSheet } from '@/components/activities/quick-log-sheet'
 import { Confetti } from '@/components/ui/confetti'
 import { MilestoneSheet, STREAK_MILESTONES } from '@/components/profile/milestone-sheet'
@@ -53,6 +54,7 @@ import type { Activity } from '@/lib/api/types'
 import { useAuth, useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
 import { useActiveActivities } from '@/lib/hooks/use-activities'
 import { useAmountsByActivity, useCreateLog, useDatesByActivity, useDeleteLog, useHistorySummary, useRecentLogs, useTodayTotals, useWeekProgress } from '@/lib/hooks/use-logs'
+import { useFirstLogCelebration } from '@/lib/hooks/use-first-log'
 import { formatElapsed, useClearSession, useSessionFor, useStartSession, useTicker } from '@/lib/hooks/use-sessions'
 import { forgetHealthLog } from '@/lib/health'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -80,6 +82,7 @@ export default function TodayScreen() {
   const deleteLog = useDeleteLog()
   const startSession = useStartSession()
   const clearSession = useClearSession()
+  const firstDay = useFirstLogCelebration()
 
   const [detailActivity, setDetailActivity] = useState<Activity | null>(null)
   const [quickActivity, setQuickActivity] = useState<Activity | null>(null)
@@ -170,7 +173,11 @@ export default function TodayScreen() {
   // Registrar con deshacer, como la web: el toast trae el boton y borrar el
   // registro optimista lo revierte todo.
   const logWithUndo = (activity: Activity, options?: { amount?: number; note?: string | null; photoUrl?: string | null; loggedAt?: Date }) => {
-    const logId = createLog.logActivity(activity, options)
+    const maybeFirst = allDates.size === 0
+    const logId = createLog.logActivity(activity, {
+      ...options,
+      onCreated: maybeFirst ? firstDay.check : undefined,
+    })
     showToast(
       `${t('today.logged')} · ${activityName(activity.name)}`,
       'success',
@@ -343,6 +350,8 @@ export default function TodayScreen() {
       <MilestoneSheet milestone={milestone} onClose={() => setMilestone(null)} />
 
       <Confetti visible={celebrating} />
+
+      <FirstDayCelebration open={firstDay.open} onClose={firstDay.close} />
     </SafeAreaView>
   )
 }

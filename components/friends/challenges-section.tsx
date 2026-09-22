@@ -1,7 +1,9 @@
 import { Check, History, Pencil, Plus, RotateCcw, Trophy } from 'lucide-react-native'
-import { useState } from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { useMemo, useRef, useState } from 'react'
+import { Pressable, ScrollView, Text, View } from 'react-native'
+import { useReducedMotion } from 'react-native-reanimated'
 
+import { ActivityIcon } from '@/components/activities/activity-icon'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -11,6 +13,9 @@ import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/components/ui/toast'
 import { useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
+import type { TranslationKey } from '@/i18n/translate'
+import { useActivityLabels } from '@/lib/activities/labels'
+import { resolveChallengeTemplates, type ResolvedChallengeTemplate } from '@/lib/challenges/templates'
 import { challengeDaysLeft, type ChallengeMembership } from '@/lib/api/challenges'
 import { useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
 import { useActiveActivities } from '@/lib/hooks/use-activities'
@@ -493,6 +498,10 @@ export function CreateChallengeSheet({
   const { data: activities } = useActiveActivities()
   const { friends } = useFriends()
   const create = useCreateChallenge()
+  const { amountWithUnit } = useActivityLabels()
+  const reducedMotion = useReducedMotion()
+  const scrollRef = useRef<ScrollView>(null)
+  const inviteY = useRef<number | null>(null)
 
   const today = todayKey(timeZone)
   const [title, setTitle] = useState('')
@@ -519,6 +528,22 @@ export function CreateChallengeSheet({
 
   const parsedTarget = Math.max(1, Number(target) || 0)
   const canSave = title.trim().length > 0 && parsedTarget > 0 && activityId !== null
+
+  const templates = useMemo(() => resolveChallengeTemplates(activities ?? []), [activities])
+  const templateTitle = (key: ResolvedChallengeTemplate['key']) =>
+    t(`challenges.templates.${key}` as TranslationKey)
+
+  const applyTemplate = (template: ResolvedChallengeTemplate) => {
+    haptic('tap')
+    setTitle(templateTitle(template.key))
+    setTarget(String(template.target))
+    setDays(template.days)
+    setActivityId(template.activity.id)
+    const y = inviteY.current
+    if (y !== null) {
+      requestAnimationFrame(() => scrollRef.current?.scrollTo({ y, animated: !reducedMotion }))
+    }
+  }
 
   const submit = () => {
     if (!canSave) return
@@ -551,6 +576,7 @@ export function CreateChallengeSheet({
       onClose={onClose}
       title={t('challenges.createTitle')}
       closeLabel={t('common.close')}
+      scrollRef={scrollRef}
       footer={
         <Button
           title={t('challenges.createCta')}
@@ -563,6 +589,38 @@ export function CreateChallengeSheet({
       }
     >
       <View className="gap-4 pt-2">
+        {!prefill && templates.length > 0 ? (
+          <View className="gap-2">
+            <Text className="px-1 text-sm font-semibold text-text-muted dark:text-text-muted-dark">
+              {t('challenges.templatesHeader')}
+            </Text>
+            <View className="gap-1.5">
+              {templates.map((template) => (
+                <TemplateRow
+                  key={template.key}
+                  title={templateTitle(template.key)}
+                  summary={t('challenges.templateSummary', {
+                    amount: amountWithUnit(template.target, template.activity.unit),
+                    days: template.days,
+                  })}
+                  icon={template.activity.icon}
+                  color={template.activity.color}
+                  selected={
+                    activityId === template.activity.id &&
+                    parsedTarget === template.target &&
+                    days === template.days &&
+                    title === templateTitle(template.key)
+                  }
+                  onPress={() => applyTemplate(template)}
+                />
+              ))}
+            </View>
+            <Text className="px-1 text-xs text-text-subtle dark:text-text-subtle-dark">
+              {t('challenges.templatesFooter')}
+            </Text>
+          </View>
+        ) : null}
+
         <TextInput
           label={t('challenges.titleLabel')}
           placeholder={t('challenges.titlePlaceholder')}
@@ -627,7 +685,12 @@ export function CreateChallengeSheet({
         </View>
 
         {friends.length > 0 ? (
-          <View className="gap-2">
+          <View
+            className="gap-2"
+            onLayout={(event) => {
+              inviteY.current = event.nativeEvent.layout.y
+            }}
+          >
             <Text className="px-1 text-sm font-semibold text-text-muted dark:text-text-muted-dark">
               {t('challenges.inviteLabel')}
             </Text>
@@ -689,6 +752,49 @@ function SelectRow({
       >
         {label}
       </Text>
+      {selected ? <Check size={16} color={colors.brand} strokeWidth={3} /> : null}
+    </Pressable>
+  )
+}
+
+function TemplateRow({
+  title,
+  summary,
+  icon,
+  color,
+  selected,
+  onPress,
+}: {
+  title: string
+  summary: string
+  icon: string
+  color: string
+  selected: boolean
+  onPress: () => void
+}) {
+  const colors = useThemeColors()
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityLabel={`${title}, ${summary}`}
+      onPress={onPress}
+      className={
+        selected
+          ? 'min-h-14 flex-row items-center gap-3 rounded-2xl border border-brand bg-brand-soft px-3 py-2.5 dark:bg-brand-soft-dark active:opacity-70'
+          : 'min-h-14 flex-row items-center gap-3 rounded-2xl border border-border bg-surface-sunken px-3 py-2.5 dark:border-border-dark dark:bg-surface-sunken-dark active:opacity-70'
+      }
+    >
+      <ActivityIcon icon={icon} color={color} size="sm" />
+      <View className="min-w-0 flex-1">
+        <Text className="text-[15px] font-bold text-text dark:text-text-dark" numberOfLines={1}>
+          {title}
+        </Text>
+        <Text className="text-sm text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
+          {summary}
+        </Text>
+      </View>
       {selected ? <Check size={16} color={colors.brand} strokeWidth={3} /> : null}
     </Pressable>
   )

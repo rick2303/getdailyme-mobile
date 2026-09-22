@@ -332,7 +332,16 @@ export function useCreateLog() {
     },
   });
 
-  const logActivity = (activity: Activity, options?: { amount?: number; note?: string | null; photoUrl?: string | null; loggedAt?: Date }) => {
+  const logActivity = (
+    activity: Activity,
+    options?: {
+      amount?: number;
+      note?: string | null;
+      photoUrl?: string | null;
+      loggedAt?: Date;
+      onCreated?: (loggedAt: string) => void;
+    },
+  ) => {
     if (!userId) return null;
     const loggedAt = options?.loggedAt ?? new Date();
     const variables: CreateLogVariables = {
@@ -348,7 +357,17 @@ export function useCreateLog() {
       // viaja la peticion.
       local_date: toLocalDateKey(loggedAt, timeZone),
     };
-    mutation.mutate(variables);
+    const onCreated = options?.onCreated;
+    if (onCreated) {
+      mutation
+        .mutateAsync(variables)
+        .then((created) => {
+          if (created) onCreated(variables.logged_at);
+        })
+        .catch(() => undefined);
+    } else {
+      mutation.mutate(variables);
+    }
     return variables.id;
   };
 

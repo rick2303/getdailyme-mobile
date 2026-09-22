@@ -26,6 +26,7 @@ export function Sheet({
   children,
   footer,
   closeLabel = 'Cerrar',
+  scrollRef,
 }: {
   open: boolean
   onClose: () => void
@@ -34,6 +35,7 @@ export function Sheet({
   children: React.ReactNode
   footer?: React.ReactNode
   closeLabel?: string
+  scrollRef?: React.Ref<ScrollView>
 }) {
   const insets = useSafeAreaInsets()
   const colors = useThemeColors()
@@ -79,6 +81,7 @@ export function Sheet({
             ) : null}
 
             <ScrollView
+              ref={scrollRef}
               className="px-5"
               style={{ flexGrow: 0 }}
               contentContainerClassName="pb-4"

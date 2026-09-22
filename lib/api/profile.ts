@@ -21,6 +21,20 @@ export async function fetchProfile(
   return (data as Profile | null) ?? null;
 }
 
+export async function fetchFirstLoggedAt(
+  client: TypedSupabaseClient,
+  userId: string,
+): Promise<string | null> {
+  const { data, error } = await client
+    .from("profiles")
+    .select("first_logged_at")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.first_logged_at ?? null;
+}
+
 export async function updateProfile(
   client: TypedSupabaseClient,
   userId: string,
