@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import { coupleStreak } from "@/lib/api/couple-answers";
-import { COUPLE_PROMPTS, promptForDay, promptText } from "@/lib/couple/prompts";
+import {
+  COUPLE_DECKS,
+  COUPLE_PROMPTS,
+  customPromptKey,
+  isCustomPromptKey,
+  pickPrompt,
+  promptPool,
+  promptText,
+  type CoupleDeck,
+  type PromptState,
+} from "@/lib/couple/prompts";
 import { shiftDateKey } from "@/lib/utils/dates";
 
 const COUPLE = "8f14e45f-ceea-467a-9575-7a8b9c0d1e2f";
@@ -29,42 +39,75 @@ describe("catalogo de preguntas", () => {
   });
 });
 
+const FRESH: PromptState = { todayKey: null, used: {}, custom: null, pendingFromPartner: 0 };
+
+function playDays(coupleId: string, from: string, count: number, decks: CoupleDeck[] | null = null) {
+  const used: Record<string, number> = {};
+  const keys: string[] = [];
+  let day = from;
+  for (let index = 0; index < count; index += 1) {
+    const prompt = pickPrompt(coupleId, day, { ...FRESH, used }, decks);
+    keys.push(prompt.key);
+    used[prompt.key] = (used[prompt.key] ?? 0) + 1;
+    day = shiftDateKey(day, 1);
+  }
+  return keys;
+}
+
 describe("la pregunta del dia", () => {
-  // Lo que sostiene el ritual: las dos personas tienen que ver la misma
-  // pregunta sin hablarlo, y tiene que seguir siendo la misma al recargar.
   it("es la misma para una pareja y un dia", () => {
-    const once = promptForDay(COUPLE, "2026-09-19");
-    const again = promptForDay(COUPLE, "2026-09-19");
+    const once = pickPrompt(COUPLE, "2026-09-19", FRESH, null);
+    const again = pickPrompt(COUPLE, "2026-09-19", FRESH, null);
     expect(again.key).toBe(once.key);
   });
 
-  it("cambia al dia siguiente", () => {
-    const today = promptForDay(COUPLE, "2026-09-19");
-    const tomorrow = promptForDay(COUPLE, "2026-09-20");
-    expect(tomorrow.key).not.toBe(today.key);
-  });
-
   it("no le toca a todo el mundo la misma", () => {
-    const mine = promptForDay(COUPLE, "2026-09-19");
-    const theirs = promptForDay(OTHER, "2026-09-19");
+    const mine = pickPrompt(COUPLE, "2026-09-19", FRESH, null);
+    const theirs = pickPrompt(OTHER, "2026-09-19", FRESH, null);
     expect(mine.key).not.toBe(theirs.key);
   });
 
-  it("recorre el catalogo entero antes de repetir", () => {
-    const seen = new Set<string>();
-    let day = "2026-09-19";
-    for (let index = 0; index < COUPLE_PROMPTS.length; index += 1) {
-      seen.add(promptForDay(COUPLE, day).key);
-      day = shiftDateKey(day, 1);
-    }
-    expect(seen.size).toBe(COUPLE_PROMPTS.length);
+  it("no repite ninguna hasta haber pasado por todo el catalogo", () => {
+    const keys = playDays(COUPLE, "2026-09-19", COUPLE_PROMPTS.length);
+    expect(new Set(keys).size).toBe(COUPLE_PROMPTS.length);
   });
 
-  // Una pareja que se emparejo antes del dia cero de la rotacion tiene fechas
-  // por detras, y el modulo de un negativo es negativo en JavaScript.
+  it("con temas elegidos solo saca de esos temas, y tampoco repite", () => {
+    const decks: CoupleDeck[] = ["fun", "know"];
+    const size = promptPool(decks).length;
+    const keys = playDays(COUPLE, "2026-09-19", size, decks);
+    expect(new Set(keys).size).toBe(size);
+    for (const key of keys) {
+      expect(decks).toContain(COUPLE_PROMPTS.find((prompt) => prompt.key === key)?.deck);
+    }
+  });
+
+  it("la que ya se esta respondiendo hoy manda aunque cambien los temas", () => {
+    const started = COUPLE_PROMPTS.find((prompt) => prompt.deck === "deep")!;
+    const prompt = pickPrompt(COUPLE, "2026-09-19", { ...FRESH, todayKey: started.key }, ["fun"]);
+    expect(prompt.key).toBe(started.key);
+  });
+
+  it("la pregunta propia va por delante del catalogo", () => {
+    const prompt = pickPrompt(
+      COUPLE,
+      "2026-09-19",
+      { ...FRESH, custom: { id: "abc", body: "¿Bailamos?", authorId: "u1" } },
+      null,
+    );
+    expect(prompt).toEqual({ kind: "custom", key: customPromptKey("abc"), authorId: "u1", body: "¿Bailamos?" });
+    expect(isCustomPromptKey(prompt.key)).toBe(true);
+  });
+
   it("aguanta fechas anteriores al dia cero", () => {
-    const old = promptForDay(COUPLE, "2020-01-01");
+    const old = pickPrompt(COUPLE, "2020-01-01", FRESH, null);
     expect(COUPLE_PROMPTS.some((prompt) => prompt.key === old.key)).toBe(true);
+  });
+
+  it("todos los temas tienen preguntas", () => {
+    for (const deck of COUPLE_DECKS) {
+      expect(COUPLE_PROMPTS.filter((prompt) => prompt.deck === deck).length).toBeGreaterThanOrEqual(8);
+    }
   });
 });
 

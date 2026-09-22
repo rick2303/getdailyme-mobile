@@ -40,6 +40,9 @@ export const queryKeys = {
   coupleRitual: (coupleId: string, dateKey: string) =>
     ["couple-ritual", coupleId, dateKey] as const,
   coupleStreak: (coupleId: string) => ["couple-streak", coupleId] as const,
+  couplePromptState: (coupleId: string, dateKey: string) =>
+    ["couple-prompt-state", coupleId, dateKey] as const,
+  coupleCustomPrompts: (coupleId: string) => ["couple-custom-prompts", coupleId] as const,
   storyRing: () => ["story-ring"] as const,
   stories: (authorId: string) => ["stories", authorId] as const,
   storyArchive: (authorId: string) => ["story-archive", authorId] as const,

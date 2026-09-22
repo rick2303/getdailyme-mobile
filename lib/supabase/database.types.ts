@@ -469,11 +469,36 @@ export type Database = {
           },
         ]
       }
+      couple_custom_prompts: {
+        Row: {
+          author_id: string
+          body: string
+          couple_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          couple_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          couple_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       couples: {
         Row: {
           addressee_id: string
           created_at: string
           id: string
+          prompt_decks: string[] | null
           requester_id: string
           started_on: string
           status: Database['public']['Enums']['couple_status']
@@ -484,6 +509,7 @@ export type Database = {
           addressee_id: string
           created_at?: string
           id?: string
+          prompt_decks?: string[] | null
           requester_id: string
           started_on?: string
           status?: Database['public']['Enums']['couple_status']
@@ -492,6 +518,7 @@ export type Database = {
           addressee_id?: string
           created_at?: string
           id?: string
+          prompt_decks?: string[] | null
           requester_id?: string
           started_on?: string
           status?: Database['public']['Enums']['couple_status']
@@ -865,8 +892,10 @@ export type Database = {
       notifications: {
         Row: {
           actor_id: string
+          challenge_id: string | null
           comment_id: string | null
           created_at: string
+          details: Json | null
           event_id: string | null
           story_id: string | null
           id: string
@@ -877,8 +906,10 @@ export type Database = {
         }
         Insert: {
           actor_id: string
+          challenge_id?: string | null
           comment_id?: string | null
           created_at?: string
+          details?: Json | null
           event_id?: string | null
           story_id?: string | null
           id?: string
@@ -889,8 +920,10 @@ export type Database = {
         }
         Update: {
           actor_id?: string
+          challenge_id?: string | null
           comment_id?: string | null
           created_at?: string
+          details?: Json | null
           event_id?: string | null
           story_id?: string | null
           id?: string
@@ -905,6 +938,13 @@ export type Database = {
             columns: ["actor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
             referencedColumns: ["id"]
           },
           {
@@ -980,8 +1020,10 @@ export type Database = {
           display_name: string
           id: string
           locale: string
+          notify_challenges: boolean
           notify_comments: boolean
           notify_friend_logs: boolean
+          notify_friend_streaks: boolean
           notify_event_invites: boolean
           notify_friend_requests: boolean
           notify_nudges: boolean
@@ -999,8 +1041,10 @@ export type Database = {
           display_name: string
           id: string
           locale?: string
+          notify_challenges?: boolean
           notify_comments?: boolean
           notify_friend_logs?: boolean
+          notify_friend_streaks?: boolean
           notify_event_invites?: boolean
           notify_friend_requests?: boolean
           notify_nudges?: boolean
@@ -1018,8 +1062,10 @@ export type Database = {
           display_name?: string
           id?: string
           locale?: string
+          notify_challenges?: boolean
           notify_comments?: boolean
           notify_friend_logs?: boolean
+          notify_friend_streaks?: boolean
           notify_event_invites?: boolean
           notify_friend_requests?: boolean
           notify_nudges?: boolean
@@ -1245,6 +1291,10 @@ export type Database = {
         Args: { p_couple: string; p_on: string }
         Returns: boolean
       }
+      couple_prompt_state: {
+        Args: { p_couple: string; p_on: string }
+        Returns: Json
+      }
       current_invite: { Args: never; Returns: string }
       story_activity: {
         Args: { p_story_id: string }
@@ -1321,6 +1371,43 @@ export type Database = {
           streak_days: number
           user_id: string
         }[]
+      }
+      due_challenge_ending_notifications: {
+        Args: never
+        Returns: {
+          challenge_id: string
+          locale: string
+          title: string
+          user_id: string
+        }[]
+      }
+      due_challenge_result_notifications: {
+        Args: never
+        Returns: {
+          challenge_id: string
+          locale: string
+          members: number
+          rank: number
+          target: number
+          title: string
+          total: number
+          user_id: string
+        }[]
+      }
+      due_friend_streak_risk_notifications: {
+        Args: { p_min_days?: number }
+        Returns: {
+          friend_id: string
+          friend_name: string
+          locale: string
+          others: number
+          streak_days: number
+          user_id: string
+        }[]
+      }
+      shared_streak: {
+        Args: { p_friend: string; p_today: string; p_user: string }
+        Returns: number
       }
       find_profile_by_username: {
         Args: { p_username: string }
@@ -1438,6 +1525,10 @@ export type Database = {
         | "event_invite"
         | "couple_answer"
         | "story_reaction"
+        | "challenge_joined"
+        | "challenge_ending"
+        | "challenge_finished"
+        | "friend_streak_risk"
       reaction_type: "fire" | "clap" | "heart" | "laugh" | "muscle"
       story_media: "photo" | "video"
       report_reason: "spam" | "harassment" | "inappropriate" | "other"
@@ -1601,6 +1692,10 @@ export const Constants = {
         "event_invite",
         "couple_answer",
         "story_reaction",
+        "challenge_joined",
+        "challenge_ending",
+        "challenge_finished",
+        "friend_streak_risk",
       ],
       reaction_type: ["fire", "clap", "heart", "laugh", "muscle"],
       story_media: ["photo", "video"],

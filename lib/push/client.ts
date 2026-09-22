@@ -13,6 +13,7 @@ export type NotifySource =
   | { type: 'event_invite'; eventId: string; userIds: string[] }
   | { type: 'couple_answer'; coupleId: string }
   | { type: 'story_reaction'; storyId: string }
+  | { type: 'challenge_joined'; challengeId: string }
 
 export async function requestPush(source: NotifySource): Promise<void> {
   const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL

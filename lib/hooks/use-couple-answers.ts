@@ -101,6 +101,9 @@ export function useAnswerToday() {
         queryKey: queryKeys.coupleRitual(input.coupleId, input.dateKey),
       });
       void queryClient.invalidateQueries({ queryKey: queryKeys.coupleStreak(input.coupleId) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.couplePromptState(input.coupleId, input.dateKey),
+      });
 
       // El aviso no lleva la respuesta, solo que ya la hay: el contenido se
       // revela en la app y solo cuando toca.

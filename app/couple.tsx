@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { CoupleBoard } from '@/components/couple/couple-board'
 import { CoupleGroup } from '@/components/couple/couple-group'
 import { CoupleHeader } from '@/components/couple/couple-header'
+import { CouplePrompts } from '@/components/couple/couple-prompts'
 import { DailyQuestion } from '@/components/couple/daily-question'
 import { StreakSave } from '@/components/couple/streak-save'
 import { PageHeader } from '@/components/layout/page-header'
@@ -56,6 +57,8 @@ export default function CoupleScreen() {
       queryClient.invalidateQueries({ queryKey: ['couple'] }),
       queryClient.invalidateQueries({ queryKey: ['couple-ritual'] }),
       queryClient.invalidateQueries({ queryKey: ['couple-streak'] }),
+      queryClient.invalidateQueries({ queryKey: ['couple-prompt-state'] }),
+      queryClient.invalidateQueries({ queryKey: ['couple-custom-prompts'] }),
     ])
     setRefreshing(false)
   }
@@ -97,6 +100,8 @@ export default function CoupleScreen() {
               profile={{ displayName: profile.display_name, avatarUrl: profile.avatar_url }}
               today={today}
             />
+
+            <CouplePrompts couple={couple} today={today} />
 
             <CoupleBoard couple={couple} today={today} />
 

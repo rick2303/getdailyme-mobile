@@ -32,6 +32,8 @@ export type NewChallenge = {
   friendIds: string[];
 };
 
+export const CHALLENGES_ANCHOR = "challenges";
+
 const CHALLENGE_COLUMNS = "id, creator_id, title, target, starts_on, ends_on";
 
 export async function fetchChallenges(

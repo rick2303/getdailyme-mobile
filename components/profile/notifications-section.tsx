@@ -158,6 +158,18 @@ export function NotificationsSection({ embedded = false }: { embedded?: boolean 
                 onChange={(checked) => savePreference({ notify_event_invites: checked })}
               />
               <PreferenceToggle
+                label={t('notifications.typeChallenges')}
+                hint={t('notifications.typeChallengesHelp')}
+                checked={preferences?.notify_challenges ?? true}
+                onChange={(checked) => savePreference({ notify_challenges: checked })}
+              />
+              <PreferenceToggle
+                label={t('notifications.typeFriendStreaks')}
+                hint={t('notifications.typeFriendStreaksHelp')}
+                checked={preferences?.notify_friend_streaks ?? true}
+                onChange={(checked) => savePreference({ notify_friend_streaks: checked })}
+              />
+              <PreferenceToggle
                 label={t('notifications.typeReminder')}
                 checked={reminderEnabled}
                 onChange={(checked) =>

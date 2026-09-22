@@ -26,6 +26,8 @@ import { useFriends } from '@/lib/hooks/use-friends'
 import { daysBetweenKeys, shiftDateKey, todayKey } from '@/lib/utils/dates'
 import { haptic } from '@/lib/utils/haptics'
 
+export const FRIENDS_TAB_PARAM = 'tab'
+
 // Retos en version movil: activos con clasificacion, invitaciones con eleccion
 // de actividad, y creacion con duracion en dias. El historico con revancha
 // llega en la fase de pulido.

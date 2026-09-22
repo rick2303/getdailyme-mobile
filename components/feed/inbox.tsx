@@ -1,11 +1,15 @@
 import {
   Bell,
   CalendarPlus,
+  Flame,
   Heart,
+  Hourglass,
+  Medal,
   MessageCircle,
   MessageCircleHeart,
   Reply,
   Sparkles,
+  Trophy,
   UserCheck,
   UserPlus,
   type LucideIcon,
@@ -18,10 +22,12 @@ import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
 import { STORY_PARAM, STORY_PARAM_MINE } from '@/components/stories/story-ring'
+import { FRIENDS_TAB_PARAM } from '@/components/friends/challenges-section'
 import { useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
-import type { TranslationKey } from '@/i18n/translate'
-import type { NotificationType } from '@/lib/api/notifications'
+import { CHALLENGES_ANCHOR } from '@/lib/api/challenges'
+import { isChallengeNotification, type NotificationType } from '@/lib/api/notifications'
+import { inboxCopy } from '@/lib/feed/inbox-copy'
 import { useInbox, useMarkInboxRead } from '@/lib/hooks/use-notifications-inbox'
 import { useRelativeTime } from '@/lib/hooks/use-relative-time'
 import { haptic } from '@/lib/utils/haptics'
@@ -37,6 +43,10 @@ const TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   event_invite: CalendarPlus,
   couple_answer: MessageCircleHeart,
   story_reaction: Sparkles,
+  challenge_joined: Trophy,
+  challenge_ending: Hourglass,
+  challenge_finished: Medal,
+  friend_streak_risk: Flame,
 }
 
 // La bandeja vivia abierta en la cabecera del feed. Con dos avisos pasaba
@@ -103,6 +113,7 @@ export function InboxBell() {
         <View className="gap-1">
           {items.map((item) => {
             const Glyph = TYPE_ICONS[item.type]
+            const copy = inboxCopy(item)
             return (
               <Pressable
                 key={item.id}
@@ -116,6 +127,14 @@ export function InboxBell() {
                   if (item.type === 'couple_answer') {
                     close()
                     router.push('/couple')
+                  }
+                  if (isChallengeNotification(item.type)) {
+                    close()
+                    router.push({ pathname: '/friends', params: { [FRIENDS_TAB_PARAM]: CHALLENGES_ANCHOR } })
+                  }
+                  if (item.type === 'friend_streak_risk') {
+                    close()
+                    router.push('/')
                   }
                   if (item.type === 'story_reaction') {
                     close()
@@ -135,7 +154,7 @@ export function InboxBell() {
                 </View>
                 <View className="min-w-0 flex-1">
                   <Text className="text-sm text-text dark:text-text-dark" numberOfLines={2}>
-                    {t(`inbox.${item.type}` as TranslationKey, { name: item.actor.display_name })}
+                    {t(copy.key, copy.params)}
                   </Text>
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark">
                     {relativeTime(item.created_at)}

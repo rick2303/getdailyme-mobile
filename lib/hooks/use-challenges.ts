@@ -12,6 +12,7 @@ import {
   type NewChallenge,
 } from "@/lib/api/challenges";
 import { useCurrentUserId } from "@/lib/auth/provider";
+import { requestPush } from "@/lib/push/client";
 import { queryKeys } from "@/lib/query/keys";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -85,7 +86,10 @@ export function useJoinChallenge() {
   return useMutation({
     mutationFn: ({ challengeId, activityId }: { challengeId: string; activityId: string }) =>
       joinChallenge(getSupabaseBrowserClient(), challengeId, userId!, activityId),
-    onSuccess: invalidate,
+    onSuccess: (_data, { challengeId }) => {
+      invalidate();
+      void requestPush({ type: "challenge_joined", challengeId }).catch(() => {});
+    },
   });
 }
 

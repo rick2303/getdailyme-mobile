@@ -1,3 +1,4 @@
+import { COUPLE_DECKS, type CoupleDeck } from "@/lib/couple/prompts";
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
 
 // La pareja: una fila, dos personas, y nada que se parezca a un historial.
@@ -13,6 +14,7 @@ export type CoupleMember = {
 export type Couple = {
   id: string;
   startedOn: string;
+  promptDecks: CoupleDeck[] | null;
   createdAt: string;
   partner: CoupleMember;
 };
@@ -60,7 +62,7 @@ export async function fetchCouple(
   const { data, error } = await client
     .from("couples")
     .select(
-      `id, started_on, created_at, requester_id, addressee_id,
+      `id, started_on, prompt_decks, created_at, requester_id, addressee_id,
        requester:profiles!couples_requester_id_fkey ( ${MEMBER_SELECT} ),
        addressee:profiles!couples_addressee_id_fkey ( ${MEMBER_SELECT} )`,
     )
@@ -82,6 +84,7 @@ export async function fetchCouple(
   return {
     id: data.id,
     startedOn: data.started_on,
+    promptDecks: toDecks(data.prompt_decks),
     createdAt: data.created_at,
     partner: toMember(partnerRow),
   };
@@ -121,6 +124,26 @@ export async function updateStartedOn(
     .update({ started_on: startedOn })
     .eq("id", coupleId);
   if (error) throw error;
+}
+
+export async function updatePromptDecks(
+  client: TypedSupabaseClient,
+  coupleId: string,
+  decks: CoupleDeck[] | null,
+): Promise<void> {
+  const { error } = await client
+    .from("couples")
+    .update({ prompt_decks: decks && decks.length > 0 ? decks : null })
+    .eq("id", coupleId);
+  if (error) throw error;
+}
+
+function toDecks(value: string[] | null): CoupleDeck[] | null {
+  if (!value) return null;
+  const known = value.filter((deck): deck is CoupleDeck =>
+    (COUPLE_DECKS as readonly string[]).includes(deck),
+  );
+  return known.length > 0 ? known : null;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { Check, Flame, Hand, Heart, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native'
-import { useState } from 'react'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useEffect, useState } from 'react'
 import { Share } from 'react-native'
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -10,7 +11,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { EmptyState, Spinner } from '@/components/ui/feedback'
 import { TextInput } from '@/components/ui/field'
 import { useToast } from '@/components/ui/toast'
-import { ChallengesSection } from '@/components/friends/challenges-section'
+import { ChallengesSection, FRIENDS_TAB_PARAM } from '@/components/friends/challenges-section'
 import { ClubsSection } from '@/components/friends/clubs-section'
 import { PageHeader } from '@/components/layout/page-header'
 import { useThemeColors } from '@/constants/colors'
@@ -45,6 +46,12 @@ import { haptic } from '@/lib/utils/haptics'
 // de iOS en app.json.
 const APP_ORIGIN = 'https://app.getdailyme.com'
 
+type FriendsTab = 'friends' | 'challenges' | 'clubs'
+
+function isFriendsTab(value: string): value is FriendsTab {
+  return value === 'friends' || value === 'challenges' || value === 'clubs'
+}
+
 export default function FriendsScreen() {
   const { t } = useI18n()
   const { showToast } = useToast()
@@ -55,8 +62,17 @@ export default function FriendsScreen() {
 
   const [query, setQuery] = useState('')
   const [refreshing, setRefreshing] = useState(false)
-  const [tab, setTab] = useState<'friends' | 'challenges' | 'clubs'>('friends')
+  const [tab, setTab] = useState<FriendsTab>('friends')
   const [sharing, setSharing] = useState(false)
+  const router = useRouter()
+  const params = useLocalSearchParams<{ [FRIENDS_TAB_PARAM]?: string }>()
+  const requestedTab = params[FRIENDS_TAB_PARAM]
+
+  useEffect(() => {
+    if (!requestedTab) return
+    if (isFriendsTab(requestedTab)) setTab(requestedTab)
+    router.setParams({ [FRIENDS_TAB_PARAM]: undefined })
+  }, [requestedTab, router])
 
   // Las tres pestañas viven bajo el mismo scroll, asi que tirar para refrescar
   // tiene que recargar las tres. Faltaban clubes y las clasificaciones: en esas
