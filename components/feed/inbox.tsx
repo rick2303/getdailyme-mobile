@@ -5,6 +5,7 @@ import {
   MessageCircle,
   MessageCircleHeart,
   Reply,
+  Sparkles,
   UserCheck,
   UserPlus,
   type LucideIcon,
@@ -16,6 +17,7 @@ import { Pressable, Text, View } from 'react-native'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
+import { STORY_PARAM, STORY_PARAM_MINE } from '@/components/stories/story-ring'
 import { useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
 import type { TranslationKey } from '@/i18n/translate'
@@ -23,6 +25,8 @@ import type { NotificationType } from '@/lib/api/notifications'
 import { useInbox, useMarkInboxRead } from '@/lib/hooks/use-notifications-inbox'
 import { useRelativeTime } from '@/lib/hooks/use-relative-time'
 import { haptic } from '@/lib/utils/haptics'
+
+const SHEET_SETTLE_MS = 400
 
 const TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   comment: MessageCircle,
@@ -32,7 +36,7 @@ const TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   friend_accept: UserCheck,
   event_invite: CalendarPlus,
   couple_answer: MessageCircleHeart,
-  story_reaction: Heart,
+  story_reaction: Sparkles,
 }
 
 // La bandeja vivia abierta en la cabecera del feed. Con dos avisos pasaba
@@ -112,6 +116,13 @@ export function InboxBell() {
                   if (item.type === 'couple_answer') {
                     close()
                     router.push('/couple')
+                  }
+                  if (item.type === 'story_reaction') {
+                    close()
+                    setTimeout(
+                      () => router.setParams({ [STORY_PARAM]: STORY_PARAM_MINE }),
+                      SHEET_SETTLE_MS,
+                    )
                   }
                 }}
                 className="min-h-12 flex-row items-center gap-3 py-2 active:opacity-70"

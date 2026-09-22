@@ -146,3 +146,54 @@ export async function resolveEventPhotoUrl(
   if (error) return null
   return data.signedUrl
 }
+
+export const STORIES_BUCKET = 'stories'
+
+export async function uploadStoryMedia(
+  client: TypedSupabaseClient,
+  userId: string,
+  uri: string,
+): Promise<string> {
+  const body = await compressToBuffer(uri, 1440, 0.8)
+  const path = `${userId}/${uniqueSegment()}.jpg`
+  const { error } = await client.storage
+    .from(STORIES_BUCKET)
+    .upload(path, body, { upsert: false, contentType: 'image/jpeg' })
+
+  if (error) throw error
+  return path
+}
+
+export async function removeStoryMedia(client: TypedSupabaseClient, path: string): Promise<void> {
+  await client.storage.from(STORIES_BUCKET).remove([path])
+}
+
+export async function resolveStoryUrl(
+  client: TypedSupabaseClient,
+  path: string,
+): Promise<string | null> {
+  const { data, error } = await client.storage
+    .from(STORIES_BUCKET)
+    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
+
+  if (error) return null
+  return data.signedUrl
+}
+
+export async function resolveStoryUrls(
+  client: TypedSupabaseClient,
+  paths: string[],
+): Promise<Map<string, string>> {
+  const urls = new Map<string, string>()
+  if (paths.length === 0) return urls
+
+  const { data, error } = await client.storage
+    .from(STORIES_BUCKET)
+    .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS)
+
+  if (error) return urls
+  for (const entry of data ?? []) {
+    if (entry.path && entry.signedUrl) urls.set(entry.path, entry.signedUrl)
+  }
+  return urls
+}

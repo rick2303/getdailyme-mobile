@@ -1,11 +1,13 @@
 import { Dumbbell, Flag, Flame, Hand, Heart, Laugh, type LucideIcon } from 'lucide-react-native'
-import { useMemo, useRef, useState } from 'react'
+import { useLocalSearchParams } from 'expo-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Image } from 'react-native'
 import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { FeedComments } from '@/components/feed/feed-comments'
 import { InboxBell } from '@/components/feed/inbox'
+import { StoryRing } from '@/components/stories/story-ring'
 import { EventsTab } from '@/components/events/events-tab'
 import { Segmented } from '@/components/ui/segmented'
 import { ScrollView } from 'react-native'
@@ -22,6 +24,7 @@ import { useActivityLabels } from '@/lib/activities/labels'
 import { REACTION_TYPES, type FeedEntry, type ReactionType } from '@/lib/api/types'
 import { useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
 import { useFeed, useFeedRealtime, useToggleReaction } from '@/lib/hooks/use-feed'
+import { useRefreshRing } from '@/lib/hooks/use-stories'
 import { groupFeedEntries, type FeedGroup } from '@/lib/feed/grouping'
 import { useActivityPhotoUrl } from '@/lib/hooks/use-photo-url'
 import { useRelativeTime } from '@/lib/hooks/use-relative-time'
@@ -46,11 +49,17 @@ export default function FeedScreen() {
   // El contador en tiempo real ya existia pero nadie lo pintaba: se sumaban
   // novedades para siempre y el feed solo se enteraba al tirar para refrescar.
   const { pendingCount, consumePending } = useFeedRealtime()
+  const refreshRing = useRefreshRing()
   const listRef = useRef<FlatList<FeedGroup>>(null)
 
   const [tab, setTab] = useState<FeedTab>('activity')
   const [profileUserId, setProfileUserId] = useState<string | null>(null)
   const [reportTarget, setReportTarget] = useState<ReportSheetTarget | null>(null)
+  const { story: storyParam } = useLocalSearchParams<{ story?: string }>()
+
+  useEffect(() => {
+    if (storyParam) setTab('activity')
+  }, [storyParam])
 
   // Los registros seguidos de la misma persona y actividad se agrupan en una
   // tarjeta con el total, como en la web.
@@ -87,7 +96,15 @@ export default function FeedScreen() {
         keyExtractor={(item) => item.entry.id}
         contentContainerClassName="gap-3 px-4 pb-8"
         refreshControl={
-          <RefreshControl refreshing={feed.isRefetching} onRefresh={() => void feed.refetch()} tintColor={colors.brand} colors={[colors.brand]} />
+          <RefreshControl
+            refreshing={feed.isRefetching}
+            onRefresh={() => {
+              refreshRing()
+              void feed.refetch()
+            }}
+            tintColor={colors.brand}
+            colors={[colors.brand]}
+          />
         }
         onEndReached={() => {
           if (feed.hasNextPage && !feed.isFetchingNextPage) void feed.fetchNextPage()
@@ -109,6 +126,9 @@ export default function FeedScreen() {
               ]}
               onChange={setTab}
             />
+            <View className="pb-1 pt-1">
+              <StoryRing />
+            </View>
           </View>
         }
         ListEmptyComponent={
