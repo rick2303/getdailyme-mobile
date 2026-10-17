@@ -8,7 +8,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { CoupleBoard } from '@/components/couple/couple-board'
 import { CoupleGroup } from '@/components/couple/couple-group'
 import { CoupleHeader } from '@/components/couple/couple-header'
+import { CoupleLetters } from '@/components/couple/couple-letters'
+import { CouplePresence } from '@/components/couple/couple-presence'
 import { CouplePrompts } from '@/components/couple/couple-prompts'
+import { CoupleWishes } from '@/components/couple/couple-wishes'
 import { DailyQuestion } from '@/components/couple/daily-question'
 import { StreakSave } from '@/components/couple/streak-save'
 import { PageHeader } from '@/components/layout/page-header'
@@ -59,6 +62,11 @@ export default function CoupleScreen() {
       queryClient.invalidateQueries({ queryKey: ['couple-streak'] }),
       queryClient.invalidateQueries({ queryKey: ['couple-prompt-state'] }),
       queryClient.invalidateQueries({ queryKey: ['couple-custom-prompts'] }),
+      queryClient.invalidateQueries({ queryKey: ['couple-moods'] }),
+      queryClient.invalidateQueries({ queryKey: ['couple-pings'] }),
+      queryClient.invalidateQueries({ queryKey: ['couple-wishes'] }),
+      queryClient.invalidateQueries({ queryKey: ['couple-letters'] }),
+      queryClient.invalidateQueries({ queryKey: ['couple-sealed-letters'] }),
     ])
     setRefreshing(false)
   }
@@ -95,6 +103,8 @@ export default function CoupleScreen() {
           <>
             <CoupleHeader couple={couple} profile={profile} today={today} />
 
+            <CouplePresence couple={couple} today={today} />
+
             <DailyQuestion
               couple={couple}
               profile={{ displayName: profile.display_name, avatarUrl: profile.avatar_url }}
@@ -106,6 +116,10 @@ export default function CoupleScreen() {
             <CoupleBoard couple={couple} today={today} />
 
             <StreakSave coupleId={couple.id} today={today} />
+
+            <CoupleWishes couple={couple} today={today} />
+
+            <CoupleLetters couple={couple} today={today} />
 
             <CoupleGroup footer={t('couple.anniversaryHelp')}>
               <Pressable

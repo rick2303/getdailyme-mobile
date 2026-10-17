@@ -33,14 +33,14 @@ type Options = {
 }
 
 // Las mismas iniciales que pinta el componente Avatar cuando no hay foto.
-function initialsOf(name: string): string {
+export function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return '?'
   if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase()
   return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase()
 }
 
-async function avatarToBase64(url: string): Promise<string | null> {
+export async function avatarToBase64(url: string): Promise<string | null> {
   try {
     const context = ImageManipulator.manipulate(url)
     context.resize({ width: AVATAR_SIZE, height: AVATAR_SIZE })

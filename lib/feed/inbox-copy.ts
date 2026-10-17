@@ -1,5 +1,6 @@
 import type { TranslationKey, TranslationParams } from "@/i18n/translate";
 import type { InboxNotification } from "@/lib/api/notifications";
+import { isCoupleMood } from "@/lib/couple/moods";
 
 export type InboxCopy = { key: TranslationKey; params: TranslationParams };
 
@@ -8,6 +9,11 @@ type CopySource = Pick<InboxNotification, "type" | "details" | "actor" | "challe
 function numberIn(details: Record<string, unknown> | null, name: string): number {
   const value = details?.[name];
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function textIn(details: Record<string, unknown> | null, name: string): string {
+  const value = details?.[name];
+  return typeof value === "string" ? value : "";
 }
 
 export function inboxCopy(item: CopySource): InboxCopy {
@@ -43,6 +49,21 @@ export function inboxCopy(item: CopySource): InboxCopy {
       }
       return { key: "inbox.friend_streak_risk", params: { name, days } };
     }
+    case "couple_ping":
+      return {
+        key: "inbox.couple_ping",
+        params: { name, count: Math.max(1, numberIn(item.details, "count")) },
+      };
+    case "couple_mood": {
+      const mood = item.details?.mood;
+      if (isCoupleMood(mood)) {
+        return { key: `inbox.couple_mood.${mood}`, params: { name } };
+      }
+      return { key: "inbox.couple_mood_generic", params: { name } };
+    }
+    case "couple_letter":
+    case "couple_letter_open":
+      return { key: `inbox.${item.type}`, params: { name, title: textIn(item.details, "title") } };
     default:
       return { key: `inbox.${item.type}` as TranslationKey, params: { name } };
   }

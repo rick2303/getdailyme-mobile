@@ -13,7 +13,7 @@ import { AnimatedSplash } from '@/components/brand/animated-splash'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { Spinner } from '@/components/ui/feedback'
 import { ToastProvider } from '@/components/ui/toast'
-import { I18nProvider, useT } from '@/i18n/provider'
+import { I18nProvider, useI18n, useT } from '@/i18n/provider'
 import { AuthProvider, useAuth, useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
 import { ACTIVITY_HEX, useThemeColors } from '@/constants/colors'
 import { computeStreak } from '@/lib/activities/streaks'
@@ -21,8 +21,9 @@ import { initCrashReporting, setCrashUser, wrapRoot } from '@/lib/crash'
 import { useActiveActivities } from '@/lib/hooks/use-activities'
 import { useHistorySummary, useTodayTotals } from '@/lib/hooks/use-logs'
 import { isHealthConnected, syncHealthToLogs } from '@/lib/health'
+import { buildCoupleWidgetPayload } from '@/lib/widget-couple'
 import { buildFriendsWidgetPayload } from '@/lib/widget-friends'
-import { updateFriendsWidget } from '@/lib/widget'
+import { updateCoupleWidget, updateFriendsWidget } from '@/lib/widget'
 import { useActivityLabels } from '@/lib/activities/labels'
 import { useRelativeTime } from '@/lib/hooks/use-relative-time'
 import { claimParkedInvite, inviteHref } from '@/lib/invite-handoff'
@@ -219,6 +220,64 @@ function FriendsWidgetBinder() {
   return null
 }
 
+// El widget de pareja: su estado y los toques de hoy. Se refresca al abrir, al
+// volver del fondo y cuando la app cambia algo de pareja (un estado nuevo, un
+// toque enviado), que es cuando el widget se quedaria atrasado.
+function CoupleWidgetBinder() {
+  const { user } = useAuth()
+  const { t, locale } = useI18n()
+  const colors = useThemeColors()
+  const timeZone = useTimeZone()
+  const queryClient = useQueryClient()
+
+  const userId = user?.id ?? null
+
+  useEffect(() => {
+    if (!userId) return
+    let cancelled = false
+    let pending: ReturnType<typeof setTimeout> | null = null
+
+    const refresh = async () => {
+      try {
+        const payload = await buildCoupleWidgetPayload({
+          brand: colors.brand,
+          userId,
+          timeZone,
+          locale,
+          t,
+        })
+        if (!cancelled) updateCoupleWidget(payload)
+      } catch {
+        // Decorativo: si la red falla, el widget se queda con lo ultimo.
+      }
+    }
+
+    const soon = () => {
+      if (pending) clearTimeout(pending)
+      pending = setTimeout(() => void refresh(), 1500)
+    }
+
+    void refresh()
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refresh()
+    })
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (event.type !== 'updated' || event.action.type !== 'success') return
+      const head = event.query.queryKey[0]
+      if (head === 'couple' || head === 'couple-moods' || head === 'couple-pings') soon()
+    })
+
+    return () => {
+      cancelled = true
+      if (pending) clearTimeout(pending)
+      subscription.remove()
+      unsubscribe()
+    }
+  }, [userId, colors.brand, timeZone, locale, t, queryClient])
+
+  return null
+}
+
 // Sincroniza salud al abrir la app y al volver del fondo, si esta conectada.
 function HealthBinder() {
   const { user, profile } = useAuth()
@@ -325,6 +384,7 @@ function RootLayout() {
                   <WidgetSessionBinder />
                   <WidgetQueueBinder />
                   <FriendsWidgetBinder />
+                  <CoupleWidgetBinder />
                   <HealthBinder />
                   <PendingInviteBinder />
                   <Gate>

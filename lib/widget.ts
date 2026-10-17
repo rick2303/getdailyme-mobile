@@ -161,3 +161,73 @@ export function updateFriendsWidget(payload: FriendsWidgetPayload) {
     updateAndroidFriendsWidget(payload)
   }
 }
+
+// El tercer widget: la pareja. Su estado de ahora, cuantas veces te ha pensado
+// hoy y el boton de "pienso en ti", que en iOS manda el toque sin abrir la app
+// (CoupleWidget.swift) y en Android desde el task handler.
+//
+// Los textos viajan ya traducidos: el widget no tiene diccionario. `mood` va
+// como clave para que cada plataforma ponga su icono.
+export type CoupleWidgetPayload = {
+  brand: string
+  paired: boolean
+  partnerId: string | null
+  partnerName: string
+  partnerInitials: string
+  partnerAvatar: string | null
+  mood: string | null
+  moodLabel: string | null
+  moodAt: string | null
+  receivedLabel: string
+  pingLabel: string
+  sentLabel: string
+  tooSoonLabel: string
+  emptyTitle: string
+  emptyBody: string
+  /** Cuando se mando el ultimo toque desde el widget, para el "Enviado". */
+  pingSentAt?: number | null
+}
+
+function updateAndroidCoupleWidget(payload: CoupleWidgetPayload) {
+  try {
+    const { requestWidgetUpdate } = require('react-native-android-widget') as {
+      requestWidgetUpdate: (options: {
+        widgetName: string
+        renderWidget: () => React.ReactElement
+      }) => Promise<void>
+    }
+    const { CoupleWidget } = require('../widgets/couple-widget') as {
+      CoupleWidget: (props: { data: CoupleWidgetPayload }) => React.ReactElement
+    }
+    void requestWidgetUpdate({
+      widgetName: 'CoupleWidget',
+      renderWidget: () => createElement(CoupleWidget, { data: payload }),
+    })
+  } catch {
+    // Sin el modulo nativo (Expo Go, web) el widget simplemente no se refresca.
+  }
+}
+
+let lastCouple: string | null = null
+
+export function updateCoupleWidget(payload: CoupleWidgetPayload) {
+  const serialized = JSON.stringify(payload)
+  if (serialized === lastCouple) return
+  lastCouple = serialized
+
+  if (Platform.OS === 'ios') {
+    if (!ensureIosBridge()) return
+    try {
+      storage!.set('widgetCouple', serialized)
+      reload!()
+    } catch {
+      // El widget es decorativo: si el puente falla, la app sigue como si nada.
+    }
+    return
+  }
+
+  if (Platform.OS === 'android') {
+    void AsyncStorage.setItem('widgetCouple', serialized).catch(() => undefined)
+    updateAndroidCoupleWidget(payload)
+  }
+}

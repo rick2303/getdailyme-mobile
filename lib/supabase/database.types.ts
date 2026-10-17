@@ -493,6 +493,194 @@ export type Database = {
         }
         Relationships: []
       }
+      couple_letters: {
+        Row: {
+          author_id: string
+          body: string
+          couple_id: string
+          created_at: string
+          id: string
+          open_notified_at: string | null
+          opens_on: string
+          read_at: string | null
+          title: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          couple_id: string
+          created_at?: string
+          id?: string
+          open_notified_at?: string | null
+          opens_on: string
+          read_at?: string | null
+          title: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          couple_id?: string
+          created_at?: string
+          id?: string
+          open_notified_at?: string | null
+          opens_on?: string
+          read_at?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "couple_letters_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "couple_letters_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      couple_moods: {
+        Row: {
+          couple_id: string
+          mood: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          couple_id: string
+          mood: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          couple_id?: string
+          mood?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "couple_moods_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "couple_moods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      couple_pings: {
+        Row: {
+          couple_id: string
+          created_at: string
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          couple_id: string
+          created_at?: string
+          id?: string
+          sender_id: string
+        }
+        Update: {
+          couple_id?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "couple_pings_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "couple_pings_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      couple_wishes: {
+        Row: {
+          couple_id: string
+          created_at: string
+          created_by: string
+          done_at: string | null
+          done_by: string | null
+          event_id: string | null
+          id: string
+          note: string | null
+          title: string
+        }
+        Insert: {
+          couple_id: string
+          created_at?: string
+          created_by: string
+          done_at?: string | null
+          done_by?: string | null
+          event_id?: string | null
+          id?: string
+          note?: string | null
+          title: string
+        }
+        Update: {
+          couple_id?: string
+          created_at?: string
+          created_by?: string
+          done_at?: string | null
+          done_by?: string | null
+          event_id?: string | null
+          id?: string
+          note?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "couple_wishes_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "couple_wishes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "couple_wishes_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "couple_wishes_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       couples: {
         Row: {
           addressee_id: string
@@ -889,6 +1077,117 @@ export type Database = {
           },
         ]
       }
+      moment_reactions: {
+        Row: {
+          created_at: string
+          kind: Database["public"]["Enums"]["reaction_type"]
+          moment_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          kind: Database["public"]["Enums"]["reaction_type"]
+          moment_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          kind?: Database["public"]["Enums"]["reaction_type"]
+          moment_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moment_reactions_moment_id_fkey"
+            columns: ["moment_id"]
+            isOneToOne: false
+            referencedRelation: "moments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moment_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moment_rounds: {
+        Row: {
+          created_at: string
+          fires_at: string
+          id: string
+          local_date: string
+          notified_at: string | null
+          timezone: string
+        }
+        Insert: {
+          created_at?: string
+          fires_at: string
+          id?: string
+          local_date: string
+          notified_at?: string | null
+          timezone: string
+        }
+        Update: {
+          created_at?: string
+          fires_at?: string
+          id?: string
+          local_date?: string
+          notified_at?: string | null
+          timezone?: string
+        }
+        Relationships: []
+      }
+      moments: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          late: boolean
+          local_date: string
+          media_path: string
+          round_id: string | null
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          late?: boolean
+          local_date: string
+          media_path: string
+          round_id?: string | null
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          late?: boolean
+          local_date?: string
+          media_path?: string
+          round_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moments_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "moment_rounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           actor_id: string
@@ -1023,6 +1322,8 @@ export type Database = {
           locale: string
           notify_challenges: boolean
           notify_comments: boolean
+          notify_couple: boolean
+          notify_moments: boolean
           notify_friend_logs: boolean
           notify_friend_streaks: boolean
           notify_event_invites: boolean
@@ -1045,6 +1346,8 @@ export type Database = {
           locale?: string
           notify_challenges?: boolean
           notify_comments?: boolean
+          notify_couple?: boolean
+          notify_moments?: boolean
           notify_friend_logs?: boolean
           notify_friend_streaks?: boolean
           notify_event_invites?: boolean
@@ -1067,6 +1370,8 @@ export type Database = {
           locale?: string
           notify_challenges?: boolean
           notify_comments?: boolean
+          notify_couple?: boolean
+          notify_moments?: boolean
           notify_friend_logs?: boolean
           notify_friend_streaks?: boolean
           notify_event_invites?: boolean
@@ -1506,6 +1811,45 @@ export type Database = {
           total: number
         }[]
       }
+      can_view_moment: {
+        Args: { p_moment: string; p_viewer: string }
+        Returns: boolean
+      }
+      can_view_moment_media: {
+        Args: { p_object_name: string; p_viewer: string }
+        Returns: boolean
+      }
+      circle_awards: {
+        Args: { p_week_start: string }
+        Returns: {
+          award: string
+          rank: number
+          user_id: string
+          value: number
+        }[]
+      }
+      couple_sealed_letters: {
+        Args: never
+        Returns: {
+          author_id: string
+          created_at: string
+          id: string
+          opens_on: string
+          title: string
+        }[]
+      }
+      mark_letter_read: { Args: { p_letter: string }; Returns: undefined }
+      moment_friends_posted: { Args: { p_on: string }; Returns: number }
+      moment_window: { Args: never; Returns: string }
+      my_local_date: { Args: never; Returns: string }
+      posted_moment_on: { Args: { p_on: string }; Returns: boolean }
+      send_couple_ping: {
+        Args: never
+        Returns: {
+          outcome: string
+          ping_id: string
+        }[]
+      }
       username_available: { Args: { p_username: string }; Returns: boolean }
     }
     Enums: {
@@ -1542,6 +1886,10 @@ export type Database = {
         | "challenge_ending"
         | "challenge_finished"
         | "friend_streak_risk"
+        | "couple_letter"
+        | "couple_letter_open"
+        | "couple_ping"
+        | "couple_mood"
       reaction_type: "fire" | "clap" | "heart" | "laugh" | "muscle"
       story_media: "photo" | "video"
       report_reason: "spam" | "harassment" | "inappropriate" | "other"
@@ -1709,6 +2057,10 @@ export const Constants = {
         "challenge_ending",
         "challenge_finished",
         "friend_streak_risk",
+        "couple_letter",
+        "couple_letter_open",
+        "couple_ping",
+        "couple_mood",
       ],
       reaction_type: ["fire", "clap", "heart", "laugh", "muscle"],
       story_media: ["photo", "video"],

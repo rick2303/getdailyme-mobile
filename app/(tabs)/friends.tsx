@@ -11,6 +11,7 @@ import { EmptyState, Spinner } from '@/components/ui/feedback'
 import { TextInput } from '@/components/ui/field'
 import { useToast } from '@/components/ui/toast'
 import { ChallengesSection, FRIENDS_TAB_PARAM } from '@/components/friends/challenges-section'
+import { CircleAwards } from '@/components/friends/circle-awards'
 import { ClubsSection } from '@/components/friends/clubs-section'
 import { PageHeader } from '@/components/layout/page-header'
 import { useThemeColors } from '@/constants/colors'
@@ -38,10 +39,12 @@ import { Sheet } from '@/components/ui/sheet'
 import { useCurrentUserId } from '@/lib/auth/provider'
 import { haptic } from '@/lib/utils/haptics'
 
-type FriendsTab = 'friends' | 'challenges' | 'clubs'
+type FriendsTab = 'friends' | 'challenges' | 'awards' | 'clubs'
 
 function isFriendsTab(value: string): value is FriendsTab {
-  return value === 'friends' || value === 'challenges' || value === 'clubs'
+  return (
+    value === 'friends' || value === 'challenges' || value === 'awards' || value === 'clubs'
+  )
 }
 
 export default function FriendsScreen() {
@@ -77,6 +80,7 @@ export default function FriendsScreen() {
       queryClient.invalidateQueries({ queryKey: ['challenge-standings'] }),
       queryClient.invalidateQueries({ queryKey: ['clubs'] }),
       queryClient.invalidateQueries({ queryKey: ['couple'] }),
+      queryClient.invalidateQueries({ queryKey: ['circle-awards'] }),
     ])
     setRefreshing(false)
   }
@@ -126,6 +130,7 @@ export default function FriendsScreen() {
             options={[
               { value: 'friends', label: t('friends.tabFriends') },
               { value: 'challenges', label: t('challenges.title') },
+              { value: 'awards', label: t('awards.tab') },
               { value: 'clubs', label: t('clubs.title') },
             ]}
             onChange={setTab}
@@ -165,6 +170,8 @@ export default function FriendsScreen() {
           <View className="gap-5 px-4">
             <ChallengesSection />
           </View>
+        ) : tab === 'awards' ? (
+          <CircleAwards hasFriends={friends.length > 0} />
         ) : (
           <ClubsSection />
         )}

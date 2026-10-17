@@ -18,11 +18,13 @@ export function localDateToKey(date: Date): string {
 
 export function DatePicker({
   value,
+  minimumDate,
   maximumDate,
   onChange,
   onClose,
 }: {
   value: Date
+  minimumDate?: Date
   maximumDate?: Date
   onChange: (next: Date) => void
   onClose: () => void
@@ -36,6 +38,7 @@ export function DatePicker({
       value={isIos ? draft : value}
       mode="date"
       locale={locale}
+      minimumDate={minimumDate}
       maximumDate={maximumDate}
       display={isIos ? 'spinner' : 'default'}
       onChange={(event, selected) => {

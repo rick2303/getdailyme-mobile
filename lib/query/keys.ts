@@ -47,6 +47,16 @@ export const queryKeys = {
   stories: (authorId: string) => ["stories", authorId] as const,
   storyArchive: (authorId: string) => ["story-archive", authorId] as const,
   storyActivity: (storyId: string) => ["story-activity", storyId] as const,
+  coupleMoods: (coupleId: string) => ["couple-moods", coupleId] as const,
+  couplePings: (coupleId: string, since: string) => ["couple-pings", coupleId, since] as const,
+  coupleWishes: (coupleId: string) => ["couple-wishes", coupleId] as const,
+  coupleLetters: (coupleId: string) => ["couple-letters", coupleId] as const,
+  coupleSealedLetters: (coupleId: string) => ["couple-sealed-letters", coupleId] as const,
+  momentRound: (timeZone: string, dateKey: string) => ["moment-round", timeZone, dateKey] as const,
+  moments: (dateKey: string) => ["moments", dateKey] as const,
+  momentFriendsPosted: (dateKey: string) => ["moment-friends-posted", dateKey] as const,
+  circleAwards: (userId: string, weekStart: string) =>
+    ["circle-awards", userId, weekStart] as const,
 } as const;
 
 export const mutationKeys = {

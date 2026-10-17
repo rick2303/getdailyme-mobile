@@ -14,7 +14,11 @@ export type NotificationType =
   | "challenge_joined"
   | "challenge_ending"
   | "challenge_finished"
-  | "friend_streak_risk";
+  | "friend_streak_risk"
+  | "couple_ping"
+  | "couple_mood"
+  | "couple_letter"
+  | "couple_letter_open";
 
 const CHALLENGE_TYPES: NotificationType[] = [
   "challenge_joined",
@@ -24,6 +28,19 @@ const CHALLENGE_TYPES: NotificationType[] = [
 
 export function isChallengeNotification(type: NotificationType): boolean {
   return CHALLENGE_TYPES.includes(type);
+}
+
+const COUPLE_TYPES: NotificationType[] = [
+  "couple_answer",
+  "couple_ping",
+  "couple_mood",
+  "couple_letter",
+  "couple_letter_open",
+];
+
+/** Los que llevan a la pantalla de pareja. */
+export function isCoupleNotification(type: NotificationType): boolean {
+  return COUPLE_TYPES.includes(type);
 }
 
 export type InboxNotification = {

@@ -133,6 +133,17 @@
               "targetCellHeight": 3,
               "resizeMode": "horizontal|vertical",
               "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "CoupleWidget",
+              "label": "Pareja",
+              "description": "Cómo está tu pareja y «pienso en ti» de un toque",
+              "minWidth": "180dp",
+              "minHeight": "140dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
             }
           ]
         }

@@ -1,5 +1,5 @@
 import { Dumbbell, Flag, Flame, Hand, Heart, Laugh, type LucideIcon } from 'lucide-react-native'
-import { useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Image } from 'react-native'
 import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native'
@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { FeedComments } from '@/components/feed/feed-comments'
 import { InboxBell } from '@/components/feed/inbox'
+import { MomentCard } from '@/components/moments/moment-card'
 import { StoryRing } from '@/components/stories/story-ring'
 import { EventsTab } from '@/components/events/events-tab'
 import { Segmented } from '@/components/ui/segmented'
@@ -29,7 +30,7 @@ import { groupFeedEntries, type FeedGroup } from '@/lib/feed/grouping'
 import { useActivityPhotoUrl } from '@/lib/hooks/use-photo-url'
 import { useRelativeTime } from '@/lib/hooks/use-relative-time'
 import { ActivityIcon } from '@/components/activities/activity-icon'
-import { formatTime } from '@/lib/utils/dates'
+import { formatTime, todayKey } from '@/lib/utils/dates'
 import { haptic } from '@/lib/utils/haptics'
 
 const REACTION_ICONS: Record<ReactionType, LucideIcon> = {
@@ -55,11 +56,32 @@ export default function FeedScreen() {
   const [tab, setTab] = useState<FeedTab>('activity')
   const [profileUserId, setProfileUserId] = useState<string | null>(null)
   const [reportTarget, setReportTarget] = useState<ReportSheetTarget | null>(null)
-  const { story: storyParam } = useLocalSearchParams<{ story?: string }>()
+  const {
+    story: storyParam,
+    moment: momentParam,
+    tab: tabParam,
+  } = useLocalSearchParams<{ story?: string; moment?: string; tab?: string }>()
+  const router = useRouter()
+  const today = todayKey(useTimeZone())
 
   useEffect(() => {
     if (storyParam) setTab('activity')
   }, [storyParam])
+
+  // El aviso del momento llega como getdailyme://feed?moment=today: se abre
+  // la pantalla del momento encima y se limpia el parametro para que volver
+  // atras no la abra otra vez.
+  useEffect(() => {
+    if (!momentParam) return
+    router.setParams({ moment: undefined })
+    router.push('/moment')
+  }, [momentParam, router])
+
+  useEffect(() => {
+    if (tabParam !== 'events' && tabParam !== 'activity') return
+    setTab(tabParam)
+    router.setParams({ tab: undefined })
+  }, [tabParam, router])
 
   // Los registros seguidos de la misma persona y actividad se agrupan en una
   // tarjeta con el total, como en la web.
@@ -126,6 +148,7 @@ export default function FeedScreen() {
               ]}
               onChange={setTab}
             />
+            <MomentCard today={today} />
             <View className="pb-1 pt-1">
               <StoryRing />
             </View>

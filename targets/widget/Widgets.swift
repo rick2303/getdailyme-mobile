@@ -538,6 +538,7 @@ struct GetdailymeWidgets: WidgetBundle {
   var body: some Widget {
     GetdailymeWidget()
     FriendsWidget()
+    CoupleWidget()
     TimerLiveActivity()
   }
 }

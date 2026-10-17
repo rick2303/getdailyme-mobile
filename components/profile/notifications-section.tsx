@@ -170,6 +170,18 @@ export function NotificationsSection({ embedded = false }: { embedded?: boolean 
                 onChange={(checked) => savePreference({ notify_friend_streaks: checked })}
               />
               <PreferenceToggle
+                label={t('notifications.typeMoments')}
+                hint={t('notifications.typeMomentsHelp')}
+                checked={preferences?.notify_moments ?? true}
+                onChange={(checked) => savePreference({ notify_moments: checked })}
+              />
+              <PreferenceToggle
+                label={t('notifications.typeCouple')}
+                hint={t('notifications.typeCoupleHelp')}
+                checked={preferences?.notify_couple ?? true}
+                onChange={(checked) => savePreference({ notify_couple: checked })}
+              />
+              <PreferenceToggle
                 label={t('notifications.typeReminder')}
                 checked={reminderEnabled}
                 onChange={(checked) =>

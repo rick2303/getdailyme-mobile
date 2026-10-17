@@ -14,6 +14,10 @@ export type NotifySource =
   | { type: 'couple_answer'; coupleId: string }
   | { type: 'story_reaction'; storyId: string }
   | { type: 'challenge_joined'; challengeId: string }
+  | { type: 'couple_ping'; pingId: string }
+  | { type: 'couple_mood'; coupleId: string }
+  | { type: 'couple_letter'; letterId: string }
+  | { type: 'moment_reaction'; momentId: string }
 
 export async function requestPush(source: NotifySource): Promise<void> {
   const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL

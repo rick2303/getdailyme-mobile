@@ -3,11 +3,15 @@ import {
   CalendarPlus,
   Flame,
   Heart,
+  HeartHandshake,
   Hourglass,
+  Mail,
+  MailOpen,
   Medal,
   MessageCircle,
   MessageCircleHeart,
   Reply,
+  Smile,
   Sparkles,
   Trophy,
   UserCheck,
@@ -26,7 +30,11 @@ import { FRIENDS_TAB_PARAM } from '@/components/friends/challenges-section'
 import { useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
 import { CHALLENGES_ANCHOR } from '@/lib/api/challenges'
-import { isChallengeNotification, type NotificationType } from '@/lib/api/notifications'
+import {
+  isChallengeNotification,
+  isCoupleNotification,
+  type NotificationType,
+} from '@/lib/api/notifications'
 import { inboxCopy } from '@/lib/feed/inbox-copy'
 import { useInbox, useMarkInboxRead } from '@/lib/hooks/use-notifications-inbox'
 import { useRelativeTime } from '@/lib/hooks/use-relative-time'
@@ -47,6 +55,10 @@ const TYPE_ICONS: Record<NotificationType, LucideIcon> = {
   challenge_ending: Hourglass,
   challenge_finished: Medal,
   friend_streak_risk: Flame,
+  couple_ping: HeartHandshake,
+  couple_mood: Smile,
+  couple_letter: Mail,
+  couple_letter_open: MailOpen,
 }
 
 // La bandeja vivia abierta en la cabecera del feed. Con dos avisos pasaba
@@ -124,7 +136,7 @@ export function InboxBell() {
                   // La ultima que queda cierra la hoja: si no, se queda una hoja
                   // vacia abierta sobre el feed.
                   if (items.length === 1) close()
-                  if (item.type === 'couple_answer') {
+                  if (isCoupleNotification(item.type)) {
                     close()
                     router.push('/couple')
                   }

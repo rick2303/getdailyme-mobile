@@ -197,3 +197,43 @@ export async function resolveStoryUrls(
   }
   return urls
 }
+
+// El momento del dia: su propio bucket, mismo esquema que las historias.
+export const MOMENTS_BUCKET = 'moments'
+
+export async function uploadMomentMedia(
+  client: TypedSupabaseClient,
+  userId: string,
+  uri: string,
+): Promise<string> {
+  const body = await compressToBuffer(uri, 1440, 0.8)
+  const path = `${userId}/${uniqueSegment()}.jpg`
+  const { error } = await client.storage
+    .from(MOMENTS_BUCKET)
+    .upload(path, body, { upsert: false, contentType: 'image/jpeg' })
+
+  if (error) throw error
+  return path
+}
+
+export async function removeMomentMedia(client: TypedSupabaseClient, path: string): Promise<void> {
+  await client.storage.from(MOMENTS_BUCKET).remove([path])
+}
+
+export async function resolveMomentUrls(
+  client: TypedSupabaseClient,
+  paths: string[],
+): Promise<Map<string, string>> {
+  const urls = new Map<string, string>()
+  if (paths.length === 0) return urls
+
+  const { data, error } = await client.storage
+    .from(MOMENTS_BUCKET)
+    .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS)
+
+  if (error) return urls
+  for (const entry of data ?? []) {
+    if (entry.path && entry.signedUrl) urls.set(entry.path, entry.signedUrl)
+  }
+  return urls
+}
