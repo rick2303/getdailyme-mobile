@@ -95,9 +95,7 @@ export function CouplePresence({ couple, today }: { couple: Couple; today: strin
                 numberOfLines={1}
               >
                 {t(`presence.mood.${theirMood.mood}` as TranslationKey)} ·{' '}
-                {t('presence.moodAt', {
-                  time: formatTime(new Date(theirMood.updatedAt), locale, timeZone),
-                })}
+                {formatTime(new Date(theirMood.updatedAt), locale, timeZone)}
               </Text>
             </View>
           ) : (
