@@ -923,6 +923,8 @@ export const en: Dictionary = {
     pastDate: "Pick today or a future day.",
   },
   moments: {
+    bubble: "Moment",
+    bubblePosted: "Moments",
     title: "The moment",
     waitingTitle: "It hasn't gone off yet today",
     waitingBody: "At a surprise time, your whole circle gets the same alert. You'll have {minutes} minutes to snap whatever you're doing.",
@@ -1382,6 +1384,13 @@ export const en: Dictionary = {
     discardTimer: "Discard",
     doneToday: "Done today",
     pendingToday: "Pending today",
+    addAmount: "Log {amount} {unit}",
+    meterProgress: "Today {total} → {after} of {target}",
+    meterReaches: "This gets you to your goal of {target}",
+    meterNoTarget: "Today {total} → {after}",
+    historyDelete: "Delete",
+    moreDetail: "Note, photo or another day",
+    newLog: "New log",
   },
   errors: {
     notConfigured: "Supabase isn't configured. Check your .env.local file.",

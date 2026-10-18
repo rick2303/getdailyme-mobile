@@ -921,6 +921,8 @@ export const es = {
     pastDate: "Elige hoy o un día futuro.",
   },
   moments: {
+    bubble: "Momento",
+    bubblePosted: "Momentos",
     title: "El momento",
     waitingTitle: "Hoy todavía no ha sonado",
     waitingBody: "A una hora sorpresa, a tu círculo le llega el mismo aviso. Habrá {minutes} minutos para hacer una foto de lo que estés haciendo.",
@@ -1380,6 +1382,13 @@ export const es = {
     discardTimer: "Descartar",
     doneToday: "Hecho hoy",
     pendingToday: "Pendiente hoy",
+    addAmount: "Registrar {amount} {unit}",
+    meterProgress: "Hoy {total} → {after} de {target}",
+    meterReaches: "Con esto llegas a tu meta de {target}",
+    meterNoTarget: "Hoy {total} → {after}",
+    historyDelete: "Eliminar",
+    moreDetail: "Nota, foto u otro día",
+    newLog: "Nuevo registro",
   },
   errors: {
     notConfigured: "Falta configurar Supabase. Revisa tu archivo .env.local.",
