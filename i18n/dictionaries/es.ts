@@ -178,6 +178,16 @@ export const es = {
     undo: "Deshacer",
     logged: "Registrado",
     addActivity: "Nueva actividad",
+    circleTitle: "Tu gente hoy",
+    partnerNoMood: "Aún no ha dicho cómo está",
+    friendsNone: "Nadie ha registrado todavía",
+    friendsOne: "{name} ya registró hoy",
+    friendsMany: {
+      one: "{name} y 1 más ya registraron hoy",
+      other: "{name} y {count} más ya registraron hoy",
+    },
+    friendsCheer: "Pásate por el feed y reacciona",
+    friendsNudge: "Registra algo y abre tú el día",
   },
   activity: {
     newTitle: "Nueva actividad",
@@ -567,6 +577,7 @@ export const es = {
   },
   friends: {
     title: "Amigos",
+    addHeader: "Añadir amigos",
     searchPlaceholder: "Buscar por usuario exacto",
     searchHint: "Escribe el usuario completo, tal cual te lo pasaron.",
     noResults: "No hay nadie con el usuario “{query}”",
@@ -603,6 +614,7 @@ export const es = {
     },
     nudgeInboxBody: "Te echan de menos en el feed. Registra algo y aparecerás.",
     nudgeInboxDismiss: "Entendido",
+    nudgeInboxLog: "Registrar algo",
     sharedStreakTitle: "Racha compartida",
     sharedStreakEmpty: "Aún no coincidís ningún día. Hoy puede ser el primero.",
     inactiveToday: "Sin registros hoy",
@@ -761,7 +773,8 @@ export const es = {
     streakHelp: "Cuenta los días en que respondisteis los dos. Se perdona un despiste al mes.",
     // --- el tablero ------------------------------------------------------
     boardStreak: "Racha",
-    boardStreakEmpty: "Aún sin empezar",
+    boardStreakEmpty: "Respondan hoy los dos",
+    boardStreakKeep: "Que no se apague hoy",
     boardNext: "Lo próximo",
     boardDaysLeft: {
       one: "día",
@@ -938,6 +951,10 @@ export const es = {
     empty: "Cuando tu círculo registre algo, aquí saldrán los premios de la semana.",
     solo: "Los premios son del círculo. Invita a alguien y a ver quién gana.",
     standings: "Días activos",
+    mine: {
+      one: "premio para ti esta semana",
+      other: "premios para ti esta semana",
+    },
     you: "Tú",
     days: {
       one: "{count} día",
@@ -1219,6 +1236,7 @@ export const es = {
     daysFromToday: "Termina en (días desde hoy)",
     title: "Retos",
     create: "Nuevo",
+    createLong: "Proponer un reto",
     createTitle: "Nuevo reto",
     createCta: "Crear reto",
     empty: "Ningún reto por ahora. Proponle uno a quien te siga el ritmo.",

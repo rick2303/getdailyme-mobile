@@ -26,6 +26,7 @@ import { HealthSyncButton } from '@/components/activities/health-sync-button'
 import { ActivityEditorSheet } from '@/components/activities/activity-editor-sheet'
 import { FirstDayCelebration } from '@/components/activities/first-day-celebration'
 import { QuickLogSheet } from '@/components/activities/quick-log-sheet'
+import { CircleToday } from '@/components/today/circle-today'
 import { Confetti } from '@/components/ui/confetti'
 import { MilestoneSheet, STREAK_MILESTONES } from '@/components/profile/milestone-sheet'
 import { Button, IconButton } from '@/components/ui/button'
@@ -286,16 +287,19 @@ export default function TodayScreen() {
           )
         }
         ListFooterComponent={
-          list.length > 0 ? (
-            <View className="px-4 pt-2">
-              <Button
-                title={t('today.addActivity')}
-                variant="secondary"
-                fullWidth
-                onPress={() => setEditorOpen(true)}
-              />
-            </View>
-          ) : null
+          <>
+            {list.length > 0 ? (
+              <View className="px-4 pt-2">
+                <Button
+                  title={t('today.addActivity')}
+                  variant="secondary"
+                  fullWidth
+                  onPress={() => setEditorOpen(true)}
+                />
+              </View>
+            ) : null}
+            <CircleToday today={today} />
+          </>
         }
       />
 

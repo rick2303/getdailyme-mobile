@@ -41,6 +41,8 @@ export function CircleAwards({ hasFriends }: { hasFriends: boolean }) {
   const weekStart = awardsWeekStart(today)
   const { data, isPending } = useCircleAwards(weekStart)
 
+  const mine = data?.awards.filter((award) => award.winner.id === userId).length ?? 0
+
   const title = isAwardsDay(today) ? t('awards.sundayTitle') : t('awards.lastWeekTitle')
   const week = t('awards.weekOf', {
     date: formatLongDate(new Date(`${weekStart}T00:00:00Z`), locale),
@@ -61,59 +63,69 @@ export function CircleAwards({ hasFriends }: { hasFriends: boolean }) {
         <Notice text={t('awards.empty')} />
       ) : (
         <>
-          <View className="flex-row flex-wrap justify-between gap-y-3">
-            {data.awards.map((award) => {
+          {mine > 0 ? (
+            // La cifra es la heroina: cuantos te llevaste, grande.
+            <View className="flex-row items-baseline gap-2 rounded-3xl bg-brand-soft px-4 py-3 dark:bg-brand-soft-dark">
+              <Text
+                className="text-3xl font-extrabold text-brand"
+                style={{ fontVariant: ['tabular-nums'] }}
+              >
+                {mine}
+              </Text>
+              <Text className="flex-1 text-[15px] font-semibold text-brand">
+                {t('awards.mine', { count: mine })}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Lista agrupada en vez de rejilla de bloques: en media columna los
+              detalles se cortaban y con varios premios tuyos era un muro azul.
+              El tuyo se marca con el acento en el icono, una sola senal. */}
+          <View
+            style={SHADOW_TILE}
+            className="overflow-hidden rounded-3xl border border-border bg-surface dark:border-border-dark dark:bg-surface-dark"
+          >
+            {data.awards.map((award, index) => {
               const Icon = AWARD_ICONS[award.kind]
               const isMe = award.winner.id === userId
               return (
-                <View
-                  key={award.kind}
-                  style={[SHADOW_TILE, { width: '48.5%' }]}
-                  className={cn(
-                    'min-h-32 justify-between gap-3 rounded-3xl p-4',
-                    isMe
-                      ? 'bg-brand'
-                      : 'border border-border bg-surface dark:border-border-dark dark:bg-surface-dark',
-                  )}
-                >
-                  <View className="flex-row items-center gap-2">
+                <View key={award.kind} className="flex-row items-center gap-3 pl-4">
+                  <View
+                    className={cn(
+                      'size-9 items-center justify-center rounded-full',
+                      isMe ? 'bg-brand' : 'bg-surface-sunken dark:bg-surface-sunken-dark',
+                    )}
+                  >
                     <Icon
-                      size={20}
-                      color={isMe ? '#fff' : colors.brand}
+                      size={18}
+                      color={isMe ? '#fff' : colors.textMuted}
                       strokeWidth={ICON_STROKE.emphasis}
                     />
-                    <Text
-                      numberOfLines={1}
-                      className={cn(
-                        'flex-1 text-xs font-bold',
-                        isMe ? 'text-white' : 'text-text dark:text-text-dark',
-                      )}
-                    >
-                      {t(`awards.kind.${award.kind}` as TranslationKey)}
-                    </Text>
                   </View>
-                  <View className="flex-row items-center gap-2">
-                    <Avatar name={award.winner.displayName} src={award.winner.avatarUrl} size="sm" />
+                  <View
+                    className={cn(
+                      'min-w-0 flex-1 flex-row items-center gap-3 py-3 pr-4',
+                      index > 0 && 'border-t border-border dark:border-border-dark',
+                    )}
+                  >
                     <View className="min-w-0 flex-1">
+                      <Text className="text-xs text-text-subtle dark:text-text-subtle-dark">
+                        {t(`awards.kind.${award.kind}` as TranslationKey)}
+                      </Text>
                       <Text
                         numberOfLines={1}
                         className={cn(
-                          'text-[15px] font-bold',
-                          isMe ? 'text-white' : 'text-text dark:text-text-dark',
+                          'text-[17px] font-semibold',
+                          isMe ? 'text-brand' : 'text-text dark:text-text-dark',
                         )}
                       >
                         {isMe ? t('awards.you') : award.winner.displayName}
                       </Text>
-                      <Text
-                        numberOfLines={2}
-                        className={cn(
-                          'text-xs',
-                          isMe ? 'text-white/90' : 'text-text-muted dark:text-text-muted-dark',
-                        )}
-                      >
+                      <Text className="text-sm text-text-muted dark:text-text-muted-dark">
                         {t(`awards.detail.${award.kind}` as TranslationKey, { count: award.value })}
                       </Text>
                     </View>
+                    <Avatar name={award.winner.displayName} src={award.winner.avatarUrl} size="md" />
                   </View>
                 </View>
               )

@@ -27,13 +27,11 @@ export function CoupleBoard({ couple, today }: { couple: Couple; today: string }
         }
         label={t('couple.boardStreak')}
       >
-        {current > 0 ? (
-          <Figure value={current} unit={t('couple.streakLabel', { count: current })} />
-        ) : (
-          <Text className="text-sm text-text-muted dark:text-text-muted-dark">
-            {t('couple.boardStreakEmpty')}
-          </Text>
-        )}
+        {/* Con cero tambien va la cifra, y debajo que hacer para que suba. */}
+        <Figure value={current} unit={t('couple.streakLabel', { count: current })} />
+        <Text numberOfLines={1} className="text-xs text-text-subtle dark:text-text-subtle-dark">
+          {current > 0 ? t('couple.boardStreakKeep') : t('couple.boardStreakEmpty')}
+        </Text>
       </Card>
 
       <Card

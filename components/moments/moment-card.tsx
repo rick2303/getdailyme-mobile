@@ -59,10 +59,11 @@ export function MomentCard({ today }: { today: string }) {
       <View
         className={cn(
           'h-11 w-11 items-center justify-center rounded-full',
-          lit ? 'bg-white/20' : 'bg-surface-sunken dark:bg-surface-sunken-dark',
+          // En espera tambien lleva el acento: en gris parecia deshabilitada.
+          lit ? 'bg-white/20' : 'bg-brand-soft dark:bg-brand-soft-dark',
         )}
       >
-        <Icon size={20} color={ink} strokeWidth={lit ? ICON_STROKE.emphasis : undefined} />
+        <Icon size={20} color={lit ? ink : colors.brand} strokeWidth={lit ? ICON_STROKE.emphasis : undefined} />
       </View>
       <View className="min-w-0 flex-1">
         <Text

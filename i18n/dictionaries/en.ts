@@ -180,6 +180,16 @@ export const en: Dictionary = {
     undo: "Undo",
     logged: "Logged",
     addActivity: "New activity",
+    circleTitle: "Your people today",
+    partnerNoMood: "Hasn't shared a mood yet",
+    friendsNone: "Nobody has logged yet",
+    friendsOne: "{name} already logged today",
+    friendsMany: {
+      one: "{name} and 1 more already logged today",
+      other: "{name} and {count} more already logged today",
+    },
+    friendsCheer: "Stop by the feed and react",
+    friendsNudge: "Log something and be the first",
   },
   activity: {
     newTitle: "New activity",
@@ -569,6 +579,7 @@ export const en: Dictionary = {
   },
   friends: {
     title: "Friends",
+    addHeader: "Add friends",
     searchPlaceholder: "Search by exact username",
     searchHint: "Type the full username, exactly as you got it.",
     noResults: "Nobody goes by “{query}”",
@@ -605,6 +616,7 @@ export const en: Dictionary = {
     },
     nudgeInboxBody: "They miss you in the feed. Log something and you'll show up.",
     nudgeInboxDismiss: "Got it",
+    nudgeInboxLog: "Log something",
     sharedStreakTitle: "Shared streak",
     sharedStreakEmpty: "No days in common yet. Today could be the first.",
     inactiveToday: "Nothing logged today",
@@ -763,7 +775,8 @@ export const en: Dictionary = {
     streakHelp: "Counts the days you both answered. One slip a month is forgiven.",
     // --- the board -------------------------------------------------------
     boardStreak: "Streak",
-    boardStreakEmpty: "Not started yet",
+    boardStreakEmpty: "Both answer today",
+    boardStreakKeep: "Keep it alive today",
     boardNext: "Coming up",
     boardDaysLeft: {
       one: "day",
@@ -940,6 +953,10 @@ export const en: Dictionary = {
     empty: "Once your circle logs something, this week's awards will show up here.",
     solo: "Awards are for your circle. Invite someone and see who wins.",
     standings: "Active days",
+    mine: {
+      one: "award for you this week",
+      other: "awards for you this week",
+    },
     you: "You",
     days: {
       one: "{count} day",
@@ -1221,6 +1238,7 @@ export const en: Dictionary = {
     daysFromToday: "Ends in (days from today)",
     title: "Challenges",
     create: "New",
+    createLong: "Propose a challenge",
     createTitle: "New challenge",
     createCta: "Create challenge",
     empty: "No challenges yet. Dare someone who keeps up with you.",

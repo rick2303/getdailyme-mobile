@@ -30,7 +30,8 @@ import { groupFeedEntries, type FeedGroup } from '@/lib/feed/grouping'
 import { useActivityPhotoUrl } from '@/lib/hooks/use-photo-url'
 import { useRelativeTime } from '@/lib/hooks/use-relative-time'
 import { ActivityIcon } from '@/components/activities/activity-icon'
-import { formatTime, todayKey } from '@/lib/utils/dates'
+import { cn } from '@/lib/utils/cn'
+import { todayKey } from '@/lib/utils/dates'
 import { haptic } from '@/lib/utils/haptics'
 
 const REACTION_ICONS: Record<ReactionType, LucideIcon> = {
@@ -220,10 +221,9 @@ function FeedEntryCard({
   onOpenProfile: (userId: string) => void
   onReport: (target: ReportSheetTarget) => void
 }) {
-  const { t, locale } = useI18n()
+  const { t } = useI18n()
   const colors = useThemeColors()
   const currentUserId = useCurrentUserId()
-  const timeZone = useTimeZone()
   const { activityName, amountWithUnit } = useActivityLabels()
   const relativeTime = useRelativeTime()
   const { toggleReaction } = useToggleReaction()
@@ -268,8 +268,7 @@ function FeedEntryCard({
               ) : null}
             </View>
             <Text className="text-xs text-text-subtle dark:text-text-subtle-dark" numberOfLines={1}>
-              @{entry.author.username} · {relativeTime(entry.logged_at)} ·{' '}
-              {formatTime(new Date(entry.logged_at), locale, timeZone)}
+              {relativeTime(entry.logged_at)}
             </Text>
           </View>
         </Pressable>
@@ -337,7 +336,9 @@ function FeedEntryCard({
         onReport={onReport}
       />
 
-      <View className="mt-3 flex-row gap-1.5">
+      {/* Sin relleno mientras nadie ha reaccionado: cinco pildoras grises a
+          todo el ancho pesaban mas que el registro. */}
+      <View className="-ml-2 mt-2 flex-row">
         {REACTION_TYPES.map((type) => {
           const bucket = reactionSummary.get(type)
           const Glyph = REACTION_ICONS[type]
@@ -352,14 +353,17 @@ function FeedEntryCard({
                 haptic('tap')
                 toggleReaction(entry.id, type, isActive)
               }}
-              className={
+              className={cn(
+                'h-11 min-w-11 flex-row items-center justify-center gap-1 rounded-full px-2 active:opacity-70',
                 isActive
-                  ? 'h-11 flex-1 flex-row items-center justify-center gap-1 rounded-full bg-brand-soft dark:bg-brand-soft-dark active:opacity-70'
-                  : 'h-11 flex-1 flex-row items-center justify-center gap-1 rounded-full bg-surface-sunken dark:bg-surface-sunken-dark active:opacity-70'
-              }
+                  ? 'bg-brand-soft dark:bg-brand-soft-dark'
+                  : (bucket?.count ?? 0) > 0
+                    ? 'bg-surface-sunken dark:bg-surface-sunken-dark'
+                    : '',
+              )}
             >
               <Glyph
-                size={18}
+                size={20}
                 color={isActive ? colors.brand : colors.textSubtle}
                 strokeWidth={isActive ? 2.5 : 2}
               />
@@ -367,8 +371,8 @@ function FeedEntryCard({
                 <Text
                   className={
                     isActive
-                      ? 'text-xs font-bold text-brand dark:text-brand-dark'
-                      : 'text-xs font-bold text-text-subtle dark:text-text-subtle-dark'
+                      ? 'text-sm font-semibold text-brand dark:text-brand-dark'
+                      : 'text-sm font-semibold text-text dark:text-text-dark'
                   }
                 >
                   {bucket?.count}

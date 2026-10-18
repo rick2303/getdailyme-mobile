@@ -195,18 +195,19 @@ export function CoupleLetters({ couple, today }: { couple: Couple; today: string
           </View>
         ) : null}
 
-        <View className="p-3">
-          <Button
-            title={t('letters.write')}
-            variant="secondary"
-            fullWidth
-            icon={<PenLine size={18} color={colors.text} />}
-            onPress={() => {
-              haptic('tap')
-              setDraft({ id: null, title: '', body: '', opensOn: presets[0]!.date })
-            }}
-          />
-        </View>
+        {/* Fila de accion de lista, como "Crear club": un boton gris a lo
+            ancho dentro del bloque pesaba mas que las propias cartas. */}
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            haptic('tap')
+            setDraft({ id: null, title: '', body: '', opensOn: presets[0]!.date })
+          }}
+          className="min-h-12 flex-row items-center gap-3 px-4 py-3 active:bg-surface-sunken dark:active:bg-surface-sunken-dark"
+        >
+          <PenLine size={20} color={colors.brand} strokeWidth={ICON_STROKE.emphasis} />
+          <Text className="text-[17px] text-brand">{t('letters.write')}</Text>
+        </Pressable>
       </CoupleGroup>
 
       <Sheet
