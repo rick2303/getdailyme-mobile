@@ -1,6 +1,6 @@
 import { Check, Flame, Hand, Heart, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native'
-import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'expo-router'
+import { useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -10,9 +10,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { EmptyState, Spinner } from '@/components/ui/feedback'
 import { TextInput } from '@/components/ui/field'
 import { useToast } from '@/components/ui/toast'
-import { ChallengesSection, FRIENDS_TAB_PARAM } from '@/components/friends/challenges-section'
 import { CircleAwards } from '@/components/friends/circle-awards'
-import { ClubsSection } from '@/components/friends/clubs-section'
 import { PageHeader } from '@/components/layout/page-header'
 import { SHADOW_TILE, useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
@@ -34,7 +32,6 @@ import { useShareInvite, type InviteKind } from '@/components/invite/use-share-i
 import { useFriendActiveDates } from '@/lib/hooks/use-friends'
 import { useHistorySummary } from '@/lib/hooks/use-logs'
 import { computeSharedStreak } from '@/lib/activities/streaks'
-import { CHALLENGES_ANCHOR } from '@/lib/api/challenges'
 import { useRelativeTime } from '@/lib/hooks/use-relative-time'
 import { Sheet } from '@/components/ui/sheet'
 import { useCurrentUserId } from '@/lib/auth/provider'
@@ -51,27 +48,6 @@ export default function FriendsScreen() {
   const [query, setQuery] = useState('')
   const [refreshing, setRefreshing] = useState(false)
   const [sharing, setSharing] = useState(false)
-  const router = useRouter()
-  const params = useLocalSearchParams<{ [FRIENDS_TAB_PARAM]?: string }>()
-  const requestedTab = params[FRIENDS_TAB_PARAM]
-  const scrollRef = useRef<ScrollView>(null)
-  const [challengesY, setChallengesY] = useState<number | null>(null)
-
-  const hasConnections = friends.length > 0 || incoming.length > 0
-
-  // Ya no hay pestanas: todo vive en un solo scroll como en la web, asi que el
-  // aviso de un reto baja hasta la seccion de retos en vez de cambiar de vista.
-  useEffect(() => {
-    if (requestedTab !== CHALLENGES_ANCHOR || challengesY === null) return
-    scrollRef.current?.scrollTo({ y: challengesY, animated: true })
-    router.setParams({ [FRIENDS_TAB_PARAM]: undefined })
-  }, [requestedTab, challengesY, router])
-
-  useEffect(() => {
-    if (requestedTab && requestedTab !== CHALLENGES_ANCHOR) {
-      router.setParams({ [FRIENDS_TAB_PARAM]: undefined })
-    }
-  }, [requestedTab, router])
 
   // Las tres pestañas viven bajo el mismo scroll, asi que tirar para refrescar
   // tiene que recargar las tres. Faltaban clubes y las clasificaciones: en esas
@@ -98,7 +74,6 @@ export default function FriendsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark" edges={['top']}>
       <ScrollView
-        ref={scrollRef}
         contentContainerClassName="gap-5 pb-8 pt-2"
         keyboardShouldPersistTaps="always"
         refreshControl={
@@ -128,7 +103,7 @@ export default function FriendsScreen() {
         />
 
         {/* Tu gente primero, como en la web: pareja, toques, solicitudes y la
-            lista; el buscador justo debajo, y luego premios, retos y clubes. */}
+            lista; el buscador justo debajo, y luego los premios. */}
         <CoupleCard />
 
         <View className="gap-5 px-4">
@@ -165,13 +140,9 @@ export default function FriendsScreen() {
 
         {friends.length > 0 ? <CircleAwards hasFriends /> : null}
 
-        {hasConnections ? (
-          <View className="px-4" onLayout={(event) => setChallengesY(event.nativeEvent.layout.y)}>
-            <ChallengesSection />
-          </View>
-        ) : null}
-
-        <ClubsSection />
+        {/* Retos y clubes salen de la pantalla, como en la web: casi nadie
+            los usaba y eran dos bloques de ruido entre tu gente y lo demas.
+            El codigo y los datos siguen ahi por si vuelven. */}
 
         {blocked.length > 0 ? (
           <View className="px-4">

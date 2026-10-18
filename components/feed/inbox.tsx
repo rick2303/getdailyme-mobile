@@ -26,10 +26,8 @@ import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
 import { STORY_PARAM, STORY_PARAM_MINE } from '@/components/stories/story-ring'
-import { FRIENDS_TAB_PARAM } from '@/components/friends/challenges-section'
 import { useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
-import { CHALLENGES_ANCHOR } from '@/lib/api/challenges'
 import {
   isChallengeNotification,
   isCoupleNotification,
@@ -114,7 +112,7 @@ export function InboxBell({ onOpenLog }: { onOpenLog?: (logId: string) => void }
     }
     if (isChallengeNotification(item.type)) {
       close()
-      router.push({ pathname: '/friends', params: { [FRIENDS_TAB_PARAM]: CHALLENGES_ANCHOR } })
+      router.push('/friends')
     }
     if (item.type === 'friend_streak_risk') {
       close()

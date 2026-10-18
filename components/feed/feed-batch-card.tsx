@@ -101,7 +101,7 @@ export function FeedBatchCard({
           return (
             <View key={entry.id}>
               {index > 0 ? (
-                <View className="ml-[60px] h-px bg-border dark:bg-border-dark" />
+                <View className="ml-[52px] h-px bg-border dark:bg-border-dark" />
               ) : null}
               <Pressable
                 accessibilityRole="button"
@@ -110,25 +110,15 @@ export function FeedBatchCard({
                   haptic('tap')
                   onOpenLog(entry.id)
                 }}
-                className="min-h-14 flex-row items-center gap-3 px-3 py-2 active:opacity-70"
+                // Una linea por actividad, como una fila de Salud: nombre a la
+                // izquierda y la cifra a la derecha. Con dos lineas, dos
+                // registros ya eran media pantalla.
+                className="min-h-12 flex-row items-center gap-3 px-3 py-1.5 active:opacity-70"
               >
-                <ActivityIcon icon={entry.activity.icon} color={entry.activity.color} size="sm" />
-                <View className="min-w-0 flex-1">
-                  <Text className="text-xs text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
-                    {activityName(entry.activity.name)}
-                  </Text>
-                  <View className="flex-row items-baseline gap-1">
-                    <Text
-                      className="text-xl font-extrabold leading-tight text-text dark:text-text-dark"
-                      style={{ fontVariant: ['tabular-nums'] }}
-                    >
-                      {amount}
-                    </Text>
-                    <Text className="shrink text-xs text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
-                      {unitLabel(entry.activity.unit, amount)}
-                    </Text>
-                  </View>
-                </View>
+                <ActivityIcon icon={entry.activity.icon} color={entry.activity.color} size="xs" />
+                <Text className="min-w-0 flex-1 text-[15px] text-text dark:text-text-dark" numberOfLines={1}>
+                  {activityName(entry.activity.name)}
+                </Text>
                 {reactions > 0 ? (
                   <View className="flex-row items-center gap-1">
                     <Flame size={14} color={colors.textMuted} />
@@ -143,6 +133,17 @@ export function FeedBatchCard({
                     </Text>
                   </View>
                 ) : null}
+                <View className="flex-row items-baseline gap-1">
+                  <Text
+                    className="text-[17px] font-bold text-text dark:text-text-dark"
+                    style={{ fontVariant: ['tabular-nums'] }}
+                  >
+                    {amount}
+                  </Text>
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+                    {unitLabel(entry.activity.unit, amount)}
+                  </Text>
+                </View>
                 <ChevronRight size={16} color={colors.textSubtle} />
               </Pressable>
             </View>

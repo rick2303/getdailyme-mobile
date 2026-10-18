@@ -13,6 +13,65 @@ import { ICON_STROKE } from '@/lib/icons/tokens'
 import { cn } from '@/lib/utils/cn'
 import { haptic } from '@/lib/utils/haptics'
 
+// El momento como primera burbuja de la fila de historias, como en la web: la
+// tarjeta a todo lo ancho mas la fila de historias se comian media pantalla
+// antes del primer registro. Cuando suena se enciende con la cuenta atras.
+export function MomentBubble({ today }: { today: string }) {
+  const { t } = useI18n()
+  const colors = useThemeColors()
+  const router = useRouter()
+  const userId = useCurrentUserId()
+  const now = useNowMs(1000)
+  const { data: round } = useMomentRound(today)
+  const { data: moments } = useMoments(today)
+
+  const mine = (moments ?? []).some((moment) => moment.userId === userId)
+  const phase = momentPhase(round ?? null, mine, new Date(now))
+  const lit = phase.kind === 'open'
+  const Icon = phase.kind === 'posted' ? Images : phase.kind === 'waiting' ? Clock : Camera
+
+  const label =
+    phase.kind === 'open'
+      ? formatCountdown(phase.remainingMs)
+      : phase.kind === 'posted'
+        ? t('moments.bubblePosted')
+        : t('moments.bubble')
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${t('moments.feedCard')}. ${label}`}
+      onPress={() => {
+        haptic('tap')
+        router.push('/moment')
+      }}
+      style={{ width: 72 }}
+      className="items-center gap-1 active:scale-95"
+    >
+      <View
+        className={cn(
+          'h-[68px] w-[68px] items-center justify-center rounded-full',
+          lit
+            ? 'border-4 border-brand-soft bg-brand dark:border-brand-soft-dark'
+            : 'bg-brand-soft dark:bg-brand-soft-dark',
+        )}
+      >
+        <Icon size={28} color={lit ? '#fff' : colors.brand} strokeWidth={ICON_STROKE.emphasis} />
+      </View>
+      <Text
+        numberOfLines={1}
+        style={{ fontVariant: ['tabular-nums'] }}
+        className={cn(
+          'w-full text-center text-xs',
+          lit ? 'font-bold text-brand dark:text-brand-dark' : 'text-text-muted dark:text-text-muted-dark',
+        )}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  )
+}
+
 // La tarjeta del momento sobre el muro. Discreta mientras no ha sonado; en
 // cuanto suena se enciende con la cuenta atras, que tiene que verse aunque el
 // aviso no llegara.

@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Camera, Check, Flame, ImagePlus, Minus, Plus, Timer, Trash2, X } from 'lucide-react-native'
+import { Camera, Check, ChevronDown, Flame, ImagePlus, Pencil, Plus, Timer, Trash2, X } from 'lucide-react-native'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, Image, Platform, Pressable, RefreshControl, Text, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
@@ -25,6 +25,7 @@ import { ActivityGlyph } from '@/components/activities/activity-icon'
 import { HealthSyncButton } from '@/components/activities/health-sync-button'
 import { ActivityEditorSheet } from '@/components/activities/activity-editor-sheet'
 import { FirstDayCelebration } from '@/components/activities/first-day-celebration'
+import { LogMeter } from '@/components/activities/log-meter'
 import { QuickLogSheet } from '@/components/activities/quick-log-sheet'
 import { CircleToday } from '@/components/today/circle-today'
 import { Confetti } from '@/components/ui/confetti'
@@ -48,7 +49,7 @@ import {
 import { endTimerActivity, startTimerActivity } from '@/modules/live-activity'
 import { useI18n } from '@/i18n/provider'
 import { useActivityLabels } from '@/lib/activities/labels'
-import { stepperIncrement, usesQuickLogSheet } from '@/lib/activities/input-modes'
+import { resolveQuickValues, stepperIncrement, usesQuickLogSheet } from '@/lib/activities/input-modes'
 import { computeStreak, computeWeeklyStreak } from '@/lib/activities/streaks'
 import { uploadActivityPhoto } from '@/lib/api/storage'
 import type { Activity } from '@/lib/api/types'
@@ -88,6 +89,7 @@ export default function TodayScreen() {
   const [detailActivity, setDetailActivity] = useState<Activity | null>(null)
   const [quickActivity, setQuickActivity] = useState<Activity | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [celebrating, setCelebrating] = useState(false)
   const [milestone, setMilestone] = useState<number | null>(null)
@@ -106,6 +108,12 @@ export default function TodayScreen() {
   }, [create])
 
   const quickSession = useSessionFor(quickActivity?.id ?? null)
+
+  // Lo que cuenta para la meta: el dia, o la semana si la meta es semanal.
+  const periodTotalFor = (activity: Activity) =>
+    activity.target_period === 'week'
+      ? (weekProgress.totals.get(activity.id) ?? 0)
+      : (totals.get(activity.id)?.amount ?? 0)
 
   const today = todayKey(timeZone)
   const list = activities ?? []
@@ -313,6 +321,7 @@ export default function TodayScreen() {
         open={quickActivity !== null}
         activity={quickActivity}
         session={quickSession}
+        periodTotal={quickActivity ? periodTotalFor(quickActivity) : 0}
         onClose={() => setQuickActivity(null)}
         onLog={(amount) => {
           if (quickActivity) logWithUndo(quickActivity, { amount })
@@ -346,7 +355,14 @@ export default function TodayScreen() {
 
       <LogDetailSheet
         activity={detailActivity}
+        periodTotal={detailActivity ? periodTotalFor(detailActivity) : 0}
         onClose={() => setDetailActivity(null)}
+        onEditActivity={(activity) => {
+          setDetailActivity(null)
+          // La hoja de detalle se cierra antes: dos Modal a la vez en iOS
+          // dejan el segundo sin presentar.
+          setTimeout(() => setEditingActivity(activity), 400)
+        }}
         onSave={(activity, amount, dateKey, time, note, photoUrl) => {
           haptic('success')
           const loggedAt = new Date(zonedDateTimeToIso(dateKey, time, timeZone))
@@ -356,6 +372,12 @@ export default function TodayScreen() {
       />
 
       <ActivityEditorSheet open={editorOpen} onClose={() => setEditorOpen(false)} />
+
+      <ActivityEditorSheet
+        open={editingActivity !== null}
+        activity={editingActivity}
+        onClose={() => setEditingActivity(null)}
+      />
 
       <MilestoneSheet milestone={milestone} onClose={() => setMilestone(null)} />
 
@@ -690,12 +712,22 @@ function ActivityTile({
   )
 }
 
+function defaultAmountFor(activity: Activity): number {
+  if (activity.input_mode === 'duration' || activity.input_mode === 'amount') {
+    return resolveQuickValues(activity.quick_values, activity.unit)[0]
+  }
+  return Math.max(1, activity.step)
+}
+
 function LogDetailSheet({
   activity,
+  periodTotal,
   onClose,
   onSave,
+  onEditActivity,
 }: {
   activity: Activity | null
+  periodTotal: number
   onClose: () => void
   onSave: (
     activity: Activity,
@@ -705,6 +737,7 @@ function LogDetailSheet({
     note: string,
     photoUrl: string | null,
   ) => void
+  onEditActivity: (activity: Activity) => void
 }) {
   const { t, locale } = useI18n()
   const { activityName, unitLabel } = useActivityLabels()
@@ -724,6 +757,7 @@ function LogDetailSheet({
   const [showTimePicker, setShowTimePicker] = useState(false)
   const [photoUri, setPhotoUri] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
 
   // Esta hoja no se desmonta nunca (vive en el arbol de la pantalla y solo
   // devuelve null sin actividad), asi que todo lo del borrador anterior hay que
@@ -735,18 +769,23 @@ function LogDetailSheet({
   if (session !== lastSession) {
     setLastSession(session)
     if (activity) {
-      setAmount(activity.step)
+      setAmount(defaultAmountFor(activity))
       setDateKey(today)
       setTime(nowAsTimeOfDay())
       setShowTimePicker(false)
       setNote('')
       setPhotoUri(null)
+      setMoreOpen(false)
     }
   }
 
   if (!activity) return null
 
   const increment = stepperIncrement(activity.unit, activity.input_mode, activity.step)
+  const todayLogs = (recentLogs ?? []).filter(
+    (log) => log.activity_id === activity.id && log.local_date === today,
+  )
+  const hasExtra = note.trim().length > 0 || photoUri !== null || dateKey !== today
 
   const pickPhoto = async (source: PhotoSource) => {
     const result = await pickImage(source)
@@ -755,6 +794,18 @@ function LogDetailSheet({
       return
     }
     if (result.status === 'picked') setPhotoUri(result.uri)
+  }
+
+  const deleteEntry = (log: { id: string; photo_url: string | null }) => {
+    if (!userId) return
+    haptic('warning')
+    // Si el registro lo puso la salud hay que decirselo, o la siguiente
+    // sincronizacion lo vuelve a crear y parece que la papelera no hace nada.
+    void forgetHealthLog(log.id)
+    removeLog.mutate(
+      { logId: log.id, userId, photoUrl: log.photo_url },
+      { onError: () => showToast(t('common.genericError'), 'error') },
+    )
   }
 
   const save = async () => {
@@ -778,16 +829,22 @@ function LogDetailSheet({
     onSave(activity, amount, dateKey, time, note.trim(), photoPath)
   }
 
+  // El orden es el de para que se abre, como en la web: ver como vas (el
+  // medidor), revisar o borrar lo que ya registraste y, solo si hace falta, la
+  // nota, la foto o cambiar de dia, plegados.
   return (
     <Sheet
       open={activity !== null}
       onClose={onClose}
       title={activityName(activity.name)}
-      description={unitLabel(activity.unit, 2)}
       closeLabel={t('common.close')}
       footer={
         <Button
-          title={uploading ? t('common.saving') : t('common.save')}
+          title={
+            uploading
+              ? t('common.saving')
+              : t('quickLog.addAmount', { amount, unit: unitLabel(activity.unit, amount) })
+          }
           size="lg"
           fullWidth
           loading={uploading}
@@ -796,155 +853,162 @@ function LogDetailSheet({
       }
     >
       <View className="gap-5 pt-2">
-        <HealthSyncButton activityId={activity.id} />
-
-        <View className="flex-row items-center justify-between rounded-2xl bg-surface-sunken p-3 dark:bg-surface-sunken-dark">
-          <IconButton
-            label="-"
-            onPress={() => {
-              haptic('tap')
-              setAmount((value) => Math.max(1, value - increment))
-            }}
-            className="bg-surface dark:bg-surface-dark"
-          >
-            <Minus size={20} color={colors.text} />
-          </IconButton>
-          <View className="items-center">
-            <Text className="text-3xl font-extrabold text-brand dark:text-brand-dark">{amount}</Text>
-            <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">
-              {unitLabel(activity.unit, amount)}
-            </Text>
-          </View>
-          <IconButton
-            label="+"
-            onPress={() => {
-              haptic('tap')
-              setAmount((value) => value + increment)
-            }}
-            className="bg-surface dark:bg-surface-dark"
-          >
-            <Plus size={20} color={colors.text} />
-          </IconButton>
-        </View>
-
-        <View className="gap-2">
-          <Text className="px-1 text-sm font-bold text-text-muted dark:text-text-muted-dark">
-            {t('log.whenLabel')}
-          </Text>
-          <View className="flex-row gap-2">
-            <DayChip label={t('common.today')} selected={dateKey === today} onPress={() => setDateKey(today)} />
-            <DayChip
-              label={t('common.yesterday')}
-              selected={dateKey === yesterday}
-              onPress={() => setDateKey(yesterday)}
-            />
-            <DayChip
-              label={time}
-              selected={showTimePicker}
-              onPress={() => setShowTimePicker((current) => !current)}
-            />
-          </View>
-          {showTimePicker ? (
-            <TimePicker
-              value={timeOfDayToDate(time)}
-              onChange={(selected) => setTime(dateToTimeOfDay(selected))}
-              onClose={() => setShowTimePicker(false)}
-            />
-          ) : null}
-        </View>
-
-        <View className="gap-2">
-          <Text className="px-1 text-sm font-bold text-text-muted dark:text-text-muted-dark">
-            {t('log.photoLabel')} ({t('common.optional')})
-          </Text>
-          {photoUri ? (
-            <View className="overflow-hidden rounded-2xl">
-              <Image source={{ uri: photoUri }} className="aspect-video w-full" resizeMode="cover" />
-              <View className="absolute right-2 top-2">
-                <IconButton
-                  label={t('log.removePhoto')}
-                  onPress={() => setPhotoUri(null)}
-                  className="h-9 w-9 bg-black/55"
-                >
-                  <X size={16} color="#fff" />
-                </IconButton>
-              </View>
-            </View>
-          ) : (
-            <View className="flex-row gap-2">
-              <PhotoSourceButton
-                label={t('log.sourceCamera')}
-                icon={<Camera size={18} color={colors.textMuted} />}
-                onPress={() => void pickPhoto('camera')}
-              />
-              <PhotoSourceButton
-                label={t('log.sourceLibrary')}
-                icon={<ImagePlus size={18} color={colors.textMuted} />}
-                onPress={() => void pickPhoto('library')}
-              />
-            </View>
-          )}
-        </View>
-
-        <TextArea
-          label={`${t('log.noteLabel')} (${t('common.optional')})`}
-          placeholder={t('log.notePlaceholder')}
-          value={note}
-          maxLength={280}
-          onChangeText={setNote}
+        <LogMeter
+          activity={activity}
+          total={periodTotal}
+          adding={amount}
+          step={increment}
+          onChange={setAmount}
+          compact
         />
+
+        <HealthSyncButton activityId={activity.id} />
 
         <View className="gap-2">
           <Text className="px-1 text-sm font-bold text-text-muted dark:text-text-muted-dark">
             {t('log.historyTitle')}
           </Text>
-          {(recentLogs ?? []).filter(
-            (log) => log.activity_id === activity.id && log.local_date === today,
-          ).length === 0 ? (
-            <Text className="rounded-2xl bg-surface-sunken px-4 py-5 text-center text-sm text-text-muted dark:bg-surface-sunken-dark dark:text-text-muted-dark">
-              {t('log.historyEmpty')}
-            </Text>
-          ) : (
-            (recentLogs ?? [])
-              .filter((log) => log.activity_id === activity.id && log.local_date === today)
-              .map((log) => (
-                <View
-                  key={log.id}
-                  className="flex-row items-center gap-3 rounded-2xl bg-surface-sunken px-3.5 py-2.5 dark:bg-surface-sunken-dark"
-                >
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-sm font-bold text-text dark:text-text-dark">
-                      +{log.amount} {unitLabel(activity.unit, log.amount)}
-                    </Text>
+          <View className="overflow-hidden rounded-2xl bg-surface-sunken dark:bg-surface-sunken-dark">
+            {todayLogs.length === 0 ? (
+              <Text className="px-4 py-5 text-center text-sm text-text-muted dark:text-text-muted-dark">
+                {t('log.historyEmpty')}
+              </Text>
+            ) : (
+              todayLogs.map((log, index) => (
+                <View key={log.id}>
+                  {index > 0 ? <View className="ml-4 h-px bg-border dark:bg-border-dark" /> : null}
+                  <View className="min-h-12 flex-row items-center gap-3 pl-4 pr-1">
+                    <View className="min-w-0 flex-1 flex-row items-baseline gap-1.5 py-2">
+                      <Text
+                        className="text-[17px] font-bold text-text dark:text-text-dark"
+                        style={{ fontVariant: ['tabular-nums'] }}
+                      >
+                        +{log.amount}
+                      </Text>
+                      <Text
+                        className="shrink text-sm text-text-muted dark:text-text-muted-dark"
+                        numberOfLines={1}
+                      >
+                        {unitLabel(activity.unit, log.amount)}
+                        {log.note ? ` · ${log.note}` : ''}
+                      </Text>
+                    </View>
                     <Text
-                      className="text-xs text-text-muted dark:text-text-muted-dark"
-                      numberOfLines={1}
+                      className="text-sm text-text-subtle dark:text-text-subtle-dark"
+                      style={{ fontVariant: ['tabular-nums'] }}
                     >
                       {formatTime(new Date(log.logged_at), locale, timeZone)}
-                      {log.note ? ` · ${log.note}` : ''}
                     </Text>
+                    <IconButton label={t('quickLog.historyDelete')} onPress={() => deleteEntry(log)}>
+                      <Trash2 size={16} color={colors.textSubtle} />
+                    </IconButton>
                   </View>
-                  <IconButton
-                    label={t('log.deleteLog')}
-                    onPress={() => {
-                      if (!userId) return
-                      haptic('warning')
-                      // Si el registro lo puso la salud hay que decirselo, o la
-                      // siguiente sincronizacion lo vuelve a crear y parece que
-                      // la papelera no hace nada.
-                      void forgetHealthLog(log.id)
-                      removeLog.mutate(
-                        { logId: log.id, userId, photoUrl: log.photo_url },
-                        { onError: () => showToast(t('common.genericError'), 'error') },
-                      )
-                    }}
-                  >
-                    <Trash2 size={16} color={colors.danger} />
-                  </IconButton>
                 </View>
               ))
-          )}
+            )}
+          </View>
         </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: moreOpen }}
+          onPress={() => {
+            haptic('tap')
+            setMoreOpen((value) => !value)
+          }}
+          className="min-h-12 flex-row items-center gap-3 rounded-2xl bg-surface-sunken px-4 active:opacity-70 dark:bg-surface-sunken-dark"
+        >
+          <Text className="min-w-0 flex-1 text-[15px] text-text dark:text-text-dark">
+            {t('quickLog.moreDetail')}
+          </Text>
+          {hasExtra ? <View className="h-2 w-2 rounded-full bg-brand" /> : null}
+          <View style={moreOpen ? { transform: [{ rotate: '180deg' }] } : undefined}>
+            <ChevronDown size={16} color={colors.textSubtle} />
+          </View>
+        </Pressable>
+
+        {moreOpen ? (
+          <>
+            <View className="gap-2">
+              <Text className="px-1 text-sm font-bold text-text-muted dark:text-text-muted-dark">
+                {t('log.whenLabel')}
+              </Text>
+              <View className="flex-row gap-2">
+                <DayChip label={t('common.today')} selected={dateKey === today} onPress={() => setDateKey(today)} />
+                <DayChip
+                  label={t('common.yesterday')}
+                  selected={dateKey === yesterday}
+                  onPress={() => setDateKey(yesterday)}
+                />
+                <DayChip
+                  label={time}
+                  selected={showTimePicker}
+                  onPress={() => setShowTimePicker((current) => !current)}
+                />
+              </View>
+              {showTimePicker ? (
+                <TimePicker
+                  value={timeOfDayToDate(time)}
+                  onChange={(selected) => setTime(dateToTimeOfDay(selected))}
+                  onClose={() => setShowTimePicker(false)}
+                />
+              ) : null}
+            </View>
+
+            <TextArea
+              label={`${t('log.noteLabel')} (${t('common.optional')})`}
+              placeholder={t('log.notePlaceholder')}
+              value={note}
+              maxLength={280}
+              onChangeText={setNote}
+            />
+
+            <View className="gap-2">
+              <Text className="px-1 text-sm font-bold text-text-muted dark:text-text-muted-dark">
+                {t('log.photoLabel')} ({t('common.optional')})
+              </Text>
+              {photoUri ? (
+                <View className="overflow-hidden rounded-2xl">
+                  <Image source={{ uri: photoUri }} className="aspect-video w-full" resizeMode="cover" />
+                  <View className="absolute right-2 top-2">
+                    <IconButton
+                      label={t('log.removePhoto')}
+                      onPress={() => setPhotoUri(null)}
+                      className="h-9 w-9 bg-black/55"
+                    >
+                      <X size={16} color="#fff" />
+                    </IconButton>
+                  </View>
+                </View>
+              ) : (
+                <View className="flex-row gap-2">
+                  <PhotoSourceButton
+                    label={t('log.sourceCamera')}
+                    icon={<Camera size={18} color={colors.textMuted} />}
+                    onPress={() => void pickPhoto('camera')}
+                  />
+                  <PhotoSourceButton
+                    label={t('log.sourceLibrary')}
+                    icon={<ImagePlus size={18} color={colors.textMuted} />}
+                    onPress={() => void pickPhoto('library')}
+                  />
+                </View>
+              )}
+            </View>
+          </>
+        ) : null}
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            haptic('tap')
+            onEditActivity(activity)
+          }}
+          className="min-h-12 flex-row items-center gap-3 rounded-2xl bg-surface-sunken px-4 active:opacity-70 dark:bg-surface-sunken-dark"
+        >
+          <Pencil size={20} color={colors.brand} />
+          <Text className="text-[15px] text-brand dark:text-brand-dark">{t('activity.editTitle')}</Text>
+        </Pressable>
       </View>
     </Sheet>
   )

@@ -1,10 +1,10 @@
-import { Minus, Play, Plus, Square, Timer, X } from 'lucide-react-native'
+import { Play, Square, Timer, X } from 'lucide-react-native'
 import { useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 
-import { ActivityIcon } from '@/components/activities/activity-icon'
 import { HealthSyncButton } from '@/components/activities/health-sync-button'
-import { Button, IconButton } from '@/components/ui/button'
+import { LogMeter } from '@/components/activities/log-meter'
+import { Button } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
 import { useActivityHex, useThemeColors, withTint } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
@@ -16,8 +16,8 @@ import { formatElapsed, useTicker } from '@/lib/hooks/use-sessions'
 import { formatTime } from '@/lib/utils/dates'
 import { haptic } from '@/lib/utils/haptics'
 
-// El quick log de la web: presets de un toque, cantidad con stepper y el
-// cronometro para las actividades de duracion.
+// El quick log de la web: el medidor, atajos que eligen la cifra, un unico
+// boton para registrar y el cronometro para las actividades de duracion.
 export function QuickLogSheet({
   open,
   activity,
@@ -27,6 +27,7 @@ export function QuickLogSheet({
   onStartTimer,
   onStopTimer,
   onDiscardTimer,
+  periodTotal = 0,
 }: {
   open: boolean
   activity: Activity | null
@@ -36,6 +37,8 @@ export function QuickLogSheet({
   onStartTimer: () => void
   onStopTimer: (elapsedMinutes: number) => void
   onDiscardTimer: () => void
+  // Lo que cuenta para la meta: el dia, o la semana si la meta es semanal.
+  periodTotal?: number
 }) {
   const { t, locale } = useI18n()
   const { activityName, unitLabel } = useActivityLabels()
@@ -75,20 +78,9 @@ export function QuickLogSheet({
       open={open}
       onClose={onClose}
       title={activityName(activity.name)}
-      description={unitLabel(activity.unit, 2)}
       closeLabel={t('common.close')}
     >
       <View className="gap-5 pt-1">
-        <View className="flex-row items-center gap-3">
-          <ActivityIcon icon={activity.icon} color={activity.color} size="md" />
-          {activity.daily_target ? (
-            <Text className="text-sm text-text-muted dark:text-text-muted-dark">
-              {t('activity.targetLabel')}: {activity.daily_target}{' '}
-              {unitLabel(activity.unit, activity.daily_target)}
-            </Text>
-          ) : null}
-        </View>
-
         <HealthSyncButton activityId={activity.id} />
 
         {running && session ? (
@@ -136,83 +128,66 @@ export function QuickLogSheet({
           </View>
         ) : (
           <>
-            <View className="gap-2">
-              <Text className="px-1 text-sm font-bold text-text-muted dark:text-text-muted-dark">
-                {t('quickLog.presets')}
-              </Text>
-              <View className="flex-row flex-wrap gap-2.5">
-                {presets.map((value) => (
+            {/* La hoja gira alrededor del medidor: lo que llevas y lo que vas a
+                sumar en la propia pieza. Los atajos solo eligen la cifra y hay
+                un unico boton que dice exactamente que se registra. */}
+            <LogMeter
+              activity={activity}
+              total={periodTotal}
+              adding={custom}
+              step={increment}
+              onChange={setCustom}
+            />
+
+            <View className="flex-row flex-wrap justify-center gap-2">
+              {presets.map((value) => {
+                const selected = custom === value
+                return (
                   <Pressable
                     key={value}
                     accessibilityRole="button"
-                    onPress={() => logAndClose(value)}
-                    className="h-16 min-w-[47%] flex-1 items-center justify-center rounded-2xl active:opacity-70"
-                    style={({ pressed }) => [
-                      { backgroundColor: withTint(hex) },
-                      pressed ? { transform: [{ scale: 0.95 }] } : null,
-                    ]}
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`${value} ${unitLabel(activity.unit, value)}`}
+                    onPress={() => {
+                      haptic('tap')
+                      setCustom(value)
+                    }}
+                    className="h-11 min-w-16 items-center justify-center rounded-full px-4 active:scale-95"
+                    style={{ backgroundColor: selected ? hex : withTint(hex) }}
                   >
-                    <Text maxFontSizeMultiplier={1.2} className="text-xl font-extrabold" style={{ color: hex }}>
+                    <Text
+                      maxFontSizeMultiplier={1.2}
+                      className="text-[17px] font-bold"
+                      style={{ color: selected ? '#fff' : hex, fontVariant: ['tabular-nums'] }}
+                    >
                       {value}
                     </Text>
-                    <Text maxFontSizeMultiplier={1.2} className="text-xs font-semibold opacity-80" style={{ color: hex }}>
-                      {unitLabel(activity.unit, value)}
-                    </Text>
                   </Pressable>
-                ))}
-              </View>
+                )
+              })}
             </View>
 
-            <View className="gap-2">
-              <Text className="px-1 text-sm font-bold text-text-muted dark:text-text-muted-dark">
-                {t('quickLog.custom')}
-              </Text>
-              <View className="flex-row items-center justify-between rounded-2xl bg-surface-sunken p-3 dark:bg-surface-sunken-dark">
-                <IconButton
-                  label="-"
-                  onPress={() => {
-                    haptic('tap')
-                    setCustom((value) => Math.max(1, value - increment))
-                  }}
-                  className="bg-surface dark:bg-surface-dark"
-                >
-                  <Minus size={20} color={colors.text} />
-                </IconButton>
-                <View className="items-center">
-                  <Text className="text-3xl font-extrabold" style={{ color: hex }}>
-                    {custom}
-                  </Text>
-                  <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">
-                    {unitLabel(activity.unit, custom)}
-                  </Text>
-                </View>
-                <IconButton
-                  label="+"
-                  onPress={() => {
-                    haptic('tap')
-                    setCustom((value) => value + increment)
-                  }}
-                  className="bg-surface dark:bg-surface-dark"
-                >
-                  <Plus size={20} color={colors.text} />
-                </IconButton>
-              </View>
-              <Button title={t('quickLog.add')} size="lg" fullWidth onPress={() => logAndClose(custom)} />
-            </View>
-
-            {supportsTimer(activity.input_mode) ? (
+            <View className="gap-1">
               <Button
-                title={t('quickLog.startTimer')}
-                variant="secondary"
+                title={t('quickLog.addAmount', { amount: custom, unit: unitLabel(activity.unit, custom) })}
                 size="lg"
                 fullWidth
-                icon={<Play size={18} color={colors.text} />}
-                onPress={() => {
-                  haptic('success')
-                  onStartTimer()
-                }}
+                onPress={() => logAndClose(custom)}
               />
-            ) : null}
+
+              {supportsTimer(activity.input_mode) ? (
+                <Button
+                  title={t('quickLog.startTimer')}
+                  variant="ghost"
+                  fullWidth
+                  icon={<Play size={16} color={colors.textMuted} />}
+                  onPress={() => {
+                    haptic('success')
+                    onStartTimer()
+                  }}
+                />
+              ) : null}
+            </View>
           </>
         )}
       </View>

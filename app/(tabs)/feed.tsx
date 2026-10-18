@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { FeedBatchCard } from '@/components/feed/feed-batch-card'
 import { FeedComments } from '@/components/feed/feed-comments'
 import { InboxBell } from '@/components/feed/inbox'
-import { MomentCard } from '@/components/moments/moment-card'
+import { MomentBubble } from '@/components/moments/moment-card'
 import { StoryRing } from '@/components/stories/story-ring'
 import { EventsTab } from '@/components/events/events-tab'
 import { Segmented } from '@/components/ui/segmented'
@@ -163,9 +163,11 @@ export default function FeedScreen() {
               ]}
               onChange={setTab}
             />
-            <MomentCard today={today} />
+            {/* El momento entra en la fila de historias como una burbuja mas:
+                en tarjeta propia, sumado a la fila, ocupaban media pantalla
+                antes del primer registro. */}
             <View className="pb-1 pt-1">
-              <StoryRing />
+              <StoryRing leading={<MomentBubble today={today} />} />
             </View>
           </View>
         }
@@ -260,13 +262,14 @@ function FeedEntryCard({
   const { t } = useI18n()
   const colors = useThemeColors()
   const currentUserId = useCurrentUserId()
-  const { activityName, amountWithUnit } = useActivityLabels()
+  const { activityName, unitLabel } = useActivityLabels()
   const relativeTime = useRelativeTime()
   const { toggleReaction } = useToggleReaction()
   const { data: photoUrl } = useActivityPhotoUrl(entry.photo_url)
   const [viewerOpen, setViewerOpen] = useState(false)
 
   const isOwn = currentUserId !== null && entry.user_id === currentUserId
+  const amount = groupedAmount ?? entry.amount
 
   const reactionSummary = useMemo(() => {
     const counts = new Map<ReactionType, { count: number; isActive: boolean }>()
@@ -320,23 +323,29 @@ function FeedEntryCard({
         ) : null}
       </View>
 
-      <View className="mt-3 flex-row items-center gap-3">
-        <ActivityIcon icon={entry.activity.icon} color={entry.activity.color} size="sm" />
-        <View className="min-w-0 flex-1">
-          <Text className="text-[15px] font-semibold text-text dark:text-text-dark" numberOfLines={1}>
-            {activityName(entry.activity.name)}
+      {/* La misma fila que en la tarjeta de un lote: el muro se lee igual
+          tenga una actividad o cinco. La cifra manda a la derecha. */}
+      <View className="mt-3 min-h-12 flex-row items-center gap-3 rounded-2xl bg-surface-sunken px-3 py-1.5 dark:bg-surface-sunken-dark">
+        <ActivityIcon icon={entry.activity.icon} color={entry.activity.color} size="xs" />
+        <Text className="min-w-0 flex-1 text-[15px] text-text dark:text-text-dark" numberOfLines={1}>
+          {activityName(entry.activity.name)}
+        </Text>
+        {groupedCount > 1 ? (
+          <Text className="text-xs text-text-subtle dark:text-text-subtle-dark">
+            {t('feed.grouped', { count: groupedCount })}
           </Text>
-          <Text className="text-sm text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
-            {amountWithUnit(groupedAmount ?? entry.amount, entry.activity.unit)}
+        ) : null}
+        <View className="flex-row items-baseline gap-1">
+          <Text
+            className="text-[17px] font-bold text-text dark:text-text-dark"
+            style={{ fontVariant: ['tabular-nums'] }}
+          >
+            {amount}
+          </Text>
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+            {unitLabel(entry.activity.unit, amount)}
           </Text>
         </View>
-        {groupedCount > 1 ? (
-          <View className="rounded-full bg-surface-sunken px-2.5 py-1 dark:bg-surface-sunken-dark">
-            <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark">
-              {t('feed.grouped', { count: groupedCount })}
-            </Text>
-          </View>
-        ) : null}
       </View>
 
       {entry.note ? (

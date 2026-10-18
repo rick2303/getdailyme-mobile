@@ -5,6 +5,8 @@ import { getIconComponent } from '@/lib/icons'
 import { cn } from '@/lib/utils/cn'
 
 const SIZES = {
+  // xs es la de las filas del muro: una linea por actividad.
+  xs: { box: 28, radius: 9, glyph: 16 },
   sm: { box: 36, radius: 12, glyph: 20 },
   md: { box: 48, radius: 16, glyph: 24 },
   lg: { box: 64, radius: 20, glyph: 32 },

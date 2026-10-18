@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Heart, Plus } from 'lucide-react-native'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 import Animated, {
   cancelAnimation,
@@ -45,7 +45,9 @@ const ADD_OFFSET = 40
 const AVATAR_CLASS = 'h-[60px] w-[60px]'
 const MODAL_SETTLE_MS = 400
 
-export function StoryRing() {
+// `leading` va antes que tu historia: el momento entra en la fila como una
+// burbuja mas en vez de ocupar una tarjeta propia encima.
+export function StoryRing({ leading }: { leading?: ReactNode } = {}) {
   const { t } = useI18n()
   const { profile } = useAuth()
   const { showToast } = useToast()
@@ -122,6 +124,7 @@ export function StoryRing() {
         className="-mx-4"
         contentContainerClassName="px-4 pb-1"
       >
+        {leading ? <View style={{ width: ITEM_WIDTH + ITEM_GAP }}>{leading}</View> : null}
         <View style={{ width: ITEM_WIDTH + ITEM_GAP }}>
           <Pressable
             accessibilityRole="button"

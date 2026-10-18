@@ -432,34 +432,37 @@ export function ActivityEditorSheet({
 
           <View className="gap-2">
             <FieldLabel text={t('activity.visibilityLabel')} />
-            {VISIBILITIES.map((option) => {
-              const Icon = VISIBILITY_ICONS[option]
-              const selected = draft.visibility === option
-              return (
-                <Pressable
-                  key={option}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  onPress={() => patch('visibility', option)}
-                  className={
-                    selected
-                      ? 'flex-row items-center gap-3 rounded-2xl border border-brand bg-brand-soft px-4 py-3 dark:bg-brand-soft-dark active:opacity-70'
-                      : 'flex-row items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 dark:border-border-dark dark:bg-surface-dark active:opacity-70'
-                  }
-                >
-                  <Icon size={20} color={selected ? colors.brand : colors.textSubtle} />
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-sm font-bold text-text dark:text-text-dark">
-                      {t(`visibility.${option}` as TranslationKey)}
-                    </Text>
-                    <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-                      {t(`visibility.${option}Help` as TranslationKey)}
-                    </Text>
+            {/* Un solo bloque de lista con tic a la derecha, como en la web:
+                tres cajas con borde, la elegida pintada, eran una caja por
+                opcion para una sola eleccion. */}
+            <View className="overflow-hidden rounded-2xl bg-surface-sunken dark:bg-surface-sunken-dark">
+              {VISIBILITIES.map((option, index) => {
+                const Icon = VISIBILITY_ICONS[option]
+                const selected = draft.visibility === option
+                return (
+                  <View key={option}>
+                    {index > 0 ? <View className="ml-12 h-px bg-border dark:bg-border-dark" /> : null}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      onPress={() => patch('visibility', option)}
+                      className="min-h-14 flex-row items-center gap-3 px-4 py-3 active:opacity-70"
+                    >
+                      <Icon size={20} color={selected ? colors.brand : colors.textSubtle} />
+                      <View className="min-w-0 flex-1">
+                        <Text className="text-sm font-bold text-text dark:text-text-dark">
+                          {t(`visibility.${option}` as TranslationKey)}
+                        </Text>
+                        <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+                          {t(`visibility.${option}Help` as TranslationKey)}
+                        </Text>
+                      </View>
+                      {selected ? <Check size={20} color={colors.brand} /> : null}
+                    </Pressable>
                   </View>
-                  {selected ? <Check size={20} color={colors.brand} /> : null}
-                </Pressable>
-              )
-            })}
+                )
+              })}
+            </View>
 
             {draft.visibility === 'custom' ? (
               <View className="mt-1 gap-1 rounded-2xl bg-surface-sunken p-2 dark:bg-surface-sunken-dark">
