@@ -55,18 +55,29 @@ export type InboxNotification = {
   created_at: string;
   actor: CommentAuthor;
   challenge: { title: string } | null;
+  // El nombre crudo de la actividad del registro, para decir "tu Agua" y no
+  // "tu registro". Null en los avisos que no van de un registro.
+  activityName: string | null;
 };
 
 const NOTIFICATION_SELECT = `
   id, type, log_id, comment_id, event_id, story_id, challenge_id, details, created_at,
   actor:profiles!notifications_actor_id_fkey ( id, username, display_name, avatar_url ),
-  challenge:challenges ( title )
+  challenge:challenges ( title ),
+  log:activity_logs!notifications_log_id_fkey ( activity:activities ( name ) )
 `;
 
-type RawNotification = Omit<InboxNotification, "actor" | "challenge"> & {
+type RawLog = { activity: { name: string } | { name: string }[] | null };
+
+type RawNotification = Omit<InboxNotification, "actor" | "challenge" | "activityName"> & {
   actor: CommentAuthor | CommentAuthor[] | null;
   challenge: { title: string } | { title: string }[] | null;
+  log: RawLog | RawLog[] | null;
 };
+
+function one<T>(value: T | T[] | null | undefined): T | null {
+  return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
+}
 
 // Solo las no leidas: la bandeja es un "desde tu ultima visita", no un
 // historial. Lo leido desaparece y el feed vuelve a mandar.
@@ -84,13 +95,13 @@ export async function fetchUnreadNotifications(
 
   return ((data ?? []) as unknown as RawNotification[])
     .map((row) => {
-      const actor = Array.isArray(row.actor) ? (row.actor[0] ?? null) : row.actor;
+      const actor = one(row.actor);
       if (!actor) return null;
-      const challenge = Array.isArray(row.challenge)
-        ? (row.challenge[0] ?? null)
-        : row.challenge;
+      const challenge = one(row.challenge);
       if (isChallengeNotification(row.type) && !challenge) return null;
-      return { ...row, actor, challenge };
+      const { log, ...rest } = row;
+      const activityName = one(one(log)?.activity)?.name ?? null;
+      return { ...rest, actor, challenge, activityName };
     })
     .filter((row): row is InboxNotification => row !== null);
 }

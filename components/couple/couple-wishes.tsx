@@ -31,6 +31,10 @@ import { cn } from '@/lib/utils/cn'
 import { formatLongDate } from '@/lib/utils/dates'
 import { haptic } from '@/lib/utils/haptics'
 
+// Con muchas pendientes la tarjeta se comia la pantalla: se ven las primeras
+// y una fila para el resto, como en la web.
+const PENDING_PREVIEW = 4
+
 // La lista de cosas por hacer juntos. Tachar es un toque en el circulo; lo
 // demas —convertirla en plan o quitarla— vive en la hoja de la fila.
 export function CoupleWishes({ couple, today }: { couple: Couple; today: string }) {
@@ -48,6 +52,7 @@ export function CoupleWishes({ couple, today }: { couple: Couple; today: string 
 
   const [draft, setDraft] = useState('')
   const [showDone, setShowDone] = useState(false)
+  const [showAll, setShowAll] = useState(false)
   const [selected, setSelected] = useState<CoupleWish | null>(null)
   const [planning, setPlanning] = useState(false)
   const [planDate, setPlanDate] = useState(() => nextSaturdayKey(today))
@@ -196,8 +201,22 @@ export function CoupleWishes({ couple, today }: { couple: Couple; today: string 
           </Pressable>
         </View>
 
-        {pending.map(renderRow)}
+        {(showAll ? pending : pending.slice(0, PENDING_PREVIEW)).map(renderRow)}
         {showDone ? done.map(renderRow) : null}
+        {pending.length > PENDING_PREVIEW && !showAll ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              haptic('tap')
+              setShowAll(true)
+            }}
+            className="min-h-12 justify-center border-b border-border px-4 py-3 active:opacity-70 dark:border-border-dark"
+          >
+            <Text className="text-sm font-semibold text-brand dark:text-brand-dark">
+              {t('wishes.showAll', { count: pending.length })}
+            </Text>
+          </Pressable>
+        ) : null}
 
         {done.length > 0 ? (
           <Pressable

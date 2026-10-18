@@ -5,12 +5,14 @@ import { Image } from 'react-native'
 import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
+import { FeedBatchCard } from '@/components/feed/feed-batch-card'
 import { FeedComments } from '@/components/feed/feed-comments'
 import { InboxBell } from '@/components/feed/inbox'
 import { MomentCard } from '@/components/moments/moment-card'
 import { StoryRing } from '@/components/stories/story-ring'
 import { EventsTab } from '@/components/events/events-tab'
 import { Segmented } from '@/components/ui/segmented'
+import { Sheet } from '@/components/ui/sheet'
 import { ScrollView } from 'react-native'
 import { ProfileCardSheet } from '@/components/feed/profile-card-sheet'
 import { ReportSheet, type ReportSheetTarget } from '@/components/feed/report-sheet'
@@ -26,7 +28,7 @@ import { REACTION_TYPES, type FeedEntry, type ReactionType } from '@/lib/api/typ
 import { useCurrentUserId, useTimeZone } from '@/lib/auth/provider'
 import { useFeed, useFeedRealtime, useToggleReaction } from '@/lib/hooks/use-feed'
 import { useRefreshRing } from '@/lib/hooks/use-stories'
-import { groupFeedEntries, type FeedGroup } from '@/lib/feed/grouping'
+import { batchFeedGroups, groupFeedEntries, type FeedItem } from '@/lib/feed/grouping'
 import { useActivityPhotoUrl } from '@/lib/hooks/use-photo-url'
 import { useRelativeTime } from '@/lib/hooks/use-relative-time'
 import { ActivityIcon } from '@/components/activities/activity-icon'
@@ -52,7 +54,7 @@ export default function FeedScreen() {
   // novedades para siempre y el feed solo se enteraba al tirar para refrescar.
   const { pendingCount, consumePending } = useFeedRealtime()
   const refreshRing = useRefreshRing()
-  const listRef = useRef<FlatList<FeedGroup>>(null)
+  const listRef = useRef<FlatList<FeedItem>>(null)
 
   const [tab, setTab] = useState<FeedTab>('activity')
   const [profileUserId, setProfileUserId] = useState<string | null>(null)
@@ -61,7 +63,8 @@ export default function FeedScreen() {
     story: storyParam,
     moment: momentParam,
     tab: tabParam,
-  } = useLocalSearchParams<{ story?: string; moment?: string; tab?: string }>()
+    log: logParam,
+  } = useLocalSearchParams<{ story?: string; moment?: string; tab?: string; log?: string }>()
   const router = useRouter()
   const today = todayKey(useTimeZone())
 
@@ -84,9 +87,20 @@ export default function FeedScreen() {
     router.setParams({ tab: undefined })
   }, [tabParam, router])
 
+  useEffect(() => {
+    if (logParam) setTab('activity')
+  }, [logParam])
+
   // Los registros seguidos de la misma persona y actividad se agrupan en una
-  // tarjeta con el total, como en la web.
-  const groups = useMemo(() => groupFeedEntries(feed.data?.pages.flat() ?? []), [feed.data])
+  // tarjeta con el total, y el dia de cada persona en un lote, como en la web.
+  const entries = useMemo(() => feed.data?.pages.flat() ?? [], [feed.data])
+  const items = useMemo(() => batchFeedGroups(groupFeedEntries(entries)), [entries])
+
+  // Un registro concreto (fila de un lote o aviso de la bandeja) se abre en una
+  // hoja con su tarjeta entera: ahi estan sus reacciones y su hilo.
+  const openLog = (logId: string) => router.setParams({ log: logId })
+  const closeLog = () => router.setParams({ log: undefined })
+  const openedEntry = logParam ? (entries.find((entry) => entry.id === logParam) ?? null) : null
 
   if (tab === 'events') {
     return (
@@ -115,8 +129,8 @@ export default function FeedScreen() {
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark" edges={['top']}>
       <FlatList
         ref={listRef}
-        data={groups}
-        keyExtractor={(item) => item.entry.id}
+        data={items}
+        keyExtractor={(item) => (item.kind === 'batch' ? item.key : item.group.entry.id)}
         contentContainerClassName="gap-3 px-4 pb-8"
         refreshControl={
           <RefreshControl
@@ -139,7 +153,7 @@ export default function FeedScreen() {
               <Text className="px-1 text-2xl font-extrabold text-text dark:text-text-dark">
                 {t('feed.title')}
               </Text>
-              <InboxBell />
+              <InboxBell onOpenLog={openLog} />
             </View>
             <Segmented
               value={tab}
@@ -163,15 +177,19 @@ export default function FeedScreen() {
           )
         }
         ListFooterComponent={feed.isFetchingNextPage ? <Spinner className="py-4" /> : null}
-        renderItem={({ item }) => (
-          <FeedEntryCard
-            entry={item.entry}
-            groupedCount={item.count}
-            groupedAmount={item.amount}
-            onOpenProfile={setProfileUserId}
-            onReport={(target) => setReportTarget(target)}
-          />
-        )}
+        renderItem={({ item }) =>
+          item.kind === 'batch' ? (
+            <FeedBatchCard groups={item.groups} onOpenProfile={setProfileUserId} onOpenLog={openLog} />
+          ) : (
+            <FeedEntryCard
+              entry={item.group.entry}
+              groupedCount={item.group.count}
+              groupedAmount={item.group.amount}
+              onOpenProfile={setProfileUserId}
+              onReport={(target) => setReportTarget(target)}
+            />
+          )
+        }
       />
 
       {pendingCount > 0 ? (
@@ -193,6 +211,24 @@ export default function FeedScreen() {
           </Pressable>
         </View>
       ) : null}
+
+      <Sheet open={openedEntry !== null} onClose={closeLog} closeLabel={t('common.close')}>
+        {openedEntry ? (
+          <View className="pt-3">
+            <FeedEntryCard
+              entry={openedEntry}
+              onOpenProfile={(userId) => {
+                closeLog()
+                setProfileUserId(userId)
+              }}
+              onReport={(target) => {
+                closeLog()
+                setReportTarget(target)
+              }}
+            />
+          </View>
+        ) : null}
+      </Sheet>
 
       <ProfileCardSheet
         userId={profileUserId}

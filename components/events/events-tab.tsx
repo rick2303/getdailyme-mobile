@@ -1,4 +1,4 @@
-import { CalendarPlus, ChevronLeft, ChevronRight } from 'lucide-react-native'
+import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, List } from 'lucide-react-native'
 import { useMemo, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 
@@ -8,7 +8,6 @@ import { useCountdownLabel } from '@/components/events/countdown'
 import { Avatar } from '@/components/ui/avatar'
 import { Button, IconButton } from '@/components/ui/button'
 import { EmptyState, SkeletonTile } from '@/components/ui/feedback'
-import { Segmented } from '@/components/ui/segmented'
 import { ActivityIcon } from '@/components/activities/activity-icon'
 import { SHADOW_TILE, useActivityHex, useThemeColors, withTint } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
@@ -25,6 +24,7 @@ import {
 } from '@/lib/events/calendar'
 import { useEvents } from '@/lib/hooks/use-events'
 import { formatDateRange, formatMonthYear, todayKey } from '@/lib/utils/dates'
+import { haptic } from '@/lib/utils/haptics'
 
 // La pestaña de eventos de la web: vista lista/calendario, proximos y
 // recuerdos, y la ficha de detalle con RSVP y fotos.
@@ -54,15 +54,32 @@ export function EventsTab() {
 
   return (
     <View className="gap-5">
-      <View className="px-4">
-        <Segmented
-          value={view}
-          options={[
-            { value: 'list', label: t('events.viewList') },
-            { value: 'calendar', label: t('events.viewCalendar') },
-          ]}
-          onChange={setView}
-        />
+      {/* El conmutador de vista comparte fila con la cabecera de la primera
+          seccion, como en la web: solo ocupaba una fila entera para dos
+          palabras. Es un glifo, como en Calendario de iOS. */}
+      <View className="-mb-3 min-h-11 flex-row items-center justify-between pl-5 pr-2">
+        <Text className="text-sm font-bold uppercase tracking-wide text-text-muted dark:text-text-muted-dark">
+          {view === 'calendar'
+            ? t('events.viewCalendar')
+            : upcoming.length > 0
+              ? t('events.upcomingTitle')
+              : past.length > 0
+                ? t('events.memoriesTitle')
+                : ''}
+        </Text>
+        <IconButton
+          label={view === 'calendar' ? t('events.viewList') : t('events.viewCalendar')}
+          onPress={() => {
+            haptic('tap')
+            setView(view === 'calendar' ? 'list' : 'calendar')
+          }}
+        >
+          {view === 'calendar' ? (
+            <List size={20} color={colors.brand} />
+          ) : (
+            <CalendarDays size={20} color={colors.brand} />
+          )}
+        </IconButton>
       </View>
 
       {view === 'calendar' ? (
@@ -86,12 +103,14 @@ export function EventsTab() {
             title={t('events.upcomingTitle')}
             events={upcoming}
             onOpen={(event) => setSelectedId(event.id)}
+            hideTitle
           />
           <EventSection
             title={t('events.memoriesTitle')}
             events={past}
             past
             onOpen={(event) => setSelectedId(event.id)}
+            hideTitle={upcoming.length === 0}
           />
           <Button
             title={t('events.createCta')}
@@ -128,20 +147,25 @@ function EventSection({
   title,
   events,
   past = false,
+  hideTitle = false,
   onOpen,
 }: {
   title: string
   events: EventSummary[]
   past?: boolean
+  hideTitle?: boolean
   onOpen: (event: EventSummary) => void
 }) {
   if (events.length === 0) return null
 
   return (
     <View className="gap-2.5">
-      <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text-muted dark:text-text-muted-dark">
-        {title}
-      </Text>
+      {/* La primera la titula la fila del conmutador. */}
+      {hideTitle ? null : (
+        <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text-muted dark:text-text-muted-dark">
+          {title}
+        </Text>
+      )}
       {events.map((event) => (
         <EventCard key={event.id} event={event} past={past} onOpen={() => onOpen(event)} />
       ))}

@@ -324,6 +324,16 @@ export const es = {
       one: "{count} registro",
       other: "{count} registros",
     },
+    batchSummary: {
+      one: "Registró {count} cosa",
+      other: "Registró {count} cosas",
+    },
+    batchCheer: "Dar ánimo",
+    batchCheerDone: "Le diste ánimo",
+    batchCheered: {
+      one: "{count} persona te dio ánimo",
+      other: "{count} personas te dieron ánimo",
+    },
     newEntries: {
       one: "{count} novedad",
       other: "{count} novedades",
@@ -423,6 +433,11 @@ export const es = {
     comment: "{name} comentó tu registro",
     reply: "{name} respondió en un hilo tuyo",
     reaction: "{name} reaccionó a tu registro",
+    reaction_on: "{name} reaccionó a tu {activity}",
+    reaction_many: "{name} reaccionó a {count} de tus registros",
+    comment_on: "{name} comentó tu {activity}",
+    comment_many: "{name} dejó {count} comentarios en tus registros",
+    story_reaction_many: "{name} reaccionó {count} veces a tu historia",
     friend_request: "{name} te envió una solicitud de amistad",
     friend_accept: "{name} aceptó tu solicitud de amistad",
     event_invite: "{name} te invitó a un evento",
@@ -820,6 +835,10 @@ export const es = {
       other: "Tú, {count} veces",
     },
     pingsNone: "Hoy nadie ha tocado todavía",
+    pingsOnlySent: {
+      one: "Hoy pensaste en {name} una vez",
+      other: "Hoy pensaste en {name} {count} veces",
+    },
     widgetEmpty: "Empareja tu cuenta desde Amigos para verla aquí.",
     widgetHint: "Añade el widget «Pareja» a tu pantalla de inicio para hacerlo sin abrir la app.",
     mood: {
@@ -853,6 +872,7 @@ export const es = {
       other: "Ver {count} hechas",
     },
     hideDone: "Ocultar las hechas",
+    showAll: "Ver las {count} pendientes",
     pending: {
       one: "{count} pendiente",
       other: "{count} pendientes",

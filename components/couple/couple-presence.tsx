@@ -1,5 +1,5 @@
 import { HeartHandshake } from 'lucide-react-native'
-import { Pressable, Text, View } from 'react-native'
+import { Pressable, ScrollView, Text, View } from 'react-native'
 
 import { CoupleGroup } from '@/components/couple/couple-group'
 import { Avatar } from '@/components/ui/avatar'
@@ -119,18 +119,28 @@ export function CouplePresence({ couple, today }: { couple: Couple; today: strin
 
       <View className="border-t border-border px-4 py-3 dark:border-border-dark">
         <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+          {/* Una frase, sin punto medio: "nadie ha tocado · tu, 4 veces" se
+              contradecia a si misma. */}
           {received > 0
-            ? t('presence.pingsReceived', { name: partner.displayName, count: received })
-            : t('presence.pingsNone')}
-          {sent > 0 ? ` · ${t('presence.pingsSent', { count: sent })}` : ''}
+            ? t('presence.pingsReceived', { name: partner.displayName, count: received }) +
+              (sent > 0 ? `. ${t('presence.pingsSent', { count: sent })}.` : '')
+            : sent > 0
+              ? t('presence.pingsOnlySent', { name: partner.displayName, count: sent })
+              : t('presence.pingsNone')}
         </Text>
       </View>
 
-      <View className="gap-2 border-t border-border p-4 dark:border-border-dark">
-        <Text className="text-xs text-text-subtle dark:text-text-subtle-dark">
+      {/* Una fila de pildoras que se desliza, como en la web: la rejilla de
+          4x2 ocupaba media tarjeta para una eleccion de un toque. */}
+      <View className="gap-2 border-t border-border py-4 dark:border-border-dark">
+        <Text className="px-4 text-xs text-text-subtle dark:text-text-subtle-dark">
           {t('presence.yourMood')}
         </Text>
-        <View className="flex-row flex-wrap gap-2">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerClassName="gap-2 px-4"
+        >
           {COUPLE_MOODS.map((mood) => {
             const Icon = MOOD_ICONS[mood]
             const selected = mood === myMood
@@ -140,20 +150,19 @@ export function CouplePresence({ couple, today }: { couple: Couple; today: strin
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
                 onPress={() => choose(mood)}
-                style={{ width: '23%' }}
                 className={cn(
-                  'min-h-16 items-center justify-center gap-1 rounded-2xl px-1 py-2 active:opacity-70',
+                  'h-11 flex-row items-center gap-1.5 rounded-full pl-3 pr-4 active:opacity-70',
                   selected ? 'bg-brand' : 'bg-surface-sunken dark:bg-surface-sunken-dark',
                 )}
               >
                 <Icon
-                  size={20}
+                  size={18}
                   color={selected ? '#fff' : colors.text}
                   strokeWidth={selected ? ICON_STROKE.emphasis : undefined}
                 />
                 <Text
                   className={cn(
-                    'text-center text-[11px] font-semibold leading-tight',
+                    'text-sm font-semibold',
                     selected ? 'text-white' : 'text-text dark:text-text-dark',
                   )}
                   numberOfLines={1}
@@ -163,7 +172,7 @@ export function CouplePresence({ couple, today }: { couple: Couple; today: strin
               </Pressable>
             )
           })}
-        </View>
+        </ScrollView>
       </View>
     </CoupleGroup>
   )

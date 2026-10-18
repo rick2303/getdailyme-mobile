@@ -58,3 +58,53 @@ export function groupFeedEntries(entries: FeedEntry[]): FeedGroup[] {
 
   return groups;
 }
+
+export const BATCH_WINDOW_MS = 3 * 60 * 60 * 1000;
+
+export type FeedItem =
+  | { kind: "single"; group: FeedGroup }
+  | { kind: "batch"; key: string; groups: FeedGroup[] };
+
+// Lo que se publica de verdad (foto o nota) va siempre en su propia tarjeta.
+function isPost(entry: FeedEntry): boolean {
+  return entry.photo_url !== null || (entry.note !== null && entry.note.trim() !== "");
+}
+
+// Segundo nivel, el del muro de Strava: el dia de cada persona en una tarjeta.
+// Agua, comida, ejercicio y lectura de la misma persona en la misma tarde eran
+// cuatro tarjetas seguidas con la misma cara; ahora son una con cuatro filas.
+//
+// Las reacciones y los comentarios no rompen el lote: siguen siendo de cada
+// registro y se ven en su fila. Lo que si lo rompe es una publicacion (foto o
+// nota), que merece tarjeta propia, y que pase la ventana desde la primera.
+export function batchFeedGroups(groups: FeedGroup[]): FeedItem[] {
+  const items: FeedItem[] = [];
+  let run: FeedGroup[] = [];
+
+  const flush = () => {
+    if (run.length === 1) items.push({ kind: "single", group: run[0] });
+    else if (run.length > 1) items.push({ kind: "batch", key: `batch-${run[0].entry.id}`, groups: run });
+    run = [];
+  };
+
+  for (const group of groups) {
+    if (isPost(group.entry)) {
+      flush();
+      items.push({ kind: "single", group });
+      continue;
+    }
+
+    const head = run[0];
+    const joins =
+      head !== undefined &&
+      head.entry.user_id === group.entry.user_id &&
+      new Date(head.entry.logged_at).getTime() - new Date(group.entry.logged_at).getTime() <=
+        BATCH_WINDOW_MS;
+
+    if (!joins) flush();
+    run.push(group);
+  }
+
+  flush();
+  return items;
+}

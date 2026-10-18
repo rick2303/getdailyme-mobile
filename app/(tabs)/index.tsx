@@ -109,6 +109,7 @@ export default function TodayScreen() {
 
   const today = todayKey(timeZone)
   const list = activities ?? []
+  const tiles: TileItem[] = list.length % 2 === 1 ? [...list, ADD_TILE] : list
   const todayCount = useMemo(
     () => [...totals.values()].reduce((sum, entry) => sum + entry.count, 0),
     [totals],
@@ -214,7 +215,7 @@ export default function TodayScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark" edges={['top']}>
       <FlatList
-        data={list}
+        data={tiles}
         keyExtractor={(item) => item.id}
         numColumns={2}
         columnWrapperClassName="gap-3 px-4"
@@ -246,7 +247,10 @@ export default function TodayScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item, index }) => (
+        renderItem={({ item, index }) =>
+          isAddTile(item) ? (
+            <AddActivityTile onPress={() => setEditorOpen(true)} />
+          ) : (
           <ActivityTile
             activity={item}
             todayTotal={totals.get(item.id)}
@@ -261,7 +265,8 @@ export default function TodayScreen() {
               setDetailActivity(item)
             }}
           />
-        )}
+          )
+        }
         ListEmptyComponent={
           // Mientras carga, `data` ya es un array vacio: sin esta guarda el
           // primer arranque enseñaba "aun no tienes actividades" durante un
@@ -288,7 +293,8 @@ export default function TodayScreen() {
         }
         ListFooterComponent={
           <>
-            {list.length > 0 ? (
+            {/* Con impar el hueco de la rejilla ya lo ofrece: aqui sobraria. */}
+            {list.length > 0 && list.length % 2 === 0 ? (
               <View className="px-4 pt-2">
                 <Button
                   title={t('today.addActivity')}
@@ -369,6 +375,40 @@ const ACCESSIBILITY_ACTIONS = [
 ]
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle)
+
+// Con un numero impar de actividades la rejilla dejaba un hueco: ahi va la
+// manera de anadir otra, en vez de un vacio. Es una entrada mas de la lista
+// para que FlatList la coloque en la columna libre.
+const ADD_TILE = { id: '__add-activity' } as const
+type TileItem = Activity | typeof ADD_TILE
+
+function isAddTile(item: TileItem): item is typeof ADD_TILE {
+  return item === ADD_TILE
+}
+
+function AddActivityTile({ onPress }: { onPress: () => void }) {
+  const { t } = useI18n()
+  const colors = useThemeColors()
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('today.addActivity')}
+      onPress={() => {
+        haptic('tap')
+        onPress()
+      }}
+      className="min-h-36 flex-1 items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-border-strong active:opacity-70 dark:border-border-strong-dark"
+    >
+      <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-sunken dark:bg-surface-sunken-dark">
+        <Plus size={20} color={colors.text} strokeWidth={2.5} />
+      </View>
+      <Text className="text-[15px] font-semibold text-text-muted dark:text-text-muted-dark">
+        {t('today.addActivity')}
+      </Text>
+    </Pressable>
+  )
+}
 
 function ActivityTile({
   activity,

@@ -58,6 +58,7 @@ import { buildDataExport } from '@/lib/api/export'
 import { uploadAvatar } from '@/lib/api/storage'
 import { ACCENTS, ACCENT_HEX, THEME_MODES, type ThemeMode } from '@/lib/theme'
 import { useThemeSettings } from '@/lib/theme-context'
+import { cn } from '@/lib/utils/cn'
 import { getBrowserTimeZone } from '@/lib/utils/dates'
 import { pickImage, type PhotoSource } from '@/lib/utils/pick-image'
 import { Pressable } from 'react-native'
@@ -202,20 +203,30 @@ function StatsSection() {
       <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text dark:text-text-dark">
         {t('stats.title')}
       </Text>
-      <View className="flex-row flex-wrap gap-3">
-        <StatCard
-          icon={Flame}
-          label={t('stats.currentStreak')}
-          value={t('stats.days', { count: summary.current })}
-          highlighted={summary.current > 0}
-        />
-        <StatCard
-          icon={Trophy}
-          label={t('stats.longestStreak')}
-          value={t('stats.days', { count: summary.longest })}
-        />
-        <StatCard icon={ListChecks} label={t('stats.totalLogs')} value={String(totalLogs)} />
-        <StatCard icon={CalendarDays} label={t('stats.activeDays')} value={String(summary.activeDays)} />
+      {/* Un solo bloque partido en cuatro con filetes, no cuatro tarjetas,
+          como en la web. */}
+      <View
+        style={SHADOW_TILE}
+        className="overflow-hidden rounded-3xl border border-border bg-surface dark:border-border-dark dark:bg-surface-dark"
+      >
+        <View className="flex-row border-b border-border dark:border-border-dark">
+          <StatCard
+            icon={Flame}
+            label={t('stats.currentStreak')}
+            value={t('stats.days', { count: summary.current })}
+            highlighted={summary.current > 0}
+            divided
+          />
+          <StatCard
+            icon={Trophy}
+            label={t('stats.longestStreak')}
+            value={t('stats.days', { count: summary.longest })}
+          />
+        </View>
+        <View className="flex-row">
+          <StatCard icon={ListChecks} label={t('stats.totalLogs')} value={String(totalLogs)} divided />
+          <StatCard icon={CalendarDays} label={t('stats.activeDays')} value={String(summary.activeDays)} />
+        </View>
       </View>
       <View className="flex-row items-center gap-2 px-1">
         <Snowflake size={14} color="#38BDF8" />
@@ -232,17 +243,24 @@ function StatCard({
   label,
   value,
   highlighted = false,
+  divided = false,
 }: {
   icon: LucideIcon
   label: string
   value: string
   highlighted?: boolean
+  divided?: boolean
 }) {
   const colors = useThemeColors()
 
   return (
-    <View style={SHADOW_TILE} className="min-w-[45%] flex-1 gap-1 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
-      <Icon size={20} color={highlighted ? colors.brand : colors.textSubtle} />
+    <View
+      className={cn(
+        'flex-1 gap-1 p-4',
+        divided ? 'border-r border-border dark:border-border-dark' : '',
+      )}
+    >
+      <Icon size={20} color={highlighted ? colors.streak : colors.textSubtle} />
       <Text className="text-xl font-extrabold text-text dark:text-text-dark">{value}</Text>
       <Text className="text-xs font-medium text-text-muted dark:text-text-muted-dark">{label}</Text>
     </View>

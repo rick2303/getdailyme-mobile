@@ -1,6 +1,6 @@
 import { Check, Flame, Hand, Heart, Search, Share2, UserMinus, UserPlus, X } from 'lucide-react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -14,7 +14,7 @@ import { ChallengesSection, FRIENDS_TAB_PARAM } from '@/components/friends/chall
 import { CircleAwards } from '@/components/friends/circle-awards'
 import { ClubsSection } from '@/components/friends/clubs-section'
 import { PageHeader } from '@/components/layout/page-header'
-import { useThemeColors } from '@/constants/colors'
+import { SHADOW_TILE, useThemeColors } from '@/constants/colors'
 import { useI18n } from '@/i18n/provider'
 import type { FriendEdge } from '@/lib/api/types'
 import {
@@ -34,18 +34,11 @@ import { useShareInvite, type InviteKind } from '@/components/invite/use-share-i
 import { useFriendActiveDates } from '@/lib/hooks/use-friends'
 import { useHistorySummary } from '@/lib/hooks/use-logs'
 import { computeSharedStreak } from '@/lib/activities/streaks'
-import { Segmented } from '@/components/ui/segmented'
+import { CHALLENGES_ANCHOR } from '@/lib/api/challenges'
+import { useRelativeTime } from '@/lib/hooks/use-relative-time'
 import { Sheet } from '@/components/ui/sheet'
 import { useCurrentUserId } from '@/lib/auth/provider'
 import { haptic } from '@/lib/utils/haptics'
-
-type FriendsTab = 'friends' | 'challenges' | 'awards' | 'clubs'
-
-function isFriendsTab(value: string): value is FriendsTab {
-  return (
-    value === 'friends' || value === 'challenges' || value === 'awards' || value === 'clubs'
-  )
-}
 
 export default function FriendsScreen() {
   const { t } = useI18n()
@@ -57,16 +50,27 @@ export default function FriendsScreen() {
 
   const [query, setQuery] = useState('')
   const [refreshing, setRefreshing] = useState(false)
-  const [tab, setTab] = useState<FriendsTab>('friends')
   const [sharing, setSharing] = useState(false)
   const router = useRouter()
   const params = useLocalSearchParams<{ [FRIENDS_TAB_PARAM]?: string }>()
   const requestedTab = params[FRIENDS_TAB_PARAM]
+  const scrollRef = useRef<ScrollView>(null)
+  const [challengesY, setChallengesY] = useState<number | null>(null)
+
+  const hasConnections = friends.length > 0 || incoming.length > 0
+
+  // Ya no hay pestanas: todo vive en un solo scroll como en la web, asi que el
+  // aviso de un reto baja hasta la seccion de retos en vez de cambiar de vista.
+  useEffect(() => {
+    if (requestedTab !== CHALLENGES_ANCHOR || challengesY === null) return
+    scrollRef.current?.scrollTo({ y: challengesY, animated: true })
+    router.setParams({ [FRIENDS_TAB_PARAM]: undefined })
+  }, [requestedTab, challengesY, router])
 
   useEffect(() => {
-    if (!requestedTab) return
-    if (isFriendsTab(requestedTab)) setTab(requestedTab)
-    router.setParams({ [FRIENDS_TAB_PARAM]: undefined })
+    if (requestedTab && requestedTab !== CHALLENGES_ANCHOR) {
+      router.setParams({ [FRIENDS_TAB_PARAM]: undefined })
+    }
   }, [requestedTab, router])
 
   // Las tres pestañas viven bajo el mismo scroll, asi que tirar para refrescar
@@ -94,6 +98,7 @@ export default function FriendsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg dark:bg-bg-dark" edges={['top']}>
       <ScrollView
+        ref={scrollRef}
         contentContainerClassName="gap-5 pb-8 pt-2"
         keyboardShouldPersistTaps="always"
         refreshControl={
@@ -122,25 +127,31 @@ export default function FriendsScreen() {
           }
         />
 
+        {/* Tu gente primero, como en la web: pareja, toques, solicitudes y la
+            lista; el buscador justo debajo, y luego premios, retos y clubes. */}
         <CoupleCard />
 
-        <View className="px-4 pb-1">
-          <Segmented
-            value={tab}
-            options={[
-              { value: 'friends', label: t('friends.tabFriends') },
-              { value: 'challenges', label: t('challenges.title') },
-              { value: 'awards', label: t('awards.tab') },
-              { value: 'clubs', label: t('clubs.title') },
-            ]}
-            onChange={setTab}
-          />
-        </View>
+        <View className="gap-5 px-4">
+          <NudgeInboxCard />
 
-        {tab === 'friends' ? (
-          <View className="gap-5 px-4">
-            <NudgeInboxCard />
+          {incoming.length > 0 ? <Requests requests={incoming} /> : null}
 
+          {isLoading ? (
+            <Spinner className="py-8" />
+          ) : friends.length > 0 ? (
+            <FriendListSection friends={friends} />
+          ) : (
+            <EmptyState
+              icon={<UserPlus size={28} color={colors.textSubtle} />}
+              title={t('friends.emptyTitle')}
+              body={t('friends.emptyBody')}
+            />
+          )}
+
+          <View className="gap-2">
+            <Text className="px-1 text-sm font-bold uppercase tracking-wide text-text dark:text-text-dark">
+              {t('friends.addHeader')}
+            </Text>
             <TextInput
               placeholder={t('friends.searchPlaceholder')}
               value={query}
@@ -149,32 +160,24 @@ export default function FriendsScreen() {
               leading={<Search size={18} color={colors.textSubtle} />}
             />
             <SearchResults query={query} />
-
-            {incoming.length > 0 ? <Requests requests={incoming} /> : null}
-
-            {isLoading ? (
-              <Spinner className="py-8" />
-            ) : friends.length > 0 ? (
-              <FriendListSection friends={friends} />
-            ) : (
-              <EmptyState
-                icon={<UserPlus size={28} color={colors.textSubtle} />}
-                title={t('friends.emptyTitle')}
-                body={t('friends.emptyBody')}
-              />
-            )}
-
-            {blocked.length > 0 ? <BlockedSection blocked={blocked} /> : null}
           </View>
-        ) : tab === 'challenges' ? (
-          <View className="gap-5 px-4">
+        </View>
+
+        {friends.length > 0 ? <CircleAwards hasFriends /> : null}
+
+        {hasConnections ? (
+          <View className="px-4" onLayout={(event) => setChallengesY(event.nativeEvent.layout.y)}>
             <ChallengesSection />
           </View>
-        ) : tab === 'awards' ? (
-          <CircleAwards hasFriends={friends.length > 0} />
-        ) : (
-          <ClubsSection />
-        )}
+        ) : null}
+
+        <ClubsSection />
+
+        {blocked.length > 0 ? (
+          <View className="px-4">
+            <BlockedSection blocked={blocked} />
+          </View>
+        ) : null}
       </ScrollView>
 
       <Sheet
@@ -226,41 +229,75 @@ function ShareOption({
 
 function NudgeInboxCard() {
   const { t } = useI18n()
+  const router = useRouter()
+  const relativeTime = useRelativeTime()
   const { data: nudges } = useUnreadNudges()
   const markRead = useMarkNudgesRead()
 
   const pending = nudges ?? []
   if (pending.length === 0) return null
   const senders = Array.from(new Map(pending.map((nudge) => [nudge.sender.id, nudge])).values())
+  const ids = pending.map((nudge) => nudge.id)
 
+  // Superficie normal con el acento solo en el icono: borde, fondo azul y
+  // boton a todo ancho eran tres senales para lo mismo.
   return (
-    <View className="gap-3 rounded-3xl border border-brand/35 bg-brand-soft p-4 dark:bg-brand-soft-dark">
+    <View
+      style={SHADOW_TILE}
+      className="gap-3 rounded-3xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark"
+    >
       <View className="flex-row items-center gap-2">
         <View className="h-9 w-9 items-center justify-center rounded-full bg-brand">
           <Hand size={18} color="#fff" />
         </View>
-        <Text className="flex-1 text-sm font-extrabold text-text dark:text-text-dark">
-          {t('friends.nudgeInboxTitle', { count: senders.length })}
-        </Text>
+        <View className="min-w-0 flex-1">
+          <Text className="text-sm font-extrabold text-text dark:text-text-dark">
+            {t('friends.nudgeInboxTitle', { count: senders.length })}
+          </Text>
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+            {t('friends.nudgeInboxBody')}
+          </Text>
+        </View>
       </View>
       {senders.map((nudge) => (
         <View key={nudge.id} className="flex-row items-center gap-2.5">
           <Avatar name={nudge.sender.display_name} src={nudge.sender.avatar_url} size="sm" />
-          <Text className="flex-1 text-sm font-bold text-text dark:text-text-dark" numberOfLines={1}>
-            {nudge.sender.display_name}
-          </Text>
+          <View className="min-w-0 flex-1">
+            <Text className="text-sm font-bold text-text dark:text-text-dark" numberOfLines={1}>
+              {nudge.sender.display_name}
+            </Text>
+            <Text className="text-xs text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
+              {relativeTime(nudge.createdAt)}
+            </Text>
+          </View>
         </View>
       ))}
-      <Button
-        title={t('friends.nudgeInboxDismiss')}
-        size="sm"
-        fullWidth
-        disabled={markRead.isPending}
-        onPress={() => {
-          haptic('success')
-          markRead.mutate(pending.map((nudge) => nudge.id))
-        }}
-      />
+      {/* El toque pide registrar algo: esa es la accion principal, y lleva a
+          Hoy dejandolo leido. "Entendido" queda al lado. */}
+      <View className="flex-row gap-2">
+        <Button
+          title={t('friends.nudgeInboxLog')}
+          size="sm"
+          className="flex-1"
+          disabled={markRead.isPending}
+          onPress={() => {
+            haptic('success')
+            markRead.mutate(ids)
+            router.push('/')
+          }}
+        />
+        <Button
+          title={t('friends.nudgeInboxDismiss')}
+          size="sm"
+          variant="secondary"
+          className="flex-1"
+          disabled={markRead.isPending}
+          onPress={() => {
+            haptic('tap')
+            markRead.mutate(ids)
+          }}
+        />
+      </View>
     </View>
   )
 }

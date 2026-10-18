@@ -38,6 +38,7 @@ export const FRIENDS_TAB_PARAM = 'tab'
 // llega en la fase de pulido.
 export function ChallengesSection() {
   const { t } = useI18n()
+  const colors = useThemeColors()
   const timeZone = useTimeZone()
   const { active, invitations, isLoading } = useChallenges()
   const [creator, setCreator] = useState<{ open: boolean; prefill: ChallengePrefill | null }>({
@@ -60,13 +61,32 @@ export function ChallengesSection() {
   // desaparecian el historial y la revancha.
   return (
     <View className="gap-2">
-      <SectionHeader onCreate={() => setCreator({ open: true, prefill: null })} />
+      <SectionHeader
+        onCreate={isEmpty ? undefined : () => setCreator({ open: true, prefill: null })}
+      />
+      {/* Vacio, la accion es una fila de lista como "Crear club" y la
+          explicacion va en el pie, como en la web. */}
       {isLoading && isEmpty ? (
         <Spinner className="py-6" />
       ) : isEmpty ? (
-        <Text className="px-1 text-sm text-text-muted dark:text-text-muted-dark">
-          {t('challenges.empty')}
-        </Text>
+        <View className="gap-1.5">
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              haptic('tap')
+              setCreator({ open: true, prefill: null })
+            }}
+            className="min-h-12 flex-row items-center gap-3 rounded-2xl bg-surface px-4 py-3 active:opacity-70 dark:bg-surface-dark"
+          >
+            <Plus size={20} color={colors.brand} />
+            <Text className="flex-1 text-[15px] text-brand dark:text-brand-dark">
+              {t('challenges.createLong')}
+            </Text>
+          </Pressable>
+          <Text className="px-4 text-xs text-text-subtle dark:text-text-subtle-dark">
+            {t('challenges.empty')}
+          </Text>
+        </View>
       ) : null}
       {invitations.map((challenge) => (
         <InvitationCard key={challenge.id} challenge={challenge} />
@@ -191,22 +211,27 @@ function FinishedCard({
   )
 }
 
-function SectionHeader({ onCreate }: { onCreate: () => void }) {
+function SectionHeader({ onCreate }: { onCreate?: () => void }) {
   const { t } = useI18n()
   const colors = useThemeColors()
 
   return (
-    <View className="flex-row items-center justify-between px-1">
+    <View className="min-h-11 flex-row items-center justify-between px-1">
       <Text className="text-sm font-bold uppercase tracking-wide text-text dark:text-text-dark">
         {t('challenges.title')}
       </Text>
-      <Button
-        title={t('challenges.create')}
-        size="sm"
-        variant="secondary"
-        icon={<Plus size={16} color={colors.text} />}
-        onPress={onCreate}
-      />
+      {/* Sin retos no hay boton: la accion es la fila del vacio. */}
+      {onCreate ? (
+        <Button
+          title={t('challenges.create')}
+          size="sm"
+          variant="ghost"
+          className="-mr-3"
+          labelClassName="text-brand dark:text-brand-dark"
+          icon={<Plus size={16} color={colors.brand} />}
+          onPress={onCreate}
+        />
+      ) : null}
     </View>
   )
 }

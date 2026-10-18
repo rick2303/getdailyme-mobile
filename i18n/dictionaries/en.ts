@@ -326,6 +326,16 @@ export const en: Dictionary = {
       one: "{count} log",
       other: "{count} logs",
     },
+    batchSummary: {
+      one: "Logged {count} thing",
+      other: "Logged {count} things",
+    },
+    batchCheer: "Cheer",
+    batchCheerDone: "Cheered",
+    batchCheered: {
+      one: "{count} person cheered you on",
+      other: "{count} people cheered you on",
+    },
     newEntries: {
       one: "{count} new",
       other: "{count} new",
@@ -425,6 +435,11 @@ export const en: Dictionary = {
     comment: "{name} commented on your log",
     reply: "{name} replied in one of your threads",
     reaction: "{name} reacted to your log",
+    reaction_on: "{name} reacted to your {activity}",
+    reaction_many: "{name} reacted to {count} of your logs",
+    comment_on: "{name} commented on your {activity}",
+    comment_many: "{name} left {count} comments on your logs",
+    story_reaction_many: "{name} reacted {count} times to your story",
     friend_request: "{name} sent you a friend request",
     friend_accept: "{name} accepted your friend request",
     event_invite: "{name} invited you to an event",
@@ -822,6 +837,10 @@ export const en: Dictionary = {
       other: "You, {count} times",
     },
     pingsNone: "No taps yet today",
+    pingsOnlySent: {
+      one: "You thought of {name} once today",
+      other: "You thought of {name} {count} times today",
+    },
     widgetEmpty: "Pair up from Friends to see them here.",
     widgetHint: "Add the “Couple” widget to your home screen to do it without opening the app.",
     mood: {
@@ -854,6 +873,7 @@ export const en: Dictionary = {
       one: "Show {count} done",
       other: "Show {count} done",
     },
+    showAll: "See all {count} pending",
     hideDone: "Hide done",
     pending: {
       one: "{count} pending",
